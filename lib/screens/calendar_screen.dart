@@ -19,14 +19,6 @@ class _CalanderScreenState extends State<CalendarScreen> {
         backgroundColor: Colors.transparent,
         title: Text('캘린더', style: textTheme.headlineMedium),
         centerTitle: true,
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.settings),
-            onPressed: () {
-              // 설정 버튼을 눌렀을 때
-            }
-          )
-        ],
       ),
       body: Container(
         decoration: commonTabDecoration(),
