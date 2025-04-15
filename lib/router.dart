@@ -4,7 +4,7 @@ import 'package:recap_today/screens/planner_screen.dart';
 import 'package:recap_today/screens/calendar_screen.dart';
 import 'package:recap_today/screens/summary_screen.dart';
 import 'package:recap_today/screens/settings_screen.dart';
-import 'package:recap_today/widget/planner/timetable.dart';
+import 'package:recap_today/screens/timetable_screen.dart';
 
 class AppRoutes {
   static const String home = '/';
@@ -29,7 +29,7 @@ class AppRouter {
       case AppRoutes.settings:
         return MaterialPageRoute(builder: (_) => const SettingsScreen());
       case AppRoutes.timetable:
-        //return MaterialPageRoute(builder: (_) => const TimetableWidget());
+        return MaterialPageRoute(builder: (_) => const TimetableScreen());
       default:
         return _errorRoute();
     }

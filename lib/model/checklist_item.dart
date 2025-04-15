@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class CheckList {
+class ChecklistItem {
   final String id;
   String text;
   String? subtext;
   bool isChecked;
   DateTime? dueDate;
 
-  CheckList({
+  ChecklistItem({
     required this.id,
     required this.text,
     this.isChecked = false,
@@ -15,19 +15,19 @@ class CheckList {
     this.subtext,
   });
 
-  CheckList copyWith({
+  ChecklistItem copyWith({
     String? id,
     String? text,
     bool? isChecked,
     DateTime? dueDate,
     String? subtext,
   }) {
-    return CheckList(
+    return ChecklistItem(
       id: id ?? this.id,
       text: text ?? this.text,
+      subtext: subtext ?? this.subtext,
       isChecked: isChecked ?? this.isChecked,
       dueDate: dueDate ?? this.dueDate,
-      subtext: subtext ?? this.subtext,
     );
   }
 }

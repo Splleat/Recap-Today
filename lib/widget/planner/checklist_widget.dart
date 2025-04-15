@@ -3,7 +3,7 @@ import 'package:recap_today/model/checklist_item.dart'; // CheckList 모델 임�
 import 'package:intl/intl.dart';
 
 class ChecklistItemWidget extends StatelessWidget {
-  final CheckList item;
+  final ChecklistItem item;
   final Function(String, bool) onCheckboxChanged;
   final Function(String) onDelete;
 

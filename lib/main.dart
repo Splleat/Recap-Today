@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:recap_today/provider/checklist_provider.dart';
-import 'package:recap_today/provider/timetable_provider.dart';
+import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:recap_today/screens/main_screen.dart';
 import 'package:recap_today/theme/lightTheme.dart';
 import 'package:recap_today/theme/darkTheme.dart';
@@ -13,7 +13,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ChecklistProvider()),
-        ChangeNotifierProvider(create: (context) => TimetableProvider()),
+        ChangeNotifierProvider(create: (context) => ScheduleProvider()),
       ],
       child: const RecapToday(),
     ),

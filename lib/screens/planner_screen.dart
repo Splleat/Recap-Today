@@ -22,6 +22,14 @@ class _PlannerScreenState extends State<PlannerScreen> {
         backgroundColor: Colors.transparent,
         title: Text('플래너', style: textTheme.headlineMedium),
         centerTitle: true,
+        actions: <Widget>[
+          IconButton(
+              icon: Icon(Icons.calendar_today),
+              onPressed: () {
+                Navigator.pushNamed(context, AppRoutes.timetable);
+              }
+          )
+        ],
       ),
       body: Stack(
         children: [
@@ -36,7 +44,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
             ),
           ),
         ],
-      )
+      ),
     );
   }
 }

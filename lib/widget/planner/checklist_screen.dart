@@ -104,7 +104,7 @@ class ChecklistScreen extends StatelessWidget {
               child: const Text('추가'),
               onPressed: () {
                 if (textController.text.isNotEmpty) {
-                  final newItem = CheckList(id: UniqueKey().toString(), text: textController.text, dueDate: selectedDueDate);
+                  final newItem = ChecklistItem(id: UniqueKey().toString(), text: textController.text, dueDate: selectedDueDate);
                   checklistProvider.addItem(newItem);
                   Navigator.of(context).pop();
                 }
