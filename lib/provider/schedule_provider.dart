@@ -13,6 +13,7 @@ class ScheduleProvider extends ChangeNotifier {
 
   void addItem(ScheduleItem item) {
     _items.add(item);
+    // print('Provider Added: ${item.text} for day ${item.dayOfWeek}');
     notifyListeners();
   }
 

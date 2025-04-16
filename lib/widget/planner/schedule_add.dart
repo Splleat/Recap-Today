@@ -32,7 +32,7 @@ class _ScheduleAddFormState extends State<ScheduleAddForm> {
   TimeOfDay? _selectedEndTime;
   int _selectedDayOfWeek = DateTime.now().weekday % 7;
   DateTime? _selectedSpecificDate;
-  Color _selectedColor = Colors.orangeAccent;
+  Color _selectedColor = Colors.lightBlueAccent;
   bool _hasAlarm = false;
   Duration _alarmOffset = const Duration(minutes: 60);
 

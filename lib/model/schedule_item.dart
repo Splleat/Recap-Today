@@ -23,7 +23,7 @@ class ScheduleItem {
     required this.isRoutine,
     required this.startTime,
     required this.endTime,
-    this.color = Colors.orangeAccent,
+    this.color = Colors.lightBlueAccent,
     this.hasAlarm = false,
     this.alarmOffset = const Duration(hours: 1),
   });

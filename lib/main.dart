@@ -27,7 +27,7 @@ class RecapToday extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Recap Today',
-      //theme: lightTheme,
+      theme: lightTheme,
       //darkTheme: darkTheme,
       home: const MainScreen(),
       onGenerateRoute: AppRouter.generateRoute,
