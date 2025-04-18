@@ -5,13 +5,13 @@ import 'package:intl/intl.dart';
 class ChecklistItemWidget extends StatelessWidget {
   final ChecklistItem item;
   final Function(String, bool) onCheckboxChanged;
-  final Function(String) onDelete;
+  final Function(String)? onDelete;
 
   const ChecklistItemWidget({
     super.key,
     required this.item,
     required this.onCheckboxChanged,
-    required this.onDelete,
+    this.onDelete,
   });
 
   Duration? _getRemainingTime(DateTime? dueDate) {
@@ -52,7 +52,15 @@ class ChecklistItemWidget extends StatelessWidget {
           }
         },
       ),
-      title: Text(item.text),
+      title: Text(
+        item.text,
+        style: TextStyle(
+          decoration: item.isChecked
+              ? TextDecoration.lineThrough
+              : TextDecoration.none,
+          color: item.isChecked ? Colors.grey : null,
+        ),
+      ),
       subtitle: item.subtext != null ? Text(item.subtext!) : null,
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -76,12 +84,13 @@ class ChecklistItemWidget extends StatelessWidget {
                 ),
               ],
             ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () {
-              onDelete(item.id);
-            },
-          ),
+          if (onDelete != null)
+            IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () {
+                onDelete!(item.id);
+              },
+            ),
         ],
       ),
       onTap: () {

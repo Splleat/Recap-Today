@@ -35,7 +35,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
       resizeToAvoidBottomInset: false, // 키보드 등장 시 화면 크기 조정 방지
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text('하루 요약', style: textTheme.headlineMedium),
+        title: Text('하루 요약'),
         centerTitle: true,
         actions: [
           IconButton(
