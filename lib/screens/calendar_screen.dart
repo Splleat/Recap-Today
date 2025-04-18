@@ -8,7 +8,6 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalanderScreenState extends State<CalendarScreen> {
-
   Widget build(BuildContext context) {
 
     return Scaffold(
@@ -18,9 +17,7 @@ class _CalanderScreenState extends State<CalendarScreen> {
         title: Text('캘린더'),
         centerTitle: true,
       ),
-      body: Container(
-        decoration: commonTabDecoration(),
-      ),
+      body: Container(decoration: commonTabDecoration()),
     );
   }
 }

@@ -4,7 +4,7 @@ import 'package:recap_today/widget/bottom_navigation.dart';
 import 'home_screen.dart';
 import 'planner_screen.dart';
 import 'calendar_screen.dart';
-import 'summary_screen.dart';
+import 'summary_screen.dart'; //임시 주석
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -33,12 +33,12 @@ class _MainScreenState extends State<MainScreen> {
     switch (index) {
       case 0:
         return const HomeScreen(); // HomeScreenContent 반환
-    case 1:
-      return const PlannerScreen();
-    case 2:
-      return const CalendarScreen();
-    case 3:
-      return const SummaryScreen();
+      case 1:
+        return const PlannerScreen();
+      case 2:
+        return const CalendarScreen();
+      case 3:
+        return const SummaryScreen();
       default:
         return const Center(child: Text('알 수 없는 화면'));
     }

@@ -12,7 +12,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
   Widget build(BuildContext context) {
 
     return Scaffold(
@@ -25,15 +24,13 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.settings),
             onPressed: () {
               Navigator.pushNamed(context, AppRoutes.settings);
-            }
-          )
+            },
+          ),
         ],
       ),
-      body: Stack (
+      body: Stack(
         children: [
-          Container(
-            decoration: commonTabDecoration(),
-          ),
+          Container(decoration: commonTabDecoration()),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),

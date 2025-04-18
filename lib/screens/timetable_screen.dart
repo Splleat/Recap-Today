@@ -14,7 +14,7 @@ class TimetableScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         title: Text('시간표'),
         centerTitle: true,
-        actions: <Widget> [
+        actions: <Widget>[
           IconButton(
             icon: Icon(Icons.add),
             tooltip: '일정 추가',
@@ -25,9 +25,7 @@ class TimetableScreen extends StatelessWidget {
                 builder: (BuildContext context) {
                   return Padding(
                     padding: MediaQuery.of(context).viewInsets,
-                    child: ScheduleAddForm(
-                      isRoutineContext: true,
-                    ),
+                    child: ScheduleAddForm(isRoutineContext: true),
                   );
                 },
               );

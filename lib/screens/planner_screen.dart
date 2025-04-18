@@ -13,7 +13,6 @@ class PlannerScreen extends StatefulWidget {
 }
 
 class _PlannerScreenState extends State<PlannerScreen> {
-
   Widget build(BuildContext context) {
 
     return Scaffold(
@@ -24,11 +23,11 @@ class _PlannerScreenState extends State<PlannerScreen> {
         centerTitle: true,
         actions: <Widget>[
           IconButton(
-              icon: Icon(Icons.calendar_today),
-              onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.timetable);
-              }
-          )
+            icon: Icon(Icons.calendar_today),
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.timetable);
+            },
+          ),
         ],
       ),
       body: Stack(
