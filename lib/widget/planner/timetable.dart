@@ -105,9 +105,9 @@ class TimetableScheduleBlock extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start ,
             children: [
+              item.isRoutine ? Text('루틴 일정') : Text('사용자 일정'),
               Text((item.subText?.isNotEmpty ?? false) ? item.subText! : '세부 내용 없음'),
-              Text('${week[item.dayOfWeek!]}요일 '
-                  '${item.startTime.format(context)} - ${item.endTime.format(context)}'),
+              Text('${item.startTime.format(context)} - ${item.endTime.format(context)}'),
             ],
           ),
           actions: <Widget>[

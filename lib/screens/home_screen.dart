@@ -14,20 +14,18 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
 
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text('Recap Today', style: textTheme.headlineLarge),
+        title: Text('Recap Today'),
         actions: <Widget>[
           IconButton(
-              icon: Icon(Icons.settings),
-              onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.settings);
-              }
+            icon: Icon(Icons.settings),
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.settings);
+            }
           )
         ],
       ),
@@ -41,9 +39,37 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  HomeSchedule(),
+                  HomeSchedule(date: DateTime.now()),
                   const SizedBox(height: 16),
-                  const Expanded(child: ChecklistScreen()),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const HomeChecklist(),
+                          )
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white.withOpacity(0.8),
+                        padding: const EdgeInsets.all(16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                      ),
+                      child: Row(
+                        children: [
+                          Text('할 일을 확인하세요'),
+                          Spacer(),
+                          Icon(Icons.arrow_forward),
+                        ],
+                      )
+                    )
+                  ),
                 ],
               ),
             ),

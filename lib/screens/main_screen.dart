@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:recap_today/router.dart';
-import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/widget/bottom_navigation.dart';
 import 'home_screen.dart';
 import 'planner_screen.dart';

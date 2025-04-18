@@ -10,14 +10,12 @@ class CalendarScreen extends StatefulWidget {
 class _CalanderScreenState extends State<CalendarScreen> {
 
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        title: Text('캘린더', style: textTheme.headlineMedium),
+        title: Text('캘린더'),
         centerTitle: true,
       ),
       body: Container(
