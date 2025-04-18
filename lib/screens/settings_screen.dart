@@ -8,7 +8,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
@@ -21,12 +20,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: Icon(Icons.arrow_back),
           onPressed: () {
             Navigator.pop(context);
-          }
-        )
+          },
+        ),
       ),
-      body: Container(
-        decoration: commonTabDecoration(),
-      ),
+      body: Container(decoration: commonTabDecoration()),
     );
   }
 }

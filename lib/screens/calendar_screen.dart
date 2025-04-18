@@ -8,7 +8,6 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalanderScreenState extends State<CalendarScreen> {
-
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
@@ -20,9 +19,7 @@ class _CalanderScreenState extends State<CalendarScreen> {
         title: Text('캘린더', style: textTheme.headlineMedium),
         centerTitle: true,
       ),
-      body: Container(
-        decoration: commonTabDecoration(),
-      ),
+      body: Container(decoration: commonTabDecoration()),
     );
   }
 }

@@ -12,7 +12,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
@@ -24,18 +23,16 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('Recap Today', style: textTheme.headlineLarge),
         actions: <Widget>[
           IconButton(
-              icon: Icon(Icons.settings),
-              onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.settings);
-              }
-          )
+            icon: Icon(Icons.settings),
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.settings);
+            },
+          ),
         ],
       ),
-      body: Stack (
+      body: Stack(
         children: [
-          Container(
-            decoration: commonTabDecoration(),
-          ),
+          Container(decoration: commonTabDecoration()),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),

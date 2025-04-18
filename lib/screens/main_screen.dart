@@ -34,12 +34,12 @@ class _MainScreenState extends State<MainScreen> {
     switch (index) {
       case 0:
         return const HomeScreen(); // HomeScreenContent 반환
-    case 1:
-      return const PlannerScreen();
-    case 2:
-      return const CalendarScreen();
-    case 3:
-      return const SummaryScreen();
+      case 1:
+        return const PlannerScreen();
+      case 2:
+        return const CalendarScreen();
+      case 3:
+        return const SummaryScreen();
       default:
         return const Center(child: Text('알 수 없는 화면'));
     }

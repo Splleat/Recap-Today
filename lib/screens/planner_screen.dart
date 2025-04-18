@@ -11,7 +11,6 @@ class PlannerScreen extends StatefulWidget {
 }
 
 class _PlannerScreenState extends State<PlannerScreen> {
-
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
@@ -24,25 +23,17 @@ class _PlannerScreenState extends State<PlannerScreen> {
         centerTitle: true,
         actions: <Widget>[
           IconButton(
-              icon: Icon(Icons.calendar_today),
-              onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.timetable);
-              }
-          )
+            icon: Icon(Icons.calendar_today),
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.timetable);
+            },
+          ),
         ],
       ),
       body: Stack(
         children: [
-          Container(
-            decoration: commonTabDecoration(),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                MainCalendar(),
-              ],
-            ),
-          ),
+          Container(decoration: commonTabDecoration()),
+          SafeArea(child: Column(children: [MainCalendar()])),
         ],
       ),
     );
