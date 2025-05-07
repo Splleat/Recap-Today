@@ -51,16 +51,68 @@ class _DiaryWidgetState extends State<DiaryWidget> {
 
   // 여러 이미지를 한 번에 선택하는 함수
   Future<void> _pickMultipleImages() async {
-    final picker = ImagePicker();
-    final pickedFiles = await picker.pickMultiImage();
+    try {
+      final picker = ImagePicker();
+      final pickedFiles = await picker.pickMultiImage();
 
-    if (pickedFiles.isNotEmpty) {
-      for (var image in pickedFiles) {
-        final path = await FileManager.savePhoto(File(image.path));
+      if (pickedFiles.isNotEmpty) {
+        // 선택된 이미지 저장 시작 상태 표시
         setState(() {
-          _photoPaths.add(path);
+          _isLoading = true;
         });
+
+        int successCount = 0;
+        int failCount = 0;
+
+        for (var image in pickedFiles) {
+          // 파일 저장 및 상대 경로 획득
+          final relativePath = await FileManager.savePhoto(File(image.path));
+
+          if (relativePath != null) {
+            // 성공적으로 저장된 이미지만 추가
+            setState(() {
+              _photoPaths.add(relativePath);
+            });
+            successCount++;
+          } else {
+            failCount++;
+          }
+        }
+
+        // 작업 완료 후 로딩 상태 해제
+        setState(() {
+          _isLoading = false;
+        });
+
+        // 저장 결과 사용자에게 알림
+        if (successCount > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$successCount개의 사진이 추가되었습니다')),
+          );
+        }
+
+        if (failCount > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '$failCount개의 사진을 추가하지 못했습니다.\n크기가 너무 크거나 지원하지 않는 형식입니다.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('사진을 불러오는 중 오류가 발생했습니다: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -102,29 +154,54 @@ class _DiaryWidgetState extends State<DiaryWidget> {
               scrollDirection: Axis.horizontal,
               itemCount: _photoPaths.length,
               itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: Stack(
-                    children: [
-                      Image.file(
-                        File(_photoPaths[index]),
+                return FutureBuilder<String>(
+                  future: FileManager.getAbsolutePath(_photoPaths[index]),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const SizedBox(
                         width: 150,
-                        fit: BoxFit.cover,
-                      ),
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: IconButton(
-                          icon: const Icon(Icons.close, color: Colors.red),
-                          onPressed: () {
-                            setState(() {
-                              _photoPaths.removeAt(index);
-                            });
-                          },
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    if (snapshot.hasError || !snapshot.hasData) {
+                      return SizedBox(
+                        width: 150,
+                        child: Center(
+                          child: Icon(
+                            Icons.broken_image,
+                            color: Colors.red.shade300,
+                            size: 48,
+                          ),
                         ),
+                      );
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: Stack(
+                        children: [
+                          Image.file(
+                            File(snapshot.data!),
+                            width: 150,
+                            fit: BoxFit.cover,
+                          ),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.red),
+                              onPressed: () {
+                                setState(() {
+                                  _photoPaths.removeAt(index);
+                                });
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 );
               },
             ),
@@ -180,6 +257,12 @@ class _DiaryWidgetState extends State<DiaryWidget> {
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
+
+    // 저장되지 않은 사진 정리
+    if (_todayDiary != null && _photoPaths.isNotEmpty) {
+      FileManager.cleanupUnusedPhotos(_photoPaths);
+    }
+
     super.dispose();
   }
 }
