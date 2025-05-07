@@ -1,6 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:flutter/material.dart';
+
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+
+import 'package:recap_today/provider/login_provider.dart';
 import 'package:recap_today/screens/signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,86 +16,89 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLoading = false;
+  // final _usernameController = TextEditingController();
+  // final _passwordController = TextEditingController();
+  // bool _isLoading = false;
 
-  Future<void> login() async {
-    setState(() {
-      _isLoading = true;
-    });
+  // Future<void> login() async {
+  //   setState(() {
+  //     _isLoading = true;
+  //   });
 
-    try {
-      // 여러 가능한 URL을 시도합니다
-      final urls = [
-        'http://211.194.70.88:8000/login', // 실제 서버
-        'http://10.0.2.2:8000/login', // Android 에뮬레이터
-        'http://localhost:8000/login', // 웹
-        'http://127.0.0.1:8000/login', // 로컬 장치
-      ];
+  //   try {
+  //     // 여러 가능한 URL을 시도합니다
+  //     final urls = [
+  //       'http://211.194.70.88:8000/login', // 실제 서버
+  //       'http://10.0.2.2:8000/login', // Android 에뮬레이터
+  //       'http://localhost:8000/login', // 웹
+  //       'http://127.0.0.1:8000/login', // 로컬 장치
+  //     ];
 
-      http.Response? response;
-      String errorMsg = "";
+  //     http.Response? response;
+  //     String errorMsg = "";
 
-      for (var url in urls) {
-        try {
-          response = await http.post(
-            Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'username': _usernameController.text,
-              'password': _passwordController.text,
-            }),
-          );
-          // 성공하면 루프 종료
-          break;
-        } catch (e) {
-          errorMsg += "$url 연결 실패: $e\n";
-          continue;
-        }
-      }
+  //     for (var url in urls) {
+  //       try {
+  //         response = await http.post(
+  //           Uri.parse(url),
+  //           headers: {'Content-Type': 'application/json'},
+  //           body: jsonEncode({
+  //             'username': _usernameController.text,
+  //             'password': _passwordController.text,
+  //           }),
+  //         );
+  //         // 성공하면 루프 종료
+  //         break;
+  //       } catch (e) {
+  //         errorMsg += "$url 연결 실패: $e\n";
+  //         continue;
+  //       }
+  //     }
 
-      if (response != null && response.statusCode == 200) {
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-      } else {
-        if (mounted) {
-          if (response != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('로그인 실패: ${response.statusCode}')),
-            );
-          } else {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('서버 연결 실패\n$errorMsg')));
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('연결 오류: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
+  //     if (response != null && response.statusCode == 200) {
+  //       if (mounted) {
+  //         Navigator.pushReplacementNamed(context, '/home');
+  //       }
+  //     } else {
+  //       if (mounted) {
+  //         if (response != null) {
+  //           ScaffoldMessenger.of(context).showSnackBar(
+  //             SnackBar(content: Text('로그인 실패: ${response.statusCode}')),
+  //           );
+  //         } else {
+  //           ScaffoldMessenger.of(
+  //             context,
+  //           ).showSnackBar(SnackBar(content: Text('서버 연결 실패\n$errorMsg')));
+  //         }
+  //       }
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(
+  //         context,
+  //       ).showSnackBar(SnackBar(content: Text('연결 오류: $e')));
+  //     }
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() {
+  //         _isLoading = false;
+  //       });
+  //     }
+  //   }
+  // }
 
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   _usernameController.dispose();
+  //   _passwordController.dispose();
+  //   super.dispose();
+  // }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = context.select(
+      (LoginProvider provider) => provider.isLoading,
+    );
     return Scaffold(
       backgroundColor: Color(0xFFF5F5F5),
       body: SafeArea(
@@ -131,7 +139,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     children: [
                       TextField(
-                        controller: _usernameController,
+                        onChanged:
+                            (value) =>
+                                context.read<LoginProvider>().setUserId(value),
                         decoration: const InputDecoration(
                           labelText: '아이디',
                           prefixIcon: Icon(Icons.person),
@@ -139,8 +149,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
                       TextField(
-                        controller: _passwordController,
                         obscureText: true,
+                        onChanged:
+                            (value) => context
+                                .read<LoginProvider>()
+                                .setPassword(value),
                         decoration: const InputDecoration(
                           labelText: '비밀번호',
                           prefixIcon: Icon(Icons.lock),
@@ -151,7 +164,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : login,
+                          onPressed:
+                              isLoading
+                                  ? null
+                                  : context.read<LoginProvider>().login,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             foregroundColor: Colors.white,
@@ -160,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           child:
-                              _isLoading
+                              isLoading
                                   ? const CircularProgressIndicator(
                                     color: Colors.white,
                                   )
