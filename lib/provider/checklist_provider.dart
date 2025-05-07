@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:recap_today/model/checklist_item.dart';
 import 'package:collection/collection.dart';
 import 'package:recap_today/data/database_helper.dart';
+import 'package:intl/intl.dart';
 
 /// 체크리스트 항목을 관리하는 Provider 클래스
 /// 앱 전체에서 체크리스트 상태를 관리하고 데이터베이스와 동기화합니다.
@@ -11,14 +12,25 @@ class ChecklistProvider extends ChangeNotifier {
   bool _isLoaded = false;
   bool _isBusy = false; // 데이터베이스 작업 중 상태를 추적하는 플래그
 
+  // 캐싱을 위한 변수들
+  DateTime? _lastRefreshTime;
+  List<ChecklistItem>? _cachedTodayCompletedItems;
+  String _todayDateString = '';
+
   // 생성자
   ChecklistProvider() {
+    _updateTodayDateString();
     _loadItems();
   }
 
   // Getter 메서드들
   List<ChecklistItem> get items => List.unmodifiable(_items); // 불변 리스트 반환으로 변경
   bool get isLoading => !_isLoaded;
+
+  // 오늘 날짜 문자열 업데이트
+  void _updateTodayDateString() {
+    _todayDateString = DateFormat('yyyy-MM-dd').format(DateTime.now());
+  }
 
   /// 데이터베이스에서 아이템 로드
   Future<void> _loadItems() async {
@@ -42,6 +54,8 @@ class ChecklistProvider extends ChangeNotifier {
 
       _isLoaded = true;
       _isBusy = false;
+      // 캐시 초기화
+      _invalidateCache();
       notifyListeners();
     } catch (e) {
       debugPrint('체크리스트 아이템 로드 중 오류 발생: $e');
@@ -111,9 +125,17 @@ class ChecklistProvider extends ChangeNotifier {
     try {
       // 개선된 일괄 저장 메서드 사용
       await _dbHelper.saveChecklistItems(List<ChecklistItem>.from(_items));
+      _invalidateCache();
     } catch (e) {
       debugPrint('체크리스트 아이템 일괄 저장 중 오류 발생: $e');
     }
+  }
+
+  /// 캐시 무효화 처리
+  void _invalidateCache() {
+    _cachedTodayCompletedItems = null;
+    _lastRefreshTime = null;
+    _updateTodayDateString();
   }
 
   /// ID로 아이템 인덱스 찾기
@@ -130,6 +152,7 @@ class ChecklistProvider extends ChangeNotifier {
 
     _items.add(item);
     _sortItems();
+    _invalidateCache();
     notifyListeners();
 
     // 데이터베이스에 저장
@@ -149,7 +172,16 @@ class ChecklistProvider extends ChangeNotifier {
     if (index == -1 || _isBusy) return;
 
     _items[index].isChecked = isChecked;
+
+    // 체크 상태 변경 시 completedDate 업데이트
+    if (isChecked) {
+      _items[index].completedDate = DateTime.now();
+    } else {
+      _items[index].completedDate = null;
+    }
+
     _sortItems();
+    _invalidateCache();
     notifyListeners();
 
     // 데이터베이스 업데이트
@@ -297,6 +329,7 @@ class ChecklistProvider extends ChangeNotifier {
     if (_isBusy) return;
 
     _isLoaded = false;
+    _invalidateCache();
     notifyListeners(); // 로딩 상태 변경 알림
     await _loadItems();
   }
@@ -326,5 +359,75 @@ class ChecklistProvider extends ChangeNotifier {
     } finally {
       _isBusy = false;
     }
+  }
+
+  /// 완료된 항목들(체크 표시된 항목들)을 모두 제거하고 데이터베이스에는 저장
+  Future<void> clearCompletedItems() async {
+    if (_isBusy) return;
+
+    // 완료된 항목만 제거하기 전에 현재 상태 백업
+    final List<ChecklistItem> completedItems =
+        _items.where((item) => item.isChecked).toList();
+
+    if (completedItems.isEmpty) {
+      return; // 완료된 항목이 없으면 처리 건너뛰기
+    }
+
+    // 완료된 항목 제거
+    _items.removeWhere((item) => item.isChecked);
+    _invalidateCache();
+    notifyListeners();
+
+    // 데이터베이스 업데이트
+    try {
+      _isBusy = true;
+      await _saveAllItems();
+    } catch (e) {
+      debugPrint('완료된 항목 제거 중 오류 발생: $e');
+      // 오류 발생 시 제거된 항목 복원
+      _items.addAll(completedItems);
+      _sortItems();
+      notifyListeners();
+    } finally {
+      _isBusy = false;
+    }
+  }
+
+  /// 특정 날짜에 완료된 항목들만 가져오기
+  List<ChecklistItem> getCompletedItemsByDate(DateTime date) {
+    final String dateString = DateFormat('yyyy-MM-dd').format(date);
+
+    return _items.where((item) {
+      if (item.completedDate == null) return false;
+      return DateFormat('yyyy-MM-dd').format(item.completedDate!) == dateString;
+    }).toList();
+  }
+
+  /// 오늘 완료된 항목들만 가져오기 (캐싱 최적화)
+  List<ChecklistItem> getTodayCompletedItems() {
+    // 날짜가 변경되었는지 확인
+    final currentDateString = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    if (_todayDateString != currentDateString) {
+      _updateTodayDateString();
+      _invalidateCache();
+    }
+
+    // 캐시된 결과가 있고 마지막 갱신 시간이 1분 이내면 캐시 사용
+    final now = DateTime.now();
+    if (_cachedTodayCompletedItems != null && _lastRefreshTime != null) {
+      final difference = now.difference(_lastRefreshTime!);
+      if (difference.inMinutes < 1) {
+        return _cachedTodayCompletedItems!;
+      }
+    }
+
+    // 오늘 완료된 항목 계산
+    _cachedTodayCompletedItems =
+        _items
+            .where((item) => item.isChecked && item.isCompletedToday)
+            .toList();
+    _lastRefreshTime = now;
+
+    return _cachedTodayCompletedItems!;
   }
 }

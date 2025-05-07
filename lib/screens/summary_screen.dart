@@ -65,27 +65,12 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       child: LocationInfo(),
                     ),
                   ),
+                  Card(child: AppUsage()),
+                  Card(child: ChecklistAchievement()),
+                  Card(child: AiFeedback()),
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 80.0),
-                      child: AppUsage(),
-                    ),
-                  ),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 80.0),
-                      child: ChecklistAchievement(),
-                    ),
-                  ),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 80.0),
-                      child: AiFeedback(),
-                    ),
-                  ),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24.0),
+                      padding: const EdgeInsets.symmetric(vertical: 35.0),
                     ),
                   ),
                 ],

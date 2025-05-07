@@ -1,6 +1,7 @@
 // abstract_database.dart
 import 'package:recap_today/model/diary_model.dart';
 import 'package:recap_today/model/checklist_item.dart';
+import 'package:recap_today/model/app_usage_model.dart';
 
 /// 데이터베이스 접근을 위한 추상 인터페이스
 /// 다양한 데이터베이스 구현체를 일관적으로 사용할 수 있도록 정의합니다.
@@ -19,4 +20,11 @@ abstract class AbstractDatabase {
   Future<int> deleteChecklistItem(String id);
   Future<int> deleteAllChecklistItems();
   Future<void> saveChecklistItems(List<ChecklistItem> items);
+
+  // 앱 사용 기록 관련 메서드
+  Future<int> insertAppUsage(AppUsageModel appUsage);
+  Future<int> insertAppUsageBatch(List<AppUsageModel> appUsages);
+  Future<List<AppUsageModel>> getAppUsageForDate(String date);
+  Future<AppUsageSummary?> getAppUsageSummaryForDate(String date);
+  Future<int> deleteAppUsageForDate(String date);
 }

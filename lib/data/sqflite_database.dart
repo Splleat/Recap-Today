@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:recap_today/model/diary_model.dart';
 import 'package:recap_today/model/checklist_item.dart';
+import 'package:recap_today/model/app_usage_model.dart';
 import 'package:recap_today/data/abstract_database.dart';
 import 'package:recap_today/data/database_helper.dart';
 
@@ -118,6 +119,57 @@ class SqfliteDatabase extends AbstractDatabase {
       await _helper.saveChecklistItems(items);
     } catch (e) {
       debugPrint('체크리스트 항목 일괄 저장 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  // 앱 사용 기록 관련 메서드 구현
+  @override
+  Future<int> insertAppUsage(AppUsageModel appUsage) async {
+    try {
+      return await _helper.insertAppUsage(appUsage);
+    } catch (e) {
+      debugPrint('앱 사용 기록 삽입 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<int> insertAppUsageBatch(List<AppUsageModel> appUsages) async {
+    try {
+      return await _helper.insertAppUsageBatch(appUsages);
+    } catch (e) {
+      debugPrint('앱 사용 기록 일괄 삽입 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<AppUsageModel>> getAppUsageForDate(String date) async {
+    try {
+      return await _helper.getAppUsageForDate(date);
+    } catch (e) {
+      debugPrint('특정 날짜 앱 사용 기록 조회 중 오류 발생: $e');
+      return []; // 오류 발생 시 빈 목록 반환
+    }
+  }
+
+  @override
+  Future<AppUsageSummary?> getAppUsageSummaryForDate(String date) async {
+    try {
+      return await _helper.getAppUsageSummaryForDate(date);
+    } catch (e) {
+      debugPrint('특정 날짜 앱 사용 요약 정보 조회 중 오류 발생: $e');
+      return null; // 오류 발생 시 null 반환
+    }
+  }
+
+  @override
+  Future<int> deleteAppUsageForDate(String date) async {
+    try {
+      return await _helper.deleteAppUsageForDate(date);
+    } catch (e) {
+      debugPrint('특정 날짜 앱 사용 기록 삭제 중 오류 발생: $e');
       rethrow;
     }
   }
