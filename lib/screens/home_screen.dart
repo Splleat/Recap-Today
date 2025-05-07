@@ -8,12 +8,13 @@ import 'package:recap_today/widget/planner/checklist_screen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -46,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (_) => const HomeChecklist(),
-                          )
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -64,8 +65,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           Spacer(),
                           Icon(Icons.arrow_forward),
                         ],
-                      )
-                    )
+                      ),
+                    ),
                   ),
                 ],
               ),
