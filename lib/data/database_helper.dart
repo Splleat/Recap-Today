@@ -6,6 +6,7 @@ import 'package:recap_today/model/diary_model.dart';
 import 'package:recap_today/model/photo_model.dart';
 import 'package:recap_today/model/checklist_item.dart';
 import 'package:recap_today/model/app_usage_model.dart';
+import 'package:recap_today/model/schedule_item.dart'; // 추가된 import
 
 /// SQLite 데이터베이스 관리를 위한 헬퍼 클래스
 /// 일기와 체크리스트 항목의 영구 저장소 역할
@@ -19,6 +20,7 @@ class DatabaseHelper {
   static const String tableDiaries = 'diaries';
   static const String tablePhotos = 'photos';
   static const String tableAppUsage = 'app_usage';
+  static const String tableSchedule = 'schedule_items'; // 새로운 테이블 이름
 
   // 프라이빗 생성자
   DatabaseHelper._init();
@@ -36,7 +38,7 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 4,
+      version: 5, // 버전 업데이트 (스케줄 테이블 추가를 위함)
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onConfigure: _configureDB,
@@ -94,12 +96,38 @@ class DatabaseHelper {
       )
     ''');
 
+    // 일정 테이블 생성
+    await db.execute('''
+      CREATE TABLE $tableSchedule (
+        id TEXT PRIMARY KEY,
+        text TEXT NOT NULL,
+        subText TEXT,
+        dayOfWeek INTEGER,
+        selectedDate TEXT,
+        isRoutine INTEGER NOT NULL,
+        startTimeHour INTEGER NOT NULL,
+        startTimeMinute INTEGER NOT NULL,
+        endTimeHour INTEGER NOT NULL,
+        endTimeMinute INTEGER NOT NULL,
+        colorValue INTEGER,
+        hasAlarm INTEGER,
+        alarmOffsetInMinutes INTEGER
+      )
+    ''');
+
     // 인덱스 생성
     await db.execute(
       'CREATE INDEX idx_completedDate ON $tableChecklist(completedDate)',
     );
     await db.execute(
       'CREATE INDEX idx_isChecked ON $tableChecklist(isChecked)',
+    );
+    await db.execute('CREATE INDEX idx_app_usage_date ON $tableAppUsage(date)');
+    await db.execute(
+      'CREATE INDEX idx_schedule_date ON $tableSchedule(selectedDate)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_schedule_routine ON $tableSchedule(isRoutine)',
     );
   }
 
@@ -174,6 +202,39 @@ class DatabaseHelper {
         );
       } catch (e) {
         debugPrint('앱 사용 기록 테이블 생성 중 오류 발생: $e');
+      }
+    }
+
+    if (oldVersion < 5) {
+      // 버전 4에서 버전 5로 업그레이드: 일정 테이블 추가
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS $tableSchedule (
+            id TEXT PRIMARY KEY,
+            text TEXT NOT NULL,
+            subText TEXT,
+            dayOfWeek INTEGER,
+            selectedDate TEXT,
+            isRoutine INTEGER NOT NULL,
+            startTimeHour INTEGER NOT NULL,
+            startTimeMinute INTEGER NOT NULL,
+            endTimeHour INTEGER NOT NULL,
+            endTimeMinute INTEGER NOT NULL,
+            colorValue INTEGER,
+            hasAlarm INTEGER,
+            alarmOffsetInMinutes INTEGER
+          )
+        ''');
+
+        // 인덱스 생성
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_schedule_date ON $tableSchedule(selectedDate)',
+        );
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_schedule_routine ON $tableSchedule(isRoutine)',
+        );
+      } catch (e) {
+        debugPrint('일정 테이블 생성 중 오류 발생: $e');
       }
     }
   }
@@ -545,6 +606,272 @@ class DatabaseHelper {
     } catch (e) {
       debugPrint('앱 사용 기록 삭제 중 오류: $e');
       return 0; // 오류 발생 시 0 반환
+    }
+  }
+
+  /// 일정 삽입
+  Future<int> insertScheduleItem(ScheduleItem item) async {
+    try {
+      final db = await instance.database;
+      return await db.insert(
+        tableSchedule,
+        item.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      debugPrint('일정 삽입 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  /// 일정 업데이트
+  Future<int> updateScheduleItem(ScheduleItem item) async {
+    try {
+      final db = await instance.database;
+      return await db.update(
+        tableSchedule,
+        item.toMap(),
+        where: 'id = ?',
+        whereArgs: [item.id],
+      );
+    } catch (e) {
+      debugPrint('일정 업데이트 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  /// 모든 일정 조회
+  Future<List<ScheduleItem>> getScheduleItems() async {
+    try {
+      final db = await instance.database;
+      final result = await db.query(tableSchedule);
+      return result.map((map) => ScheduleItem.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('일정 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 특정 날짜의 일정 조회
+  Future<List<ScheduleItem>> getScheduleItemsForDate(DateTime date) async {
+    try {
+      final db = await instance.database;
+      final dateString = date.toIso8601String().substring(
+        0,
+        10,
+      ); // YYYY-MM-DD 형식
+      final dayOfWeek =
+          date.weekday == 7 ? 0 : date.weekday; // SQLite에서는 일요일이 0
+
+      // 한 번의 쿼리로 특정 날짜의 일회성 일정과 해당 요일의 반복 일정을 함께 조회
+      final result = await db.rawQuery(
+        '''
+        SELECT * FROM $tableSchedule 
+        WHERE (selectedDate LIKE ? AND isRoutine = 0)
+           OR (dayOfWeek = ? AND isRoutine = 1)
+        ORDER BY startTimeHour, startTimeMinute
+      ''',
+        ['$dateString%', dayOfWeek],
+      );
+
+      return result.map((map) => ScheduleItem.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('특정 날짜 일정 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 특정 기간의 일정 조회 (캘린더 뷰용)
+  Future<List<ScheduleItem>> getScheduleItemsForRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final db = await instance.database;
+      final startStr = start.toIso8601String().substring(0, 10);
+      final endStr = end.toIso8601String().substring(0, 10);
+
+      // 1. 해당 기간 내의 일회성 일정 조회
+      final nonRoutineResult = await db.query(
+        tableSchedule,
+        where: 'selectedDate >= ? AND selectedDate <= ? AND isRoutine = 0',
+        whereArgs: [startStr, endStr],
+      );
+
+      // 2. 모든 반복 일정 조회 (날짜 범위 내 요일에 해당하는 일정은 UI에서 필터링)
+      final routineResult = await db.query(
+        tableSchedule,
+        where: 'isRoutine = 1',
+      );
+
+      // 두 결과 병합
+      final List<ScheduleItem> items = [];
+      items.addAll(nonRoutineResult.map((map) => ScheduleItem.fromMap(map)));
+      items.addAll(routineResult.map((map) => ScheduleItem.fromMap(map)));
+
+      return items;
+    } catch (e) {
+      debugPrint('기간 내 일정 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 특정 월의 일정이 있는 날짜 목록 조회 (캘린더 마커용)
+  Future<List<DateTime>> getScheduleDatesForMonth(int year, int month) async {
+    try {
+      final db = await instance.database;
+
+      // 월 시작일과 종료일 계산
+      final startDate = DateTime(year, month, 1);
+      final endDate = DateTime(year, month + 1, 0); // 다음 달의 0일 = 현재 달의 마지막 날
+
+      final startStr = startDate.toIso8601String().substring(0, 10);
+      final endStr = endDate.toIso8601String().substring(0, 10);
+
+      // 해당 월에 일정이 있는 날짜만 조회
+      final result = await db.rawQuery(
+        '''
+        SELECT DISTINCT substr(selectedDate, 1, 10) as date 
+        FROM $tableSchedule 
+        WHERE selectedDate >= ? AND selectedDate <= ? AND isRoutine = 0
+      ''',
+        [startStr, endStr],
+      );
+
+      // 결과를 DateTime 리스트로 변환
+      final List<DateTime> dates = [];
+      for (final row in result) {
+        if (row['date'] != null) {
+          try {
+            dates.add(DateTime.parse(row['date'] as String));
+          } catch (e) {
+            debugPrint('날짜 변환 오류: $e');
+          }
+        }
+      }
+
+      return dates;
+    } catch (e) {
+      debugPrint('월간 일정 날짜 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 일정이 존재하는지 확인
+  Future<bool> hasSchedule() async {
+    try {
+      final db = await instance.database;
+      final result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM $tableSchedule',
+      );
+
+      final count = Sqflite.firstIntValue(result) ?? 0;
+      return count > 0;
+    } catch (e) {
+      debugPrint('일정 존재 여부 확인 중 오류 발생: $e');
+      return false;
+    }
+  }
+
+  /// 특정 기간 내 모든 일정 삭제
+  Future<int> deleteScheduleItemsInRange(DateTime start, DateTime end) async {
+    try {
+      final db = await instance.database;
+      final startStr = start.toIso8601String().substring(0, 10);
+      final endStr = end.toIso8601String().substring(0, 10);
+
+      return await db.delete(
+        tableSchedule,
+        where: 'selectedDate >= ? AND selectedDate <= ? AND isRoutine = 0',
+        whereArgs: [startStr, endStr],
+      );
+    } catch (e) {
+      debugPrint('기간 내 일정 삭제 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  /// 일정 데이터 일괄 저장 (트랜잭션 사용)
+  Future<void> saveScheduleItems(List<ScheduleItem> items) async {
+    try {
+      final db = await instance.database;
+
+      await db.transaction((txn) async {
+        // 전체 삭제 대신 개별 저장 또는 업데이트
+        Batch batch = txn.batch();
+
+        for (final item in items) {
+          // 각 항목 삽입 또는 업데이트 (REPLACE 전략)
+          batch.insert(
+            tableSchedule,
+            item.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+
+        await batch.commit(noResult: true);
+      });
+    } catch (e) {
+      debugPrint('일정 일괄 저장 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  /// 반복 일정만 조회
+  Future<List<ScheduleItem>> getRoutineScheduleItems() async {
+    try {
+      final db = await instance.database;
+      final result = await db.query(
+        tableSchedule,
+        where: 'isRoutine = ?',
+        whereArgs: [1], // 1은 루틴 일정
+      );
+      return result.map((map) => ScheduleItem.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('반복 일정 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 특정 ID의 일정 조회
+  Future<ScheduleItem?> getScheduleItemById(String id) async {
+    try {
+      final db = await instance.database;
+      final result = await db.query(
+        tableSchedule,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+
+      if (result.isNotEmpty) {
+        return ScheduleItem.fromMap(result.first);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('특정 ID 일정 조회 중 오류 발생: $e');
+      return null;
+    }
+  }
+
+  /// 일정 삭제
+  Future<int> deleteScheduleItem(String id) async {
+    try {
+      final db = await instance.database;
+      return await db.delete(tableSchedule, where: 'id = ?', whereArgs: [id]);
+    } catch (e) {
+      debugPrint('일정 삭제 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  /// 모든 일정 삭제
+  Future<int> deleteAllScheduleItems() async {
+    try {
+      final db = await instance.database;
+      return await db.delete(tableSchedule);
+    } catch (e) {
+      debugPrint('모든 일정 삭제 중 오류 발생: $e');
+      rethrow;
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:recap_today/model/diary_model.dart';
 import 'package:recap_today/model/checklist_item.dart';
 import 'package:recap_today/model/app_usage_model.dart';
+import 'package:recap_today/model/schedule_item.dart';
 import 'package:recap_today/data/abstract_database.dart';
 import 'package:recap_today/data/database_helper.dart';
 
@@ -170,6 +171,141 @@ class SqfliteDatabase extends AbstractDatabase {
       return await _helper.deleteAppUsageForDate(date);
     } catch (e) {
       debugPrint('특정 날짜 앱 사용 기록 삭제 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  // 일정 관련 메서드 구현
+  @override
+  Future<int> insertScheduleItem(ScheduleItem item) async {
+    try {
+      return await _helper.insertScheduleItem(item);
+    } catch (e) {
+      debugPrint('일정 삽입 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<int> updateScheduleItem(ScheduleItem item) async {
+    try {
+      return await _helper.updateScheduleItem(item);
+    } catch (e) {
+      debugPrint('일정 업데이트 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<ScheduleItem>> getScheduleItems() async {
+    try {
+      return await _helper.getScheduleItems();
+    } catch (e) {
+      debugPrint('일정 목록 조회 중 오류 발생: $e');
+      return []; // 오류 발생 시 빈 목록 반환
+    }
+  }
+
+  @override
+  Future<List<ScheduleItem>> getScheduleItemsForDate(DateTime date) async {
+    try {
+      return await _helper.getScheduleItemsForDate(date);
+    } catch (e) {
+      debugPrint('특정 날짜 일정 조회 중 오류 발생: $e');
+      return []; // 오류 발생 시 빈 목록 반환
+    }
+  }
+
+  @override
+  Future<List<ScheduleItem>> getRoutineScheduleItems() async {
+    try {
+      return await _helper.getRoutineScheduleItems();
+    } catch (e) {
+      debugPrint('반복 일정 조회 중 오류 발생: $e');
+      return []; // 오류 발생 시 빈 목록 반환
+    }
+  }
+
+  @override
+  Future<ScheduleItem?> getScheduleItemById(String id) async {
+    try {
+      return await _helper.getScheduleItemById(id);
+    } catch (e) {
+      debugPrint('특정 ID 일정 조회 중 오류 발생: $e');
+      return null; // 오류 발생 시 null 반환
+    }
+  }
+
+  @override
+  Future<int> deleteScheduleItem(String id) async {
+    try {
+      return await _helper.deleteScheduleItem(id);
+    } catch (e) {
+      debugPrint('일정 삭제 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<int> deleteAllScheduleItems() async {
+    try {
+      return await _helper.deleteAllScheduleItems();
+    } catch (e) {
+      debugPrint('모든 일정 삭제 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  // 일정 관련 추가 메서드
+  @override
+  Future<List<ScheduleItem>> getScheduleItemsForRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      return await _helper.getScheduleItemsForRange(start, end);
+    } catch (e) {
+      debugPrint('기간 내 일정 조회 중 오류 발생: $e');
+      return []; // 오류 발생 시 빈 목록 반환
+    }
+  }
+
+  @override
+  Future<List<DateTime>> getScheduleDatesForMonth(int year, int month) async {
+    try {
+      return await _helper.getScheduleDatesForMonth(year, month);
+    } catch (e) {
+      debugPrint('월간 일정 날짜 조회 중 오류 발생: $e');
+      return []; // 오류 발생 시 빈 목록 반환
+    }
+  }
+
+  @override
+  Future<bool> hasSchedule() async {
+    try {
+      return await _helper.hasSchedule();
+    } catch (e) {
+      debugPrint('일정 존재 여부 확인 중 오류 발생: $e');
+      return false; // 오류 발생 시 false 반환
+    }
+  }
+
+  @override
+  Future<int> deleteScheduleItemsInRange(DateTime start, DateTime end) async {
+    try {
+      return await _helper.deleteScheduleItemsInRange(start, end);
+    } catch (e) {
+      debugPrint('기간 내 일정 삭제 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> saveScheduleItems(List<ScheduleItem> items) async {
+    try {
+      await _helper.saveScheduleItems(items);
+    } catch (e) {
+      debugPrint('일정 일괄 저장 중 오류 발생: $e');
       rethrow;
     }
   }

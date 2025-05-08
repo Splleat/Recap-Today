@@ -105,6 +105,7 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFF5F5F5),
+      resizeToAvoidBottomInset: true, // Enable resize when keyboard appears
       appBar: AppBar(
         title: const Text('회원가입'),
         backgroundColor: Color(0xFF2196F3),
@@ -112,7 +113,13 @@ class _SignupScreenState extends State<SignupScreen> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.only(
+            top: 24.0,
+            left: 24.0,
+            right: 24.0,
+            // Add dynamic bottom padding to account for keyboard
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
+          ),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
