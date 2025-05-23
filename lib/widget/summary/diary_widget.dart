@@ -140,12 +140,62 @@ class _DiaryWidgetState extends State<DiaryWidget> {
           TextField(
             controller: _contentController,
             decoration: const InputDecoration(labelText: '내용'),
-            maxLines: 5,
+            minLines: 1, // 한 줄 입력 시 한 줄 크기
+            maxLines: null, // 내용이 늘어나면 자동 확장
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _pickMultipleImages,
-            child: const Text('사진 추가'),
+          Row(
+            children: [
+              ElevatedButton(
+                onPressed: _pickMultipleImages,
+                child: const Text('사진 추가'),
+              ),
+              const Spacer(),
+              ElevatedButton(
+                onPressed: () async {
+                  if (_titleController.text.isEmpty) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('제목을 입력하세요')));
+                    return;
+                  }
+                  final diary = DiaryModel(
+                    id: _todayDiary?.id,
+                    date: DateTime.now().toIso8601String().substring(0, 10),
+                    title: _titleController.text,
+                    content: _contentController.text,
+                    photoPaths: _photoPaths,
+                  );
+
+                  try {
+                    // 일기를 저장하고 저장된 일기 객체를 반환받음
+                    final savedDiary = await Provider.of<DiaryProvider>(
+                      context,
+                      listen: false,
+                    ).saveDiary(diary);
+
+                    // 현재 일기 상태 업데이트
+                    setState(() {
+                      _todayDiary = savedDiary;
+                    });
+
+                    // 저장된 일기의 photoPaths만 남기고 나머지 파일 정리
+                    await FileManager.cleanupUnusedPhotos(
+                      savedDiary.photoPaths,
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('일기가 저장되었습니다')),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('오류가 발생했습니다: ${e.toString()}')),
+                    );
+                  }
+                },
+                child: const Text('저장'),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           SizedBox(
@@ -183,7 +233,10 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                               top: 0,
                               right: 0,
                               child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.red),
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () {
                                   setState(() {
                                     _photoPaths.removeAt(index);
@@ -223,7 +276,10 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                               top: 0,
                               right: 0,
                               child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.red),
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () {
                                   setState(() {
                                     _photoPaths.removeAt(index);
@@ -250,7 +306,10 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                               top: 0,
                               right: 0,
                               child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.red),
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () {
                                   setState(() {
                                     _photoPaths.removeAt(index);
@@ -280,7 +339,10 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                               top: 0,
                               right: 0,
                               child: IconButton(
-                                icon: const Icon(Icons.close, color: Colors.red),
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () {
                                   setState(() {
                                     _photoPaths.removeAt(index);
@@ -295,51 +357,6 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                   },
                 );
               },
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton(
-              onPressed: () async {
-                if (_titleController.text.isEmpty) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('제목을 입력하세요')));
-                  return;
-                }
-                final diary = DiaryModel(
-                  id: _todayDiary?.id,
-                  date: DateTime.now().toIso8601String().substring(0, 10),
-                  title: _titleController.text,
-                  content: _contentController.text,
-                  photoPaths: _photoPaths,
-                );
-
-                try {
-                  // 일기를 저장하고 저장된 일기 객체를 반환받음
-                  final savedDiary = await Provider.of<DiaryProvider>(
-                    context,
-                    listen: false,
-                  ).saveDiary(diary);
-
-                  // 현재 일기 상태 업데이트
-                  setState(() {
-                    _todayDiary = savedDiary;
-                  });
-
-                  // 저장된 일기의 photoPaths만 남기고 나머지 파일 정리
-                  await FileManager.cleanupUnusedPhotos(savedDiary.photoPaths);
-
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('일기가 저장되었습니다')));
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('오류가 발생했습니다: ${e.toString()}')),
-                  );
-                }
-              },
-              child: const Text('저장'),
             ),
           ),
         ],
