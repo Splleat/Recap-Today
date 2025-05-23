@@ -6,6 +6,7 @@ import 'package:recap_today/widget/summary/app_usage.dart';
 import 'package:recap_today/widget/summary/checklist_achievement.dart';
 import 'package:recap_today/widget/summary/ai_feedback.dart';
 import 'package:recap_today/widget/summary/diary_widget.dart';
+import 'package:recap_today/widget/summary/emotion_summary_graph.dart'; // 추가
 
 class SummaryScreen extends StatefulWidget {
   const SummaryScreen({super.key});
@@ -19,8 +20,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textTheme = theme.textTheme;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     // 키보드가 나타날 때 바닥 시트를 전체 화면으로 확장
@@ -67,6 +66,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
                   ),
                   Card(child: AppUsage()),
                   Card(child: ChecklistAchievement()),
+                  // EmotionSummaryGraph 추가
+                  Card(child: EmotionSummaryGraph(date: DateTime.now())),
                   Card(child: AiFeedback()),
                   Card(
                     child: Padding(
@@ -91,7 +92,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                   color: Colors.white,
                   child: SingleChildScrollView(
                     controller: scrollController,
-                    child: DiaryWidget(),
+                    child: DiaryWidget(), // Restored to original DiaryWidget
                   ),
                 );
               },

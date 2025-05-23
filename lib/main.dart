@@ -12,11 +12,12 @@ import 'package:recap_today/provider/checklist_provider.dart';
 import 'package:recap_today/provider/diary_provider.dart';
 import 'package:recap_today/provider/login_provider.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
+import 'package:recap_today/repository/abstract_emotion_repository.dart'; // 추가
 import 'package:recap_today/repository/auth_repository.dart';
+import 'package:recap_today/repository/emotion_repository.dart'; // 추가
 import 'package:recap_today/repository/impl/auth_repository_impl.dart';
 import 'package:recap_today/screens/main_screen.dart';
 import 'package:recap_today/service/date_change_service.dart';
-import 'package:recap_today/theme/darkTheme.dart';
 import 'package:recap_today/theme/lightTheme.dart';
 
 import 'router.dart';
@@ -52,6 +53,13 @@ void main() async {
       providers: [
         // 데이터베이스 Provider 추가
         Provider<AbstractDatabase>(create: (_) => SqfliteDatabase()),
+        // EmotionRepository Provider 추가
+        ProxyProvider<AbstractDatabase, AbstractEmotionRepository>(
+          update: (context, db, previous) {
+            // EmotionRepository now accepts AbstractDatabase directly.
+            return EmotionRepository(db);
+          },
+        ),
         ChangeNotifierProvider(create: (context) => checklistProvider),
         ChangeNotifierProvider(create: (context) => ScheduleProvider()),
         ChangeNotifierProvider(create: (context) => DiaryProvider()),

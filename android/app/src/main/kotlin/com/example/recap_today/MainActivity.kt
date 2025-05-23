@@ -154,16 +154,14 @@ class MainActivity : FlutterActivity() {
     private fun getUsageStatistics(startTime: Long, endTime: Long): List<UsageStats> {
         val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         
-        // 시간 범위를 조금 더 길게 설정 (오늘 시작부터 지금까지가 아닌, 일주일 단위로)
-        val weekAgo = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000
-        
+        // Flutter에서 전달받은 startTime을 사용하도록 수정
         val stats = usageStatsManager.queryUsageStats(
             UsageStatsManager.INTERVAL_BEST, 
-            weekAgo, // 일주일 전부터 (시작 시간 확장)
+            startTime, // Flutter에서 전달받은 startTime으로 수정
             endTime
         )
         
-        Log.d(TAG, "Raw stats count: ${stats.size}")
+        Log.d(TAG, "Raw stats count for period: ${stats.size}") // 로그 메시지 수정하여 기간 명시
         
         // 사용 시간이 있는 앱만 필터링하고 정렬
         return stats

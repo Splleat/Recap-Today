@@ -6,11 +6,17 @@ import 'package:recap_today/model/app_usage_model.dart';
 import 'package:recap_today/model/schedule_item.dart';
 import 'package:recap_today/data/abstract_database.dart';
 import 'package:recap_today/data/database_helper.dart';
+import 'package:sqflite/sqflite.dart'; // sqflite import 추가
+import 'package:recap_today/model/emotion_model.dart'; // Added import for EmotionRecord
 
 // SQLite 데이터베이스 접근을 위한 구현 클래스
 // AbstractDatabase 인터페이스를 구현하여 애플리케이션과 데이터베이스 사이의 중간 계층 역할
 class SqfliteDatabase extends AbstractDatabase {
   final DatabaseHelper _helper = DatabaseHelper.instance;
+
+  // database getter 구현
+  @override
+  Future<Database> get database => _helper.database;
 
   // 일기 관련 메서드
   @override
@@ -202,7 +208,7 @@ class SqfliteDatabase extends AbstractDatabase {
       return await _helper.getScheduleItems();
     } catch (e) {
       debugPrint('일정 목록 조회 중 오류 발생: $e');
-      return []; // 오류 발생 시 빈 목록 반환
+      return [];
     }
   }
 
@@ -211,8 +217,8 @@ class SqfliteDatabase extends AbstractDatabase {
     try {
       return await _helper.getScheduleItemsForDate(date);
     } catch (e) {
-      debugPrint('특정 날짜 일정 조회 중 오류 발생: $e');
-      return []; // 오류 발생 시 빈 목록 반환
+      debugPrint('특정 날짜 일정 목록 조회 중 오류 발생: $e');
+      return [];
     }
   }
 
@@ -221,8 +227,8 @@ class SqfliteDatabase extends AbstractDatabase {
     try {
       return await _helper.getRoutineScheduleItems();
     } catch (e) {
-      debugPrint('반복 일정 조회 중 오류 발생: $e');
-      return []; // 오류 발생 시 빈 목록 반환
+      debugPrint('루틴 일정 목록 조회 중 오류 발생: $e');
+      return [];
     }
   }
 
@@ -232,7 +238,7 @@ class SqfliteDatabase extends AbstractDatabase {
       return await _helper.getScheduleItemById(id);
     } catch (e) {
       debugPrint('특정 ID 일정 조회 중 오류 발생: $e');
-      return null; // 오류 발생 시 null 반환
+      return null;
     }
   }
 
@@ -256,7 +262,6 @@ class SqfliteDatabase extends AbstractDatabase {
     }
   }
 
-  // 일정 관련 추가 메서드
   @override
   Future<List<ScheduleItem>> getScheduleItemsForRange(
     DateTime start,
@@ -265,8 +270,8 @@ class SqfliteDatabase extends AbstractDatabase {
     try {
       return await _helper.getScheduleItemsForRange(start, end);
     } catch (e) {
-      debugPrint('기간 내 일정 조회 중 오류 발생: $e');
-      return []; // 오류 발생 시 빈 목록 반환
+      debugPrint('기간별 일정 목록 조회 중 오류 발생: $e');
+      return [];
     }
   }
 
@@ -275,8 +280,8 @@ class SqfliteDatabase extends AbstractDatabase {
     try {
       return await _helper.getScheduleDatesForMonth(year, month);
     } catch (e) {
-      debugPrint('월간 일정 날짜 조회 중 오류 발생: $e');
-      return []; // 오류 발생 시 빈 목록 반환
+      debugPrint('월별 일정 날짜 목록 조회 중 오류 발생: $e');
+      return [];
     }
   }
 
@@ -286,7 +291,7 @@ class SqfliteDatabase extends AbstractDatabase {
       return await _helper.hasSchedule();
     } catch (e) {
       debugPrint('일정 존재 여부 확인 중 오류 발생: $e');
-      return false; // 오류 발생 시 false 반환
+      return false;
     }
   }
 
@@ -295,7 +300,7 @@ class SqfliteDatabase extends AbstractDatabase {
     try {
       return await _helper.deleteScheduleItemsInRange(start, end);
     } catch (e) {
-      debugPrint('기간 내 일정 삭제 중 오류 발생: $e');
+      debugPrint('기간별 일정 삭제 중 오류 발생: $e');
       rethrow;
     }
   }
@@ -306,6 +311,99 @@ class SqfliteDatabase extends AbstractDatabase {
       await _helper.saveScheduleItems(items);
     } catch (e) {
       debugPrint('일정 일괄 저장 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  // Emotion Timeline 관련 메서드 구현
+  @override
+  Future<int> addEmotionRecord(EmotionRecord record) async {
+    final db = await database;
+    // Ensure id is not null, as it's a primary key.
+    // The EmotionRecord model should handle UUID generation if id is null upon creation.
+    if (record.id == null) {
+      // This case should ideally be handled by the model/repository layer
+      // by ensuring EmotionRecord always has an ID before DB insertion.
+      // For safety, we can log or throw an error, but for now, let's assume
+      // the model populates it.
+      debugPrint(
+        "Error: EmotionRecord ID is null during addEmotionRecord. This should not happen.",
+      );
+      // throw Exception("Cannot insert EmotionRecord with null ID");
+      // Or, let the insert proceed if the model now auto-generates it.
+    }
+    await db.insert(
+      DatabaseHelper.tableEmotionRecords,
+      record.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return 1; // Return 1 as a generic success indicator, though not strictly used for ID.
+  }
+
+  @override
+  Future<int> updateEmotionRecord(EmotionRecord record) async {
+    final db = await database;
+    try {
+      return await db.update(
+        DatabaseHelper.tableEmotionRecords, // DatabaseHelper의 상수 사용
+        record.toMap(),
+        where: 'id = ?',
+        whereArgs: [record.id],
+      );
+    } catch (e) {
+      debugPrint('감정 기록 업데이트 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<EmotionRecord?> getEmotionRecordForHour(String date, int hour) async {
+    final db = await database;
+    try {
+      final List<Map<String, dynamic>> maps = await db.query(
+        DatabaseHelper.tableEmotionRecords, // DatabaseHelper의 상수 사용
+        where: 'date = ? AND hour = ?',
+        whereArgs: [date, hour],
+        limit: 1,
+      );
+      if (maps.isNotEmpty) {
+        return EmotionRecord.fromMap(maps.first);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('특정 시간 감정 기록 조회 중 오류 발생: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<List<EmotionRecord>> getEmotionRecordsForDay(String date) async {
+    final db = await database;
+    try {
+      final List<Map<String, dynamic>> maps = await db.query(
+        DatabaseHelper.tableEmotionRecords, // DatabaseHelper의 상수 사용
+        where: 'date = ?',
+        whereArgs: [date],
+        orderBy: 'hour ASC', // 시간순으로 정렬
+      );
+      return maps.map((map) => EmotionRecord.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('하루 감정 기록 목록 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<int> deleteEmotionRecord(String id) async {
+    final db = await database;
+    try {
+      return await db.delete(
+        DatabaseHelper.tableEmotionRecords, // DatabaseHelper의 상수 사용
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    } catch (e) {
+      debugPrint('감정 기록 삭제 중 오류 발생: $e');
       rethrow;
     }
   }

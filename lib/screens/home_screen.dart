@@ -4,6 +4,7 @@ import 'package:recap_today/router.dart';
 import 'package:recap_today/widget/home/home_checklist.dart';
 import 'package:recap_today/widget/home/home_schedule.dart';
 import 'package:recap_today/widget/planner/checklist_screen.dart';
+import 'package:recap_today/widget/home/hourly_emotion_logger.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -68,6 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  HourlyEmotionLogger(initialDate: DateTime.now()),
                 ],
               ),
             ),

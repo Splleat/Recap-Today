@@ -59,13 +59,18 @@ class AppUsageService {
 
     try {
       final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
+      final today = DateTime(now.year, now.month, now.day); // 오늘 0시 0분 0초
+      final tomorrow = DateTime(
+        now.year,
+        now.month,
+        now.day + 1,
+      ); // 내일 0시 0분 0초
       final dateStr = DateFormat(_dateFormat).format(today);
 
       // 네이티브 코드로 앱 사용 통계 조회
       final result = await _channel.invokeMethod('getAppUsage', {
-        'startTime': today.millisecondsSinceEpoch,
-        'endTime': now.millisecondsSinceEpoch,
+        'startTime': today.millisecondsSinceEpoch, // 오늘 0시
+        'endTime': tomorrow.millisecondsSinceEpoch, // 내일 0시 (오늘 하루 전체를 의미)
       });
 
       if (result == null) {

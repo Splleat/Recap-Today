@@ -21,6 +21,8 @@ class DatabaseHelper {
   static const String tablePhotos = 'photos';
   static const String tableAppUsage = 'app_usage';
   static const String tableSchedule = 'schedule_items'; // 새로운 테이블 이름
+  static const String tableEmotionRecords =
+      'emotion_records'; // 감정 기록 테이블 이름 직접 정의
 
   // 프라이빗 생성자
   DatabaseHelper._init();
@@ -38,7 +40,7 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 5, // 버전 업데이트 (스케줄 테이블 추가를 위함)
+      version: 8, // Incremented version to 8
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onConfigure: _configureDB,
@@ -100,142 +102,89 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE $tableSchedule (
         id TEXT PRIMARY KEY,
-        text TEXT NOT NULL,
-        subText TEXT,
-        dayOfWeek INTEGER,
-        selectedDate TEXT,
-        isRoutine INTEGER NOT NULL,
-        startTimeHour INTEGER NOT NULL,
-        startTimeMinute INTEGER NOT NULL,
-        endTimeHour INTEGER NOT NULL,
-        endTimeMinute INTEGER NOT NULL,
-        colorValue INTEGER,
-        hasAlarm INTEGER,
-        alarmOffsetInMinutes INTEGER
+        title TEXT NOT NULL,
+        startTime TEXT NOT NULL,
+        endTime TEXT NOT NULL,
+        date TEXT NOT NULL,
+        isCompleted INTEGER NOT NULL DEFAULT 0,
+        notificationId INTEGER
       )
     ''');
 
-    // 인덱스 생성
-    await db.execute(
-      'CREATE INDEX idx_completedDate ON $tableChecklist(completedDate)',
-    );
-    await db.execute(
-      'CREATE INDEX idx_isChecked ON $tableChecklist(isChecked)',
-    );
-    await db.execute('CREATE INDEX idx_app_usage_date ON $tableAppUsage(date)');
-    await db.execute(
-      'CREATE INDEX idx_schedule_date ON $tableSchedule(selectedDate)',
-    );
-    await db.execute(
-      'CREATE INDEX idx_schedule_routine ON $tableSchedule(isRoutine)',
-    );
+    // 감정 기록 테이블 생성 (ensure it's also correct in onCreate)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tableEmotionRecords (
+        id TEXT PRIMARY KEY,
+        date TEXT NOT NULL,
+        hour INTEGER NOT NULL,
+        emotionType TEXT NOT NULL,
+        notes TEXT,
+        UNIQUE (date, hour)
+      )
+    ''');
   }
 
-  /// 데이터베이스 업그레이드 처리
+  /// 데이터베이스 업그레이드 (스키마 마이그레이션)
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
-    // 버전별 마이그레이션 로직
     if (oldVersion < 2) {
-      // 버전 1에서 버전 2로 업그레이드: 체크리스트 테이블 추가
+      // 버전 2로 업그레이드: 체크리스트 테이블에 dueDate 필드 추가
       await db.execute('''
-        CREATE TABLE $tableChecklist (
-          id TEXT PRIMARY KEY,
-          text TEXT NOT NULL,
-          subtext TEXT,
-          isChecked INTEGER NOT NULL DEFAULT 0,
-          dueDate TEXT
+        ALTER TABLE $tableChecklist
+        ADD COLUMN dueDate TEXT
+      ''');
+    }
+    if (oldVersion < 3) {
+      // 버전 3으로 업그레이드: 체크리스트 테이블에 completedDate 필드 추가
+      await db.execute('''
+        ALTER TABLE $tableChecklist
+        ADD COLUMN completedDate TEXT
+      ''');
+    }
+    if (oldVersion < 4) {
+      // 버전 4로 업그레이드: 앱 사용 기록 테이블 추가
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $tableAppUsage (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT NOT NULL,
+          package_name TEXT NOT NULL,
+          app_name TEXT NOT NULL,
+          usage_time INTEGER NOT NULL,
+          app_icon_path TEXT
         )
       ''');
     }
-
-    if (oldVersion < 3) {
-      // 버전 2에서 버전 3으로 업그레이드: 체크리스트 테이블에 completedDate 열 추가
-      try {
-        await db.execute(
-          'ALTER TABLE $tableChecklist ADD COLUMN completedDate TEXT;',
-        );
-        // 인덱스 생성
-        await db.execute(
-          'CREATE INDEX idx_completedDate ON $tableChecklist(completedDate)',
-        );
-        await db.execute(
-          'CREATE INDEX idx_isChecked ON $tableChecklist(isChecked)',
-        );
-      } catch (e) {
-        debugPrint('테이블 업그레이드 중 오류 발생: $e');
-        // 테이블이 존재하지 않는 경우 새로 생성
-        await db.execute('''
-          CREATE TABLE IF NOT EXISTS $tableChecklist (
-            id TEXT PRIMARY KEY,
-            text TEXT NOT NULL,
-            subtext TEXT,
-            isChecked INTEGER NOT NULL DEFAULT 0,
-            dueDate TEXT,
-            completedDate TEXT
-          )
-        ''');
-        await db.execute(
-          'CREATE INDEX IF NOT EXISTS idx_completedDate ON $tableChecklist(completedDate)',
-        );
-        await db.execute(
-          'CREATE INDEX IF NOT EXISTS idx_isChecked ON $tableChecklist(isChecked)',
-        );
-      }
-    }
-
-    if (oldVersion < 4) {
-      // 버전 3에서 버전 4로 업그레이드: 앱 사용 기록 테이블 추가
-      try {
-        await db.execute('''
-          CREATE TABLE IF NOT EXISTS $tableAppUsage (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT NOT NULL,
-            package_name TEXT NOT NULL,
-            app_name TEXT NOT NULL,
-            usage_time INTEGER NOT NULL,
-            app_icon_path TEXT
-          )
-        ''');
-
-        // 인덱스 생성
-        await db.execute(
-          'CREATE INDEX IF NOT EXISTS idx_app_usage_date ON $tableAppUsage(date)',
-        );
-      } catch (e) {
-        debugPrint('앱 사용 기록 테이블 생성 중 오류 발생: $e');
-      }
-    }
-
     if (oldVersion < 5) {
-      // 버전 4에서 버전 5로 업그레이드: 일정 테이블 추가
-      try {
-        await db.execute('''
-          CREATE TABLE IF NOT EXISTS $tableSchedule (
-            id TEXT PRIMARY KEY,
-            text TEXT NOT NULL,
-            subText TEXT,
-            dayOfWeek INTEGER,
-            selectedDate TEXT,
-            isRoutine INTEGER NOT NULL,
-            startTimeHour INTEGER NOT NULL,
-            startTimeMinute INTEGER NOT NULL,
-            endTimeHour INTEGER NOT NULL,
-            endTimeMinute INTEGER NOT NULL,
-            colorValue INTEGER,
-            hasAlarm INTEGER,
-            alarmOffsetInMinutes INTEGER
-          )
-        ''');
-
-        // 인덱스 생성
-        await db.execute(
-          'CREATE INDEX IF NOT EXISTS idx_schedule_date ON $tableSchedule(selectedDate)',
-        );
-        await db.execute(
-          'CREATE INDEX IF NOT EXISTS idx_schedule_routine ON $tableSchedule(isRoutine)',
-        );
-      } catch (e) {
-        debugPrint('일정 테이블 생성 중 오류 발생: $e');
-      }
+      // 버전 5로 업그레이드: 일정 테이블 추가
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $tableSchedule (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          startTime TEXT NOT NULL,
+          endTime TEXT NOT NULL,
+          date TEXT NOT NULL,
+          isCompleted INTEGER NOT NULL DEFAULT 0,
+          notificationId INTEGER
+        )
+      ''');
+    }
+    // For versions < 8, ensure the emotion_records table is correctly created.
+    // This block handles upgrades from any version < 8.
+    if (oldVersion < 8) {
+      // Updated to check against new version 8
+      // To be absolutely sure, we can try dropping it first if it exists,
+      // then recreating. This will clear existing emotion data if the schema was wrong.
+      // Use with caution if data preservation is critical and the schema was subtly wrong.
+      // await db.execute('DROP TABLE IF EXISTS $tableEmotionRecords'); // Uncomment if desperate
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $tableEmotionRecords (
+          id TEXT PRIMARY KEY,
+          date TEXT NOT NULL,
+          hour INTEGER NOT NULL,
+          emotionType TEXT NOT NULL,
+          notes TEXT,
+          UNIQUE (date, hour)
+        )
+      ''');
     }
   }
 

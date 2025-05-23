@@ -2,11 +2,16 @@
 import 'package:recap_today/model/diary_model.dart';
 import 'package:recap_today/model/checklist_item.dart';
 import 'package:recap_today/model/app_usage_model.dart';
+import 'package:recap_today/model/emotion_model.dart'; // EmotionRecord 모델 import 추가
 import 'package:recap_today/model/schedule_item.dart';
+import 'package:sqflite/sqflite.dart'; // sqflite import 추가
 
 /// 데이터베이스 접근을 위한 추상 인터페이스
 /// 다양한 데이터베이스 구현체를 일관적으로 사용할 수 있도록 정의합니다.
 abstract class AbstractDatabase {
+  // 데이터베이스 인스턴스 getter 추가
+  Future<Database> get database;
+
   // 일기 관련 메서드
   Future<int> insertDiary(DiaryModel diary);
   Future<int> updateDiary(DiaryModel diary);
@@ -48,4 +53,11 @@ abstract class AbstractDatabase {
   Future<bool> hasSchedule();
   Future<int> deleteScheduleItemsInRange(DateTime start, DateTime end);
   Future<void> saveScheduleItems(List<ScheduleItem> items);
+
+  // 감정 기록 관련 메서드
+  Future<int> addEmotionRecord(EmotionRecord emotionRecord);
+  Future<int> updateEmotionRecord(EmotionRecord emotionRecord);
+  Future<EmotionRecord?> getEmotionRecordForHour(String date, int hour);
+  Future<List<EmotionRecord>> getEmotionRecordsForDay(String date);
+  Future<int> deleteEmotionRecord(String id);
 }

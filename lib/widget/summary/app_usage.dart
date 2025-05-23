@@ -264,14 +264,18 @@ class _AppUsageState extends State<AppUsage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8), // Header to TotalUsageCard 간격 조정
                 _buildTotalUsageCard(),
-                const SizedBox(height: 24),
+                const SizedBox(
+                  height: 16,
+                ), // TotalUsageCard to "가장 많이 사용한 앱" title 간격 조정
                 Text(
                   '가장 많이 사용한 앱',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(
+                  height: 4,
+                ), // "가장 많이 사용한 앱" title to TopAppsWidgets 간격 조정
                 ..._buildTopAppsWidgets(),
               ],
             ),
@@ -375,7 +379,7 @@ class _AppUsageState extends State<AppUsage> {
       final color = index < colors.length ? colors[index] : Colors.grey;
 
       return Card(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 8), // 앱 카드 간격 조정
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(
