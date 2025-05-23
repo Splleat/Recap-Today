@@ -165,42 +165,133 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                     }
 
                     if (snapshot.hasError || !snapshot.hasData) {
-                      return SizedBox(
-                        width: 150,
-                        child: Center(
-                          child: Icon(
-                            Icons.broken_image,
-                            color: Colors.red.shade300,
-                            size: 48,
-                          ),
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Stack(
+                          children: [
+                            SizedBox(
+                              width: 150,
+                              child: Center(
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: Colors.red.shade300,
+                                  size: 48,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: Colors.red),
+                                onPressed: () {
+                                  setState(() {
+                                    _photoPaths.removeAt(index);
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }
 
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: Stack(
-                        children: [
-                          Image.file(
-                            File(snapshot.data!),
-                            width: 150,
-                            fit: BoxFit.cover,
-                          ),
-                          Positioned(
-                            top: 0,
-                            right: 0,
-                            child: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.red),
-                              onPressed: () {
-                                setState(() {
-                                  _photoPaths.removeAt(index);
-                                });
-                              },
+                    final absPath = snapshot.data!;
+                    bool fileExists = false;
+                    try {
+                      fileExists = File(absPath).existsSync();
+                    } catch (e) {
+                      fileExists = false;
+                    }
+
+                    if (!fileExists) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Stack(
+                          children: [
+                            SizedBox(
+                              width: 150,
+                              child: Center(
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: Colors.red.shade300,
+                                  size: 48,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: Colors.red),
+                                onPressed: () {
+                                  setState(() {
+                                    _photoPaths.removeAt(index);
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    try {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Stack(
+                          children: [
+                            Image.file(
+                              File(absPath),
+                              width: 150,
+                              fit: BoxFit.cover,
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: Colors.red),
+                                onPressed: () {
+                                  setState(() {
+                                    _photoPaths.removeAt(index);
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    } catch (e) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Stack(
+                          children: [
+                            SizedBox(
+                              width: 150,
+                              child: Center(
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: Colors.red.shade300,
+                                  size: 48,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: Colors.red),
+                                onPressed: () {
+                                  setState(() {
+                                    _photoPaths.removeAt(index);
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
                   },
                 );
               },
@@ -236,6 +327,9 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                     _todayDiary = savedDiary;
                   });
 
+                  // 저장된 일기의 photoPaths만 남기고 나머지 파일 정리
+                  await FileManager.cleanupUnusedPhotos(savedDiary.photoPaths);
+
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(const SnackBar(content: Text('일기가 저장되었습니다')));
@@ -257,12 +351,7 @@ class _DiaryWidgetState extends State<DiaryWidget> {
   void dispose() {
     _titleController.dispose();
     _contentController.dispose();
-
-    // 저장되지 않은 사진 정리
-    if (_todayDiary != null && _photoPaths.isNotEmpty) {
-      FileManager.cleanupUnusedPhotos(_photoPaths);
-    }
-
+    // cleanupUnusedPhotos는 여기서 호출하지 않음 (일기 저장 시에만 호출)
     super.dispose();
   }
 }
