@@ -254,42 +254,37 @@ class _AppUsageState extends State<AppUsage> {
   }
 
   Widget _buildUsageStats() {
-    return RefreshIndicator(
-      onRefresh: _refreshData,
-      child: Stack(
-        children: [
-          SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 16),
-                  _buildTotalUsageCard(),
-                  const SizedBox(height: 24),
-                  Text(
-                    '가장 많이 사용한 앱',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  ..._buildTopAppsWidgets(),
-                  // 아래 여백 추가
-                  const SizedBox(height: 24),
-                ],
-              ),
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(), // 스크롤 기능 제거
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 16),
+                _buildTotalUsageCard(),
+                const SizedBox(height: 24),
+                Text(
+                  '가장 많이 사용한 앱',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                ..._buildTopAppsWidgets(),
+              ],
             ),
           ),
-          if (_isRefreshing)
-            const Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: LinearProgressIndicator(),
-            ),
-        ],
-      ),
+        ),
+        if (_isRefreshing)
+          const Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: LinearProgressIndicator(),
+          ),
+      ],
     );
   }
 
