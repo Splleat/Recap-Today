@@ -3,6 +3,7 @@ import 'package:recap_today/model/schedule_item.dart';
 import 'package:recap_today/utils/time_utils.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:recap_today/widget/planner/schedule_add.dart'; // Corrected import path
 
 List<String> week = ['일', '월', '화', '수', '목', '금', '토'];
 const int kColumnLength = 48;
@@ -11,37 +12,26 @@ const double kBoxSize = 60;
 
 Widget buildTimeColumn() {
   return Expanded(
-      child:Column(
-        children: [
-          SizedBox(
-            height: kFirstColumnHeight,
-          ),
-          ...List.generate(
-            kColumnLength.toInt(),
-                (index) {
-              if (index % 2 == 0) {
-                return const Divider(
-                  color: Colors.grey,
-                  height: 0,
-                );
-              }
-              return SizedBox(
-                height: kBoxSize,
-                child: Center(child: Text('${index ~/ 2}')),
-              );
-            },
-          ),
-        ],
-      )
+    child: Column(
+      children: [
+        SizedBox(height: kFirstColumnHeight),
+        ...List.generate(kColumnLength.toInt(), (index) {
+          if (index % 2 == 0) {
+            return const Divider(color: Colors.grey, height: 0);
+          }
+          return SizedBox(
+            height: kBoxSize,
+            child: Center(child: Text('${index ~/ 2}')),
+          );
+        }),
+      ],
+    ),
   );
 }
 
 List<Widget> buildDayColumn(int index, List<ScheduleItem> items) {
   return [
-    const VerticalDivider(
-      color: Colors.grey,
-      width: 0,
-    ),
+    const VerticalDivider(color: Colors.grey, width: 0),
     Expanded(
       flex: 4,
       child: Stack(
@@ -50,30 +40,22 @@ List<Widget> buildDayColumn(int index, List<ScheduleItem> items) {
             children: [
               SizedBox(
                 height: kFirstColumnHeight,
-                child: Text(
-                  '${week[index]}',
-                ),
+                child: Text('${week[index]}'),
               ),
-              ...List.generate(
-                kColumnLength,
-                    (index) {
-                  if (index % 2 == 0) {
-                    return const Divider(
-                      color: Colors.grey,
-                      height: 0,
-                    );
-                  }
-                  return SizedBox(
-                    height: kBoxSize,
-                    child: Container(),
-                  );
-                },
-              ),
+              ...List.generate(kColumnLength, (index) {
+                if (index % 2 == 0) {
+                  return const Divider(color: Colors.grey, height: 0);
+                }
+                return SizedBox(height: kBoxSize, child: Container());
+              }),
             ],
           ),
           ...items.map((item) {
-            final double top = timeOfDayToMinutes(item.startTime).toDouble() + kFirstColumnHeight;
-            final double height = scheduleDuration(item.startTime, item.endTime).toDouble();
+            final double top =
+                timeOfDayToMinutes(item.startTime).toDouble() +
+                kFirstColumnHeight;
+            final double height =
+                scheduleDuration(item.startTime, item.endTime).toDouble();
             if (height <= 0) {
               return SizedBox.shrink();
             }
@@ -103,19 +85,51 @@ class TimetableScheduleBlock extends StatelessWidget {
           title: Text(item.text),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start ,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              item.isRoutine ? Text('루틴 일정') : Text('사용자 일정'),
-              Text((item.subText?.isNotEmpty ?? false) ? item.subText! : '세부 내용 없음'),
-              Text('${item.startTime.format(context)} - ${item.endTime.format(context)}'),
+              Text(item.isRoutine ? '루틴 일정' : '사용자 일정'),
+              Text(
+                (item.subText?.isNotEmpty ?? false)
+                    ? item.subText!
+                    : '세부 내용 없음',
+              ),
+              Text(
+                '${item.startTime.format(context)} - ${item.endTime.format(context)}',
+              ),
+              if (item.color != null)
+                Row(
+                  children: [
+                    const Text('색상: '),
+                    Container(width: 20, height: 20, color: item.color),
+                  ],
+                ),
+              if (item.hasAlarm ?? false)
+                Text('알림: ${item.alarmOffset?.inMinutes ?? ''}분 전'),
             ],
           ),
           actions: <Widget>[
             TextButton(
-              child: Text('수정'),
+              child: const Text('수정'),
               onPressed: () {
-                // 수정 기능 구현
-              }
+                Navigator.of(context).pop(); // Close the dialog
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (sheetContext) {
+                    return Padding(
+                      padding: MediaQuery.of(sheetContext).viewInsets,
+                      child: ScheduleAddForm(
+                        isRoutineContext: item.isRoutine,
+                        initialItem: item, // Pass the item to edit
+                        selectedDate:
+                            item.selectedDate, // Pass existing date for user schedules
+                        dayOfWeek:
+                            item.dayOfWeek, // Pass existing day for routine schedules
+                      ),
+                    );
+                  },
+                );
+              },
             ),
             TextButton(
               child: Text('삭제', style: TextStyle(color: Colors.red)),
@@ -136,21 +150,17 @@ class TimetableScheduleBlock extends StatelessWidget {
     );
   }
 
-  const TimetableScheduleBlock ({
-    Key? key,
-    required this.item,
-  }) : super(key: key);
+  const TimetableScheduleBlock({Key? key, required this.item})
+    : super(key: key);
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
         _showOptionsDialog(context, item);
       },
       child: Container(
-        decoration: BoxDecoration(
-          color: item.color,
-        ),
+        decoration: BoxDecoration(color: item.color),
         alignment: Alignment.center,
-        child: Text(item.text, textAlign: TextAlign.start,),
+        child: Text(item.text, textAlign: TextAlign.start),
       ),
     );
   }
