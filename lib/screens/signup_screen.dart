@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:recap_today/screens/login_screen.dart'; // LoginScreen import 추가
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -106,25 +107,47 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       backgroundColor: Color(0xFFF5F5F5),
       resizeToAvoidBottomInset: true, // Enable resize when keyboard appears
-      appBar: AppBar(
-        title: const Text('회원가입'),
-        backgroundColor: Color(0xFF2196F3),
-        elevation: 0,
-      ),
+      // appBar: AppBar(
+      //   title: const Text('회원가입'),
+      //   backgroundColor: Color(0xFF2196F3),
+      //   elevation: 0,
+      // ),
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.only(
-            top: 24.0,
-            left: 24.0,
-            right: 24.0,
-            // Add dynamic bottom padding to account for keyboard
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
-          ),
-          child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          // Add scroll capability
+          child: Padding(
+            padding: EdgeInsets.only(
+              top: 24.0,
+              left: 24.0,
+              right: 24.0,
+              // Add dynamic bottom padding to account for keyboard
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
+            ),
+            // child: SingleChildScrollView(
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 30),
+                const SizedBox(height: 40),
+                // Logo or app title
+                Text(
+                  'Recap Today',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                    color: Color(0xFF1976D2),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 32,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '새로운 계정을 만들어주세요',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 60),
                 // Sign up form
                 Card(
                   elevation: 4,
@@ -167,7 +190,9 @@ class _SignupScreenState extends State<SignupScreen> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : signup,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF2196F3),
+                              backgroundColor: Color(
+                                0xFF2196F3,
+                              ), // 그라데이션 제거, 단색 배경으로 변경
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -187,6 +212,36 @@ class _SignupScreenState extends State<SignupScreen> {
                                     ),
                           ),
                         ),
+                        const SizedBox(height: 16), // 간격 추가
+                        SizedBox(
+                          // 회원가입 없이 계속하기 버튼 추가
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              // Navigator.popUntil(context, ModalRoute.withName('/settings'));
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                '/settings',
+                                (route) => false,
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey[300], // 다른 스타일 적용
+                              foregroundColor: Colors.black87,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              '회원가입 없이 계속하기',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -202,7 +257,13 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        // Navigator.pop(context); // 이전 방식
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
+                        );
                       },
                       child: const Text('로그인'),
                     ),

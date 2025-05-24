@@ -205,7 +205,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 50,
                           child: ElevatedButton(
                             onPressed: () {
-                              Navigator.pop(context); // 뒤로가기
+                              // Navigator.popUntil(context, ModalRoute.withName('/settings'));
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                '/settings',
+                                (route) => false,
+                              );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Color(0xFF2196F3),
