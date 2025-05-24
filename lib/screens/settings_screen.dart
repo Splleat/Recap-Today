@@ -81,6 +81,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 1),
+                // 캘린더 화면 위젯 선택 섹션
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 4,
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.calendar_today_outlined, // Changed icon
+                      color: Colors.redAccent, // Changed color
+                    ),
+                    title: const Text('캘린더 화면 위젯 선택'), // Changed text
+                    //subtitle: const Text('캘린더 화면에 표시할 위젯을 선택하세요'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      // TODO: 캘린더 화면 위젯 선택 화면으로 이동
+                    },
+                  ),
+                ),
+                const SizedBox(height: 1),
                 // 요약 화면 위젯 선택 섹션
                 Card(
                   shape: RoundedRectangleBorder(
