@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-
 import 'package:recap_today/provider/login_provider.dart';
+
 import 'package:recap_today/screens/signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,102 +16,26 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // final _usernameController = TextEditingController();
-  // final _passwordController = TextEditingController();
-  // bool _isLoading = false;
-
-  // Future<void> login() async {
-  //   setState(() {
-  //     _isLoading = true;
-  //   });
-
-  //   try {
-  //     // 여러 가능한 URL을 시도합니다
-  //     final urls = [
-  //       'http://211.194.70.88:8000/login', // 실제 서버
-  //       'http://10.0.2.2:8000/login', // Android 에뮬레이터
-  //       'http://localhost:8000/login', // 웹
-  //       'http://127.0.0.1:8000/login', // 로컬 장치
-  //     ];
-
-  //     http.Response? response;
-  //     String errorMsg = "";
-
-  //     for (var url in urls) {
-  //       try {
-  //         response = await http.post(
-  //           Uri.parse(url),
-  //           headers: {'Content-Type': 'application/json'},
-  //           body: jsonEncode({
-  //             'username': _usernameController.text,
-  //             'password': _passwordController.text,
-  //           }),
-  //         );
-  //         // 성공하면 루프 종료
-  //         break;
-  //       } catch (e) {
-  //         errorMsg += "$url 연결 실패: $e\n";
-  //         continue;
-  //       }
-  //     }
-
-  //     if (response != null && response.statusCode == 200) {
-  //       if (mounted) {
-  //         Navigator.pushReplacementNamed(context, '/home');
-  //       }
-  //     } else {
-  //       if (mounted) {
-  //         if (response != null) {
-  //           ScaffoldMessenger.of(context).showSnackBar(
-  //             SnackBar(content: Text('로그인 실패: ${response.statusCode}')),
-  //           );
-  //         } else {
-  //           ScaffoldMessenger.of(
-  //             context,
-  //           ).showSnackBar(SnackBar(content: Text('서버 연결 실패\n$errorMsg')));
-  //         }
-  //       }
-  //     }
-  //   } catch (e) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(
-  //         context,
-  //       ).showSnackBar(SnackBar(content: Text('연결 오류: $e')));
-  //     }
-  //   } finally {
-  //     if (mounted) {
-  //       setState(() {
-  //         _isLoading = false;
-  //       });
-  //     }
-  //   }
-  // }
-
-  // @override
-  // void dispose() {
-  //   _usernameController.dispose();
-  //   _passwordController.dispose();
-  //   super.dispose();
-  // }
+  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
+    final loginProvider = Provider.of<LoginProvider>(context);
     final isLoading = context.select(
       (LoginProvider provider) => provider.isLoading,
     );
     return Scaffold(
-      backgroundColor: Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF5F5F5),
       resizeToAvoidBottomInset: true, // Enable resize when keyboard appears
       body: SafeArea(
         child: SingleChildScrollView(
           // Add scroll capability
           child: Padding(
+            // Added padding property here
             padding: EdgeInsets.only(
               top: 24.0,
               left: 24.0,
               right: 24.0,
-              // Add bottom padding to account for keyboard
-              // bottom: MediaQuery.of(context).viewInsets.bottom + 24.0, // Removed this line
               bottom: 24.0, // Added fixed bottom padding
             ),
             child: Column(
@@ -146,90 +70,156 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        TextField(
-                          onChanged:
-                              (value) => context
-                                  .read<LoginProvider>()
-                                  .setUserId(value),
-                          decoration: const InputDecoration(
-                            labelText: '아이디',
-                            prefixIcon: Icon(Icons.person),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        TextField(
-                          obscureText: true,
-                          onChanged:
-                              (value) => context
-                                  .read<LoginProvider>()
-                                  .setPassword(value),
-                          decoration: const InputDecoration(
-                            labelText: '비밀번호',
-                            prefixIcon: Icon(Icons.lock),
-                          ),
-                        ),
-                        const SizedBox(height: 30),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed:
-                                isLoading
-                                    ? null
-                                    : context.read<LoginProvider>().login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            // Change TextField to TextFormField
+                            onChanged:
+                                (value) => context
+                                    .read<LoginProvider>()
+                                    .setUserId(value),
+                            decoration: const InputDecoration(
+                              labelText: '아이디',
+                              prefixIcon: Icon(Icons.person),
                             ),
-                            child:
-                                isLoading
-                                    ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                    )
-                                    : const Text(
-                                      '로그인',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // Navigator.popUntil(context, ModalRoute.withName('/settings'));
-                              Navigator.pushNamedAndRemoveUntil(
-                                context,
-                                '/settings',
-                                (route) => false,
-                              );
+                            validator: (value) {
+                              // Add validator
+                              if (value == null || value.isEmpty) {
+                                return '아이디를 입력하세요';
+                              }
+                              return null;
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF2196F3),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                          ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            // Change TextField to TextFormField
+                            obscureText: true,
+                            onChanged:
+                                (value) => context
+                                    .read<LoginProvider>()
+                                    .setPassword(value),
+                            decoration: const InputDecoration(
+                              labelText: '비밀번호',
+                              prefixIcon: Icon(Icons.lock),
                             ),
-                            child: const Text(
-                              '로그인 없이 계속하기',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                            validator: (value) {
+                              // Add validator
+                              if (value == null || value.isEmpty) {
+                                return '비밀번호를 입력하세요';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 30),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed:
+                                  loginProvider.isLoading
+                                      ? null
+                                      : () async {
+                                        if (_formKey.currentState!.validate()) {
+                                          _formKey.currentState!.save();
+                                          await loginProvider.login();
+                                          if (mounted) {
+                                            if (loginProvider.isLoggedIn) {
+                                              Navigator.pushNamedAndRemoveUntil(
+                                                context,
+                                                '/settings',
+                                                (route) => false,
+                                              );
+                                            } else {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Login failed. Please check your credentials.',
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        }
+                                      },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    Colors
+                                        .transparent, // This was likely intended for the button\'s container or an InkWell
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding:
+                                    EdgeInsets
+                                        .zero, // Ensure the child (gradient container) fills the button
+                              ),
+                              child: Ink(
+                                // Use Ink widget for gradient background
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF2196F3),
+                                      Color(0xFF1976D2),
+                                    ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child:
+                                      isLoading
+                                          ? const CircularProgressIndicator(
+                                            color: Colors.white,
+                                          )
+                                          : const Text(
+                                            '로그인',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pushNamedAndRemoveUntil(
+                                  context,
+                                  '/settings',
+                                  (route) => false,
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(
+                                  0xFF64B5F6,
+                                ), // Lighter blue for this button
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text(
+                                '로그인 없이 계속하기',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

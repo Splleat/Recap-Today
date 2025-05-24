@@ -22,9 +22,21 @@ final class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> logout() {
+  Future<void> logout() async {
     // 로그아웃 로직 구현
     // 예를 들어, 토큰 삭제 등
+    // 서버에 로그아웃 요청을 보낼 수도 있습니다.
+    if (_token != null) {
+      try {
+        await dio.post('/auth/logout', data: {'token': _token});
+      } catch (e) {
+        // 서버 로그아웃 실패 시 에러 처리 (예: 로깅)
+        // 클라이언트 측에서는 토큰을 어쨌든 삭제하므로, 여기서 특별한 사용자 알림은 필요 없을 수 있음
+        print('Server logout failed: $e');
+      }
+    }
+    clearToken(); // 토큰 삭제
+    // 추가적인 로컬 상태 초기화 로직이 필요하다면 여기에 추가합니다.
     return Future.value();
   }
 

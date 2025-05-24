@@ -12,6 +12,7 @@ import 'package:recap_today/provider/checklist_provider.dart';
 import 'package:recap_today/provider/diary_provider.dart';
 import 'package:recap_today/provider/login_provider.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
+import 'package:recap_today/provider/signup_provider.dart'; // SignupProvider import
 import 'package:recap_today/repository/abstract_emotion_repository.dart'; // 추가
 import 'package:recap_today/repository/auth_repository.dart';
 import 'package:recap_today/repository/emotion_repository.dart'; // 추가
@@ -65,6 +66,10 @@ void main() async {
         ChangeNotifierProvider(create: (context) => DiaryProvider()),
         ChangeNotifierProvider(
           create: (context) => LoginProvider(authRepository),
+        ),
+        ChangeNotifierProvider(
+          // Add SignupProvider
+          create: (context) => SignupProvider(authRepository),
         ),
       ],
       child: const RecapToday(),
