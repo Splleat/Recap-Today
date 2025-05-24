@@ -137,47 +137,53 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
         String? dialogSelectedEmotion = selectedEmotion;
         return AlertDialog(
           title: Text('${hour.toString().padLeft(2, '0')}:00 감정 기록'),
+          scrollable: false,
           content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setStateDialog) {
+            builder: (BuildContext dialogContext, StateSetter setStateDialog) {
               return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(labelText: '감정 선택'),
-                      value: dialogSelectedEmotion,
-                      items:
-                          _emotionTypes.map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    emotionDetailsConfig[value]!.icon,
-                                    color: emotionDetailsConfig[value]!.color,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(value),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                      onChanged: (String? newValue) {
-                        setStateDialog(() {
-                          dialogSelectedEmotion = newValue;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: notesController,
-                      decoration: const InputDecoration(
-                        labelText: '메모 (선택 사항)',
-                        border: OutlineInputBorder(),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(dialogContext).viewInsets.bottom,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(labelText: '감정 선택'),
+                        value: dialogSelectedEmotion,
+                        items:
+                            _emotionTypes.map((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      emotionDetailsConfig[value]!.icon,
+                                      color: emotionDetailsConfig[value]!.color,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(value),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                        onChanged: (String? newValue) {
+                          setStateDialog(() {
+                            dialogSelectedEmotion = newValue;
+                          });
+                        },
                       ),
-                      maxLines: 3,
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: notesController,
+                        decoration: const InputDecoration(
+                          labelText: '메모 (선택 사항)',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -449,47 +455,53 @@ class _HourlyEmotionTimelineDrawerState
         String? dialogSelectedEmotion = selectedEmotion;
         return AlertDialog(
           title: Text('${hour.toString().padLeft(2, '0')}:00 감정 기록'),
+          scrollable: false,
           content: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setStateDialog) {
+            builder: (BuildContext dialogContext, StateSetter setStateDialog) {
               return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(labelText: '감정 선택'),
-                      value: dialogSelectedEmotion,
-                      items:
-                          _emotionTypes.map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    emotionDetailsConfig[value]!.icon,
-                                    color: emotionDetailsConfig[value]!.color,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(value),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                      onChanged: (String? newValue) {
-                        setStateDialog(() {
-                          dialogSelectedEmotion = newValue;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: notesController,
-                      decoration: const InputDecoration(
-                        labelText: '메모 (선택 사항)',
-                        border: OutlineInputBorder(),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(dialogContext).viewInsets.bottom,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(labelText: '감정 선택'),
+                        value: dialogSelectedEmotion,
+                        items:
+                            _emotionTypes.map((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      emotionDetailsConfig[value]!.icon,
+                                      color: emotionDetailsConfig[value]!.color,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(value),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                        onChanged: (String? newValue) {
+                          setStateDialog(() {
+                            dialogSelectedEmotion = newValue;
+                          });
+                        },
                       ),
-                      maxLines: 3,
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: notesController,
+                        decoration: const InputDecoration(
+                          labelText: '메모 (선택 사항)',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 3,
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

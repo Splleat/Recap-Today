@@ -36,42 +36,45 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  HomeSchedule(date: DateTime.now()),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const HomeChecklist(),
+              child: SingleChildScrollView(
+                // Wrap Column with SingleChildScrollView
+                child: Column(
+                  children: [
+                    HomeSchedule(date: DateTime.now()),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HomeChecklist(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white.withOpacity(0.8),
+                          padding: const EdgeInsets.all(16.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.8),
-                        padding: const EdgeInsets.all(16.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12.0),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
                         ),
-                        elevation: 0,
-                        shadowColor: Colors.transparent,
-                      ),
-                      child: Row(
-                        children: [
-                          Text('할 일을 확인하세요'),
-                          Spacer(),
-                          Icon(Icons.arrow_forward),
-                        ],
+                        child: Row(
+                          children: [
+                            Text('할 일을 확인하세요'),
+                            Spacer(),
+                            Icon(Icons.arrow_forward),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  HourlyEmotionLogger(initialDate: DateTime.now()),
-                ],
+                    const SizedBox(height: 16),
+                    HourlyEmotionLogger(initialDate: DateTime.now()),
+                  ],
+                ),
               ),
             ),
           ),
