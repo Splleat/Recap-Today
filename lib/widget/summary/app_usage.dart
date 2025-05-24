@@ -7,7 +7,8 @@ import 'package:recap_today/model/app_usage_model.dart';
 import 'package:recap_today/service/app_usage_service.dart';
 
 class AppUsage extends StatefulWidget {
-  const AppUsage({super.key});
+  final DateTime? date; // Add date parameter
+  const AppUsage({super.key, this.date}); // Update constructor
 
   @override
   State<AppUsage> createState() => _AppUsageState();
@@ -18,7 +19,11 @@ class _AppUsageState extends State<AppUsage> {
   bool _isLoading = true;
   bool _hasPermission = false;
   AppUsageSummary? _usageSummary;
-  String _today = '';
+  // String _today = ''; // Remove _today
+
+  late DateTime _displayedDate; // Date to display data for
+  late String _displayedDateString; // String formatted date
+  bool _isDateToday = true; // Flag to check if the displayed date is today
 
   // 애니메이션 컨트롤러 추가
   bool _isRefreshing = false;
@@ -26,7 +31,16 @@ class _AppUsageState extends State<AppUsage> {
   @override
   void initState() {
     super.initState();
-    _today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    // _today = DateFormat('yyyy-MM-dd').format(DateTime.now()); // Remove this
+
+    _displayedDate = widget.date ?? DateTime.now();
+    _displayedDateString = DateFormat('yyyy-MM-dd').format(_displayedDate);
+
+    final now = DateTime.now();
+    _isDateToday =
+        _displayedDate.year == now.year &&
+        _displayedDate.month == now.month &&
+        _displayedDate.day == now.day;
 
     // 초기화 후 데이터 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -56,7 +70,9 @@ class _AppUsageState extends State<AppUsage> {
         if (_hasPermission) {
           // 캐시된 데이터 먼저 로드
           final storedSummary = await _appUsageService
-              .getAppUsageSummaryForDate(_today);
+              .getAppUsageSummaryForDate(
+                _displayedDateString,
+              ); // Use _displayedDateString
 
           // UI 빠르게 업데이트
           if (storedSummary != null && mounted) {
@@ -66,8 +82,20 @@ class _AppUsageState extends State<AppUsage> {
             });
           }
 
-          // 최신 데이터로 갱신 (백그라운드)
-          _refreshDataInBackground();
+          // 최신 데이터로 갱신 (백그라운드) - Only if it's today and we have a mechanism
+          if (_isDateToday) {
+            _refreshDataInBackground();
+          } else if (storedSummary == null && mounted) {
+            // For past dates with no data, stop loading
+            setState(() {
+              _isLoading = false;
+            });
+          } else if (mounted) {
+            // For past dates with data, or if not refreshing in background
+            setState(() {
+              _isLoading = false;
+            });
+          }
         } else {
           if (mounted) {
             setState(() {
@@ -95,6 +123,11 @@ class _AppUsageState extends State<AppUsage> {
   Future<void> _refreshDataInBackground() async {
     if (!Platform.isAndroid || !_hasPermission || !mounted) return;
 
+    // This method currently fetches for "today".
+    // If _isDateToday is false, this might fetch wrong data or should be disabled.
+    // For now, assuming it's called conditionally (only if _isDateToday).
+    if (!_isDateToday) return; // Guard if called inappropriately
+
     try {
       final latest = await _appUsageService.getTodayAppUsage();
 
@@ -119,11 +152,26 @@ class _AppUsageState extends State<AppUsage> {
   Future<void> _refreshData() async {
     if (!Platform.isAndroid || !_hasPermission || _isRefreshing) return;
 
+    // If not for today, and service doesn't support refreshing past dates,
+    // this button should ideally be disabled or this function adapted.
+    // For now, if it's not today, we can prevent the refresh action or
+    // it will incorrectly call getTodayAppUsage.
+    if (!_isDateToday) {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
+      return;
+    }
+
     setState(() {
       _isRefreshing = true;
     });
 
     try {
+      // This fetches for "today". If _isDateToday is false, this is incorrect.
+      // This function should ideally call a service method that fetches for _displayedDate.
       final latest = await _appUsageService.getTodayAppUsage();
 
       if (mounted) {
@@ -234,18 +282,26 @@ class _AppUsageState extends State<AppUsage> {
         children: [
           const Icon(Icons.hourglass_empty, size: 48, color: Colors.grey),
           const SizedBox(height: 16),
-          const Text('오늘의 앱 사용 통계가 없습니다.', style: TextStyle(fontSize: 16)),
+          Text(
+            _isDateToday
+                ? '오늘의 앱 사용 통계가 없습니다.'
+                : '${DateFormat('M월 d일').format(_displayedDate)}의 앱 사용 통계가 없습니다.',
+            style: TextStyle(fontSize: 16),
+          ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: _refreshData,
+            onPressed:
+                (_isRefreshing || !_isDateToday)
+                    ? null
+                    : _refreshData, // Disable if not today
             icon:
                 _isRefreshing
-                    ? const SizedBox(
-                      width: 20,
-                      height: 20,
+                    ? SizedBox(
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                    : const Icon(Icons.refresh),
+                    : Icon(Icons.refresh, size: 18),
             label: Text(_isRefreshing ? '갱신 중...' : '새로고침'),
           ),
         ],
@@ -257,25 +313,26 @@ class _AppUsageState extends State<AppUsage> {
     return Stack(
       children: [
         SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(), // 스크롤 기능 제거
+          // Allow scrolling if content overflows
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(),
-                const SizedBox(height: 8), // Header to TotalUsageCard 간격 조정
+                const SizedBox(height: 16),
                 _buildTotalUsageCard(),
-                const SizedBox(
-                  height: 16,
-                ), // TotalUsageCard to "가장 많이 사용한 앱" title 간격 조정
-                Text(
-                  '가장 많이 사용한 앱',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(
-                  height: 4,
-                ), // "가장 많이 사용한 앱" title to TopAppsWidgets 간격 조정
+                const SizedBox(height: 24),
+                if (_usageSummary != null && _usageSummary!.topApps.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: Text(
+                      '자주 사용한 앱', // "Frequently Used Apps" title
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ..._buildTopAppsWidgets(),
               ],
             ),
@@ -297,14 +354,19 @@ class _AppUsageState extends State<AppUsage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          '오늘의 앱 사용 시간',
+          _isDateToday
+              ? '오늘의 앱 사용 시간'
+              : '${DateFormat('M월 d일').format(_displayedDate)} 앱 사용 시간',
           style: Theme.of(
             context,
           ).textTheme.titleLarge?.copyWith(color: Colors.black),
         ),
         IconButton(
           icon: const Icon(Icons.refresh, size: 20),
-          onPressed: _isRefreshing ? null : _refreshData,
+          onPressed:
+              (_isRefreshing || !_isDateToday)
+                  ? null
+                  : _refreshData, // Disable if not today
           tooltip: '새로고침',
         ),
       ],
