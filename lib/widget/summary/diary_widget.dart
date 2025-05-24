@@ -205,11 +205,6 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                       _todayDiary = savedDiary;
                     });
 
-                    // 저장된 일기의 photoPaths만 남기고 나머지 파일 정리
-                    await FileManager.cleanupUnusedPhotos(
-                      savedDiary.photoPaths,
-                    );
-
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('일기가 저장되었습니다')),
                     );

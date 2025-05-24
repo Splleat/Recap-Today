@@ -153,37 +153,41 @@ class FileManager {
 
   /// 임시 저장된 사진 정리
   static Future<void> cleanupUnusedPhotos(List<String> usedPaths) async {
-    if (usedPaths == null) {
-      debugPrint('Used paths list is null');
-      return;
-    }
-
     try {
       final dir = await photosDir;
       final directory = Directory(dir);
 
       if (!await directory.exists()) {
-        debugPrint('Photos directory does not exist');
         return;
       }
 
       final files = directory.listSync();
 
-      for (var file in files) {
-        if (file is File) {
-          final relativePath = createRelativePath(file.path);
-          if (!usedPaths.contains(relativePath)) {
+      for (var fileEntity in files) {
+        if (fileEntity is File) {
+          final currentFile = fileEntity;
+          final relativePath = createRelativePath(currentFile.path);
+
+          bool isInUse = false;
+          for (String usedPath in usedPaths) {
+            if (usedPath == relativePath) {
+              isInUse = true;
+              break;
+            }
+          }
+
+          if (!isInUse) {
             try {
-              await file.delete();
-              debugPrint('Deleted unused photo: ${file.path}');
+              await currentFile.delete();
+              debugPrint('Deleted unused photo: ${currentFile.path}');
             } catch (e) {
-              debugPrint('Error deleting file ${file.path}: $e');
+              // Handle error if needed
             }
           }
         }
       }
     } catch (e) {
-      debugPrint('Error cleaning up photos: $e');
+      // Handle error if needed
     }
   }
 }

@@ -35,10 +35,39 @@ class DiaryProvider with ChangeNotifier {
     final dbHelper = DatabaseHelper.instance;
     DiaryModel savedDiary;
 
+    // Check if a diary for this date already exists if the incoming diary.id is null
+    DiaryModel? existingDiaryForDate;
+    if (diary.id == null) {
+      existingDiaryForDate = await dbHelper.getDiaryForDate(diary.date);
+    }
+
     try {
-      if (diary.id == null) {
-        // 새 일기 삽입
-        final id = await dbHelper.insertDiary(diary);
+      if (existingDiaryForDate != null) {
+        // A diary for this date exists, but the input diary has id=null.
+        // Treat as an update to the existing diary.
+        savedDiary = DiaryModel(
+          id: existingDiaryForDate.id, // Use the ID of the existing diary
+          date:
+              existingDiaryForDate
+                  .date, // Use existing date (should match diary.date)
+          title: diary.title, // Use new title from input
+          content: diary.content, // Use new content from input
+          photoPaths: List<String>.from(
+            diary.photoPaths,
+          ), // Use new photo paths
+        );
+        // Perform update operations
+        await dbHelper.updateDiary(savedDiary);
+        await dbHelper.deletePhotosForDiary(
+          savedDiary.id!,
+        ); // Delete old photos for this diary
+        await _savePhotos(savedDiary); // Save new photo associations
+      } else if (diary.id == null) {
+        // This is a new diary (no existing ID) and no diary found for this date.
+        // Proceed with inserting a new diary.
+        final id = await dbHelper.insertDiary(
+          diary,
+        ); // insertDiary handles potential conflict by date
         savedDiary = DiaryModel(
           id: id,
           date: diary.date,
@@ -46,17 +75,10 @@ class DiaryProvider with ChangeNotifier {
           content: diary.content,
           photoPaths: List<String>.from(diary.photoPaths),
         );
-
-        // 사진 삽입
-        await _savePhotos(savedDiary);
+        await _savePhotos(savedDiary); // 사진 정보 DB에 저장
       } else {
-        // 기존 일기의 사진 경로 가져오기
-        final existingPhotos = await dbHelper.getPhotosForDiary(diary.id!);
-        final existingPaths =
-            existingPhotos.map((photo) => photo.path).toList();
-
-        // 기존 일기 업데이트
-        await dbHelper.updateDiary(diary);
+        // This is an update to an existing diary (diary.id is not null).
+        await dbHelper.updateDiary(diary); // 일기 내용 업데이트
         savedDiary = DiaryModel(
           id: diary.id,
           date: diary.date,
@@ -64,34 +86,19 @@ class DiaryProvider with ChangeNotifier {
           content: diary.content,
           photoPaths: List<String>.from(diary.photoPaths),
         );
-
-        // 기존 사진 삭제 후 새 사진 삽입
+        // 기존 사진 정보 DB에서 삭제 후 새 정보 저장
         await dbHelper.deletePhotosForDiary(diary.id!);
         await _savePhotos(savedDiary);
-
-        // 더 이상 사용되지 않는 파일 정리
-        if (existingPaths.isNotEmpty) {
-          // 사용되지 않는 경로 필터링
-          final unusedPaths =
-              existingPaths
-                  .where((path) => !diary.photoPaths.contains(path))
-                  .toList();
-
-          if (unusedPaths.isNotEmpty) {
-            try {
-              await FileManager.cleanupUnusedPhotos(diary.photoPaths);
-            } catch (e) {
-              debugPrint('Error cleaning up unused photos: $e');
-              // 파일 정리 실패는 일기 저장 실패로 간주하지 않음
-            }
-          }
-        }
       }
 
+      // 데이터베이스 작업 완료 후, 전역 사진 파일 정리 수행
+      await _cleanupPhotos();
+
+      // Provider 상태 업데이트 및 리스너에게 알림
       await loadDiaries();
+
       return savedDiary;
     } catch (e) {
-      debugPrint('Error saving diary: $e');
       rethrow; // 오류를 상위 레벨로 전파
     }
   }
@@ -116,6 +123,28 @@ class DiaryProvider with ChangeNotifier {
     final dbHelper = DatabaseHelper.instance;
     for (var path in diary.photoPaths) {
       await dbHelper.insertPhoto(Photo(diaryId: diary.id!, path: path));
+    }
+  }
+
+  /// 사용되지 않는 사진 정리
+  Future<void> _cleanupPhotos() async {
+    final dbHelper = DatabaseHelper.instance;
+    List<String> allActivePhotoPathsInDB = [];
+
+    try {
+      // 데이터베이스에서 모든 일기를 다시 가져와 최신 사진 경로 목록을 확보합니다.
+      List<DiaryModel> allDiariesFromDB = await dbHelper.getDiaries();
+      for (var d in allDiariesFromDB) {
+        allActivePhotoPathsInDB.addAll(d.photoPaths);
+      }
+      // 중복 제거
+      allActivePhotoPathsInDB = allActivePhotoPathsInDB.toSet().toList();
+
+      // 파일 시스템에서 사용되지 않는 사진 파일 정리
+      await FileManager.cleanupUnusedPhotos(allActivePhotoPathsInDB);
+    } catch (e) {
+      // 사진 정리 중 오류가 발생해도 일기 저장 자체는 성공한 것으로 간주할 수 있습니다.
+      // 필요에 따라 오류를 다르게 처리할 수 있습니다.
     }
   }
 }
