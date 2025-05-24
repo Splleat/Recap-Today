@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:recap_today/router.dart';
 import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/widget/summary/location_info.dart';
+import 'package:recap_today/widget/summary/weather_summary.dart'; // 날씨 요약 위젯 추가
 import 'package:recap_today/widget/summary/app_usage.dart';
 import 'package:recap_today/widget/summary/checklist_achievement.dart';
 import 'package:recap_today/widget/summary/ai_feedback.dart';
@@ -64,6 +65,15 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       child: LocationInfo(),
                     ),
                   ),
+                  Card(
+                    child: Padding(
+                      // 패딩 추가
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 80.0,
+                      ), // LocationInfo와 동일한 패딩 적용
+                      child: WeatherSummary(),
+                    ),
+                  ), // 날씨 요약 위젯 추가
                   Card(child: AppUsage()),
                   Card(child: ChecklistAchievement()),
                   // EmotionSummaryGraph 추가
