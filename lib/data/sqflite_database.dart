@@ -59,6 +59,27 @@ class SqfliteDatabase extends AbstractDatabase {
     }
   }
 
+  @override
+  // Future<List<DiaryModel>> searchDiaries(String query) async { // Old signature
+  Future<Map<String, dynamic>> searchDiaries(
+    String query, {
+    int? limit,
+    int? offset,
+  }) async {
+    try {
+      // return await _helper.searchDiaries(query); // Old call
+      return await _helper.searchDiaries(
+        query,
+        limit: limit,
+        offset: offset,
+      ); // New call
+    } catch (e) {
+      debugPrint('일기 검색 중 오류 발생: $e');
+      // return []; // Old return
+      return {'diaries': [], 'totalCount': 0}; // New return for error case
+    }
+  }
+
   // 체크리스트 관련 메서드 구현
   @override
   Future<int> insertChecklistItem(ChecklistItem item) async {

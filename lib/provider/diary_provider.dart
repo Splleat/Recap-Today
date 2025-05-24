@@ -96,6 +96,19 @@ class DiaryProvider with ChangeNotifier {
     }
   }
 
+  /// 일기 검색
+  Future<Map<String, dynamic>> searchDiaries(
+    String query, {
+    int? limit,
+    int? offset,
+  }) async {
+    return await DatabaseHelper.instance.searchDiaries(
+      query,
+      limit: limit,
+      offset: offset,
+    );
+  }
+
   /// 일기에 속한 사진들을 저장
   Future<void> _savePhotos(DiaryModel diary) async {
     if (diary.id == null) return;

@@ -17,6 +17,11 @@ abstract class AbstractDatabase {
   Future<int> updateDiary(DiaryModel diary);
   Future<List<DiaryModel>> getDiaries();
   Future<DiaryModel?> getDiaryForDate(String date);
+  Future<Map<String, dynamic>> searchDiaries(
+    String query, {
+    int? limit,
+    int? offset,
+  }); // New signature with limit and offset
 
   // 체크리스트 관련 메서드
   Future<int> insertChecklistItem(ChecklistItem item);

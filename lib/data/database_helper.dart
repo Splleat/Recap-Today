@@ -272,6 +272,58 @@ class DatabaseHelper {
     return null;
   }
 
+  /// 일기 검색 (제목 또는 내용 포함, 날짜 최신순 정렬)
+  Future<Map<String, dynamic>> searchDiaries(
+    String query, {
+    int? limit,
+    int? offset,
+  }) async {
+    final db = await instance.database;
+    String whereClause = 'title LIKE ? OR content LIKE ?';
+    List<dynamic> whereArgs = ['%$query%', '%$query%'];
+
+    // Get total count for pagination
+    final countResult = await db.rawQuery(
+      'SELECT COUNT(*) FROM $tableDiaries WHERE $whereClause',
+      whereArgs,
+    );
+    final totalCount = Sqflite.firstIntValue(countResult) ?? 0;
+
+    String orderBy = 'date DESC';
+    String? limitClause = limit != null ? 'LIMIT $limit' : null;
+    String? offsetClause = offset != null ? 'OFFSET $offset' : null;
+
+    final maps = await db.query(
+      tableDiaries,
+      where: whereClause,
+      whereArgs: whereArgs,
+      orderBy: orderBy,
+      limit: limit,
+      offset: offset,
+    );
+
+    final diaries = List.generate(
+      maps.length,
+      (i) => DiaryModel.fromMap(maps[i]),
+    );
+
+    // 각 일기에 대한 사진 경로 로드
+    for (var i = 0; i < diaries.length; i++) {
+      if (diaries[i].id != null) {
+        final photos = await getPhotosForDiary(diaries[i].id!);
+        final paths = photos.map((photo) => photo.path).toList();
+        diaries[i] = DiaryModel(
+          id: diaries[i].id,
+          date: diaries[i].date,
+          title: diaries[i].title,
+          content: diaries[i].content,
+          photoPaths: paths,
+        );
+      }
+    }
+    return {'diaries': diaries, 'totalCount': totalCount};
+  }
+
   /// 사진 삽입
   Future<int> insertPhoto(Photo photo) async {
     final db = await instance.database;
