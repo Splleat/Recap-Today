@@ -293,13 +293,21 @@ class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // Format the date for the title
+    String formattedDate = DateFormat('yyyy년 M월 d일').format(widget.date);
+    bool isToday =
+        widget.date.year == DateTime.now().year &&
+        widget.date.month == DateTime.now().month &&
+        widget.date.day == DateTime.now().day;
+    String title = isToday ? '오늘의 감정 변화' : '$formattedDate 감정 변화';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 16.0, top: 16.0, bottom: 8.0),
           child: Text(
-            '오늘의 감정 변화', // Graph Title
+            title, // Use the dynamic title
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
               color: Colors.black, // Added color black
