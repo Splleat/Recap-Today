@@ -27,6 +27,23 @@ class ChecklistProvider extends ChangeNotifier {
   List<ChecklistItem> get items => List.unmodifiable(_items); // 불변 리스트 반환으로 변경
   bool get isLoading => !_isLoaded;
 
+  /// 특정 날짜에 완료된 항목들을 반환하는 메서드
+  List<ChecklistItem> getCompletedItemsForDate(DateTime date) {
+    // 날짜만 비교하기 위해 시간, 분, 초를 0으로 설정
+    final targetDay = DateTime(date.year, date.month, date.day);
+    return _items.where((item) {
+      if (!item.isChecked || item.completedDate == null) {
+        return false;
+      }
+      final completedDay = DateTime(
+        item.completedDate!.year,
+        item.completedDate!.month,
+        item.completedDate!.day,
+      );
+      return completedDay.isAtSameMomentAs(targetDay);
+    }).toList();
+  }
+
   // 오늘 날짜 문자열 업데이트
   void _updateTodayDateString() {
     _todayDateString = DateFormat('yyyy-MM-dd').format(DateTime.now());

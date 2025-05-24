@@ -5,14 +5,25 @@ import 'package:recap_today/model/checklist_item.dart';
 import 'package:recap_today/provider/checklist_provider.dart';
 
 class ChecklistAchievement extends StatelessWidget {
-  const ChecklistAchievement({super.key});
+  final DateTime? date; // Add date parameter
+  const ChecklistAchievement({super.key, this.date}); // Update constructor
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ChecklistProvider>(
       builder: (context, provider, child) {
-        // 오늘 완료된 항목들만 가져오기 (캐시 활용)
-        final completedItems = provider.getTodayCompletedItems();
+        final targetDate = date ?? DateTime.now();
+        // Get completed items for the targetDate
+        final completedItems = provider.getCompletedItemsForDate(targetDate);
+
+        // Determine if the targetDate is today for display purposes
+        final now = DateTime.now();
+        final isToday =
+            targetDate.year == now.year &&
+            targetDate.month == now.month &&
+            targetDate.day == now.day;
+        final displayDateString =
+            isToday ? '오늘' : DateFormat('M월 d일').format(targetDate);
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -49,8 +60,8 @@ class ChecklistAchievement extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            '오늘 완료',
+                          Text(
+                            '$displayDateString 완료', // Updated text
                             style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                         ],
@@ -71,9 +82,9 @@ class ChecklistAchievement extends StatelessWidget {
                     flex: 3,
                     child:
                         completedItems.isEmpty
-                            ? const Center(
+                            ? Center(
                               child: Text(
-                                '오늘 완료된 항목이 없습니다.',
+                                '$displayDateString 완료된 항목이 없습니다.', // Updated text
                                 style: TextStyle(color: Colors.grey),
                                 textAlign: TextAlign.center,
                               ),
