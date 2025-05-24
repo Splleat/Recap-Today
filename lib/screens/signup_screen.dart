@@ -121,7 +121,8 @@ class _SignupScreenState extends State<SignupScreen> {
               left: 24.0,
               right: 24.0,
               // Add dynamic bottom padding to account for keyboard
-              bottom: MediaQuery.of(context).viewInsets.bottom + 24.0,
+              // bottom: MediaQuery.of(context).viewInsets.bottom + 24.0, // Removed this line
+              bottom: 24.0, // Added fixed bottom padding
             ),
             // child: SingleChildScrollView(
             child: Column(
