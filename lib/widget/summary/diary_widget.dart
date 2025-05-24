@@ -8,9 +8,11 @@ import 'package:recap_today/provider/diary_provider.dart';
 import 'package:recap_today/utils/file_manager.dart';
 
 class DiaryWidget extends StatefulWidget {
-  final DiaryModel? diary;
+  final DiaryModel? diary; // 기존 파라미터
+  final DateTime? date; // 특정 날짜를 받기 위한 파라미터 추가
 
-  const DiaryWidget({Key? key, this.diary}) : super(key: key);
+  const DiaryWidget({Key? key, this.diary, this.date})
+    : super(key: key); // 생성자 수정
 
   @override
   _DiaryWidgetState createState() => _DiaryWidgetState();
@@ -21,32 +23,53 @@ class _DiaryWidgetState extends State<DiaryWidget> {
   final _contentController = TextEditingController();
   List<String> _photoPaths = [];
   bool _isLoading = true;
-  DiaryModel? _todayDiary;
+  DiaryModel? _todayDiary; // _displayedDiary로 변경 고려
+  late DateTime _targetDate; // 표시할 날짜
 
   @override
   void initState() {
     super.initState();
-    _loadTodayDiary();
+    _targetDate =
+        widget.date ?? DateTime.now(); // widget.date가 있으면 사용, 없으면 오늘 날짜
+    _loadDiaryForDate();
   }
 
-  // 오늘의 일기 로딩
-  Future<void> _loadTodayDiary() async {
+  // 특정 날짜의 일기 로딩 (기존 _loadTodayDiary 수정)
+  Future<void> _loadDiaryForDate() async {
     setState(() {
       _isLoading = true;
     });
 
     final diaryProvider = Provider.of<DiaryProvider>(context, listen: false);
-    final diary = widget.diary ?? await diaryProvider.getTodayDiary();
+    // widget.diary가 있으면 직접 사용, 없으면 provider를 통해 targetDate의 일기를 가져옴
+    final diary =
+        widget.diary ??
+        await diaryProvider.getDiaryForSpecificDate(_targetDate);
 
     setState(() {
-      _todayDiary = diary;
+      _todayDiary = diary; // _displayedDiary = diary;
       if (diary != null) {
         _titleController.text = diary.title;
         _contentController.text = diary.content;
         _photoPaths = List<String>.from(diary.photoPaths);
+      } else {
+        // 해당 날짜에 일기가 없으면 컨트롤러 초기화
+        _titleController.clear();
+        _contentController.clear();
+        _photoPaths.clear();
       }
       _isLoading = false;
     });
+  }
+
+  // didUpdateWidget 추가하여 date 변경 시 다시 로드
+  @override
+  void didUpdateWidget(covariant DiaryWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.date != oldWidget.date) {
+      _targetDate = widget.date ?? DateTime.now();
+      _loadDiaryForDate();
+    }
   }
 
   // 여러 이미지를 한 번에 선택하는 함수
@@ -128,7 +151,7 @@ class _DiaryWidgetState extends State<DiaryWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            DateFormat('yyyy-MM-dd').format(_targetDate), // _targetDate 사용
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
           ),
           const SizedBox(height: 16),
@@ -160,8 +183,11 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                     return;
                   }
                   final diary = DiaryModel(
-                    id: _todayDiary?.id,
-                    date: DateTime.now().toIso8601String().substring(0, 10),
+                    id: _todayDiary?.id, // _displayedDiary?.id
+                    date: _targetDate.toIso8601String().substring(
+                      0,
+                      10,
+                    ), // _targetDate 사용
                     title: _titleController.text,
                     content: _contentController.text,
                     photoPaths: _photoPaths,

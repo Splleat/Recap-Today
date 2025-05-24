@@ -24,6 +24,12 @@ class DiaryProvider with ChangeNotifier {
     return await DatabaseHelper.instance.getDiaryForDate(today);
   }
 
+  /// 특정 날짜의 일기 가져오기
+  Future<DiaryModel?> getDiaryForSpecificDate(DateTime date) async {
+    final dateString = date.toIso8601String().substring(0, 10);
+    return await DatabaseHelper.instance.getDiaryForDate(dateString);
+  }
+
   /// 일기 저장 (삽입 또는 업데이트)
   Future<DiaryModel> saveDiary(DiaryModel diary) async {
     final dbHelper = DatabaseHelper.instance;

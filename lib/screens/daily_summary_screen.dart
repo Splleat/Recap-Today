@@ -3,6 +3,7 @@ import 'package:recap_today/widget/summary/app_usage.dart';
 import 'package:recap_today/widget/summary/checklist_achievement.dart';
 import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/widget/summary/emotion_summary_graph.dart';
+import 'package:recap_today/widget/summary/diary_widget.dart'; // Add this import
 
 class DailySummaryScreen extends StatelessWidget {
   final DateTime selectedDate;
@@ -17,7 +18,7 @@ class DailySummaryScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          "${selectedDate.year}년 ${selectedDate.month}월 ${selectedDate.day}일",
+          "${selectedDate.year}년 ${selectedDate.month}월 ${selectedDate.day}일 하루 요약",
         ),
       ),
       body: Container(
@@ -49,6 +50,14 @@ class DailySummaryScreen extends StatelessWidget {
                       vertical: 8.0,
                     ),
                     child: EmotionSummaryGraph(date: selectedDate),
+                  ),
+                  Card(
+                    // Add this Card for DiaryWidget
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 8.0,
+                    ),
+                    child: DiaryWidget(date: selectedDate),
                   ),
                 ],
               ),
