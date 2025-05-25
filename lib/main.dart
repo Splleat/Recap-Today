@@ -20,6 +20,8 @@ import 'package:recap_today/repository/impl/auth_repository_impl.dart';
 import 'package:recap_today/screens/main_screen.dart';
 import 'package:recap_today/service/date_change_service.dart';
 import 'package:recap_today/theme/lightTheme.dart';
+import 'package:recap_today/provider/weather_provider.dart';
+import 'package:recap_today/api/weather_service.dart';
 
 import 'router.dart';
 
@@ -61,6 +63,7 @@ void main() async {
             return EmotionRepository(db);
           },
         ),
+        ChangeNotifierProvider(create: (context) => WeatherProvider(WeatherService())),
         ChangeNotifierProvider(create: (context) => checklistProvider),
         ChangeNotifierProvider(create: (context) => ScheduleProvider()),
         ChangeNotifierProvider(create: (context) => DiaryProvider()),

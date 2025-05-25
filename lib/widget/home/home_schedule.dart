@@ -1,19 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
-import 'package:recap_today/widget/planner/timeline.dart';
-import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:table_calendar/table_calendar.dart';
+import 'package:recap_today/provider/schedule_provider.dart';
+import 'package:recap_today/provider/weather_provider.dart';
+import 'package:recap_today/model/full_weather_model.dart';
+import 'package:recap_today/widget/planner/timeline.dart';
 
-class HomeSchedule extends StatelessWidget {
+class HomeSchedule extends StatefulWidget {
   final DateTime date;
-
   const HomeSchedule({super.key, required this.date});
 
+  @override
+  State<HomeSchedule> createState() => _HomeScheduleState();
+}
+
+class _HomeScheduleState extends State<HomeSchedule> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      context.read<WeatherProvider>().fetchWeather(widget.date, 58, 74); // 광주 (58, 74)
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheduleProvider = context.watch<ScheduleProvider>();
+    final weatherProvider = context.watch<WeatherProvider>();
+
     final allItems = scheduleProvider.items;
+    final weatherList = weatherProvider.getWeather(widget.date);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
@@ -31,11 +48,16 @@ class HomeSchedule extends StatelessWidget {
               const HomeScheduleTime(),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
-                child: DailyTimeline(context, date, allItems),
+                child: DailyTimeline(
+                  context,
+                  widget.date,
+                  allItems,
+                  weatherList ?? [],
+                ),
               )
             ],
           ),
-        )
+        ),
       ),
     );
   }
@@ -77,4 +99,3 @@ class _HomeScheduleTime extends State<HomeScheduleTime> {
     return Text('$_formattedTime');
   }
 }
-

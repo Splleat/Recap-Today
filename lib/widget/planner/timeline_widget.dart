@@ -5,6 +5,7 @@ import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:recap_today/widget/planner/user_schedule_list_widget.dart';
 import 'schedule_add.dart';
+import 'package:recap_today/provider/weather_provider.dart';
 
 class DailyTimelineWidget extends StatelessWidget {
   final DateTime date;
@@ -13,7 +14,10 @@ class DailyTimelineWidget extends StatelessWidget {
 
   Widget build(BuildContext context) {
     final scheduleProvider = context.watch<ScheduleProvider>();
+    final weatherProvider = context.watch<WeatherProvider>();
+
     final allItems = scheduleProvider.items;
+    final weatherData = weatherProvider.getWeather(date);
 
     return Scaffold(
       appBar: AppBar(
@@ -21,12 +25,16 @@ class DailyTimelineWidget extends StatelessWidget {
       ),
       body: Column(
         children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Container(
-              child: DailyTimeline(context, date, allItems),
+          if (weatherData != null) // ✅ 날씨 데이터가 있는 경우만 타임라인 출력
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DailyTimeline(context, date, allItems, weatherData),
+            )
+          else
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text("날씨 정보를 불러오는 중입니다..."),
             ),
-          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16.0),

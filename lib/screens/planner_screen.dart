@@ -5,6 +5,8 @@ import 'package:recap_today/widget/calendar.dart';
 import 'package:recap_today/widget/planner/timeline_widget.dart';
 import 'package:recap_today/widget/planner/checklist_screen.dart';
 import 'package:recap_today/widget/planner/user_schedule_list_widget.dart';
+import 'package:recap_today/provider/weather_provider.dart';
+import 'package:provider/provider.dart';
 
 class PlannerScreen extends StatefulWidget {
   const PlannerScreen({super.key});
@@ -40,6 +42,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
               children: [
                 MainCalendar(
                   onDateSelectedCallback: (selectedDay) {
+                    final weatherProvider = context.read<WeatherProvider>();
+                    weatherProvider.fetchWeather(selectedDay, 58, 74); // 일단 하드 코딩된 좌표 사용
+
                     showDialog(
                       context: context,
                       builder: (context) => Dialog(
