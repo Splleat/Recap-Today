@@ -25,15 +25,9 @@ class DailyTimelineWidget extends StatelessWidget {
       ),
       body: Column(
         children: [
-          if (weatherData != null) // ✅ 날씨 데이터가 있는 경우만 타임라인 출력
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DailyTimeline(context, date, allItems, weatherData),
-            )
-          else
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text("날씨 정보를 불러오는 중입니다..."),
             ),
           Expanded(
             child: Padding(

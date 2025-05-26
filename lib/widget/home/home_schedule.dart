@@ -17,14 +17,6 @@ class HomeSchedule extends StatefulWidget {
 
 class _HomeScheduleState extends State<HomeSchedule> {
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(() {
-      context.read<WeatherProvider>().fetchWeather(widget.date, 58, 74); // 광주 (58, 74)
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final scheduleProvider = context.watch<ScheduleProvider>();
     final weatherProvider = context.watch<WeatherProvider>();

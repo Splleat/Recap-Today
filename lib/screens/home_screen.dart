@@ -6,6 +6,9 @@ import 'package:recap_today/widget/home/home_schedule.dart';
 import 'package:recap_today/widget/planner/checklist_screen.dart';
 import 'package:recap_today/widget/home/hourly_emotion_logger.dart';
 import 'package:recap_today/APItest/weather_test_page.dart';
+import 'package:recap_today/provider/weather_provider.dart';
+import 'package:provider/provider.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,6 +18,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final today = DateTime.now();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final weatherProvider = context.read<WeatherProvider>();
+      await weatherProvider.fetchWeather(today, 58, 74, force: true);
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(

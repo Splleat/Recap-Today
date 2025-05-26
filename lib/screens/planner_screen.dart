@@ -41,9 +41,9 @@ class _PlannerScreenState extends State<PlannerScreen> {
             child: Column(
               children: [
                 MainCalendar(
-                  onDateSelectedCallback: (selectedDay) {
+                  onDateSelectedCallback: (selectedDay) async {
                     final weatherProvider = context.read<WeatherProvider>();
-                    weatherProvider.fetchWeather(selectedDay, 58, 74); // 일단 하드 코딩된 좌표 사용
+                    await weatherProvider.loadCachedWeather(selectedDay);
 
                     showDialog(
                       context: context,

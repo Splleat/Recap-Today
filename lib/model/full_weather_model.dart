@@ -19,6 +19,15 @@ class WeatherData {
       precipitationProbability: json['precipitationProbability'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'time': time,
+      'temperature': temperature,
+      'sky': sky,
+      'precipitationProbability': precipitationProbability,
+    };
+  }
 }
 
 class FullWeather {

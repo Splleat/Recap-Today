@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:recap_today/model/schedule_item.dart';
-import 'package:recap_today/utils/time_utils.dart';
+import 'package:recap_today/utils/time_util.dart';
 import 'package:recap_today/widget/planner/timetable.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:recap_today/utils/time_utils.dart';
 import 'package:recap_today/model/full_weather_model.dart';
 
 
@@ -26,15 +25,17 @@ IconData getWeatherIcon(String sky) {
   }
 }
 
-Widget buildWeatherTimeAxis(List<WeatherData> weatherList) {
+Widget buildWeatherTimeAxis(List<WeatherData>? weatherList) {
   return Row(
     children: List.generate(24, (hourIndex) {
       final hourStr = '${hourIndex.toString().padLeft(2, '0')}시';
       WeatherData? weather;
-      try {
-        weather = weatherList.firstWhere((w) => w.time == hourStr);
-      } catch (_) {
-        weather = null;
+      if (weatherList != null) {
+        try {
+          weather = weatherList.firstWhere((w) => w.time == hourStr);
+        } catch (_) {
+          weather = null;
+        }
       }
 
       // 날씨 정보 출력
@@ -52,7 +53,7 @@ Widget buildWeatherTimeAxis(List<WeatherData> weatherList) {
           children: [
             Text((weather == null) ? '' : weather.temperature),
             Icon((weather == null) ? Icons.help_outline_rounded : getWeatherIcon(weather.sky)),
-            Text((weather == null) ? hourStr : weather.time),
+            Text(hourStr),
           ],
         ),
       );
@@ -115,7 +116,7 @@ Widget buildScheduleArea(BuildContext context, DateTime date, List<ScheduleItem>
   );
 }
 
-Widget DailyTimeline(BuildContext context, DateTime date, List<ScheduleItem> allItems, List<WeatherData> weatherList) {
+Widget DailyTimeline(BuildContext context, DateTime date, List<ScheduleItem> allItems, List<WeatherData>? weatherList) {
   return Column(
     children: [
       buildWeatherTimeAxis(weatherList),

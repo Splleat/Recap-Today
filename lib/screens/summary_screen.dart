@@ -8,6 +8,7 @@ import 'package:recap_today/widget/summary/checklist_achievement.dart';
 import 'package:recap_today/widget/summary/ai_feedback.dart';
 import 'package:recap_today/widget/summary/diary_widget.dart';
 import 'package:recap_today/widget/summary/emotion_summary_graph.dart'; // 추가
+import 'package:recap_today/utils/share_util.dart';
 
 class SummaryScreen extends StatefulWidget {
   const SummaryScreen({super.key});
@@ -18,6 +19,7 @@ class SummaryScreen extends StatefulWidget {
 
 class _SummaryScreenState extends State<SummaryScreen> {
   double initialChildSize = 0.5;
+  final GlobalKey _captureKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +42,33 @@ class _SummaryScreenState extends State<SummaryScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () {
-              // 공유 기능 구현
+            onPressed: () async {
+              final imageBytes = await ShareUtil.capture(_captureKey);
+
+              if (imageBytes != null) {
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    content: Image.memory(imageBytes),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('닫기'),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final file = await ShareUtil.saveToTempFile(imageBytes, 'recap_preview');
+                          if (file != null) {
+                            await ShareUtil.shareImageFile(file);
+                          }
+                          Navigator.pop(context);
+                        },
+                        child: Text('공유하기'),
+                      ),
+                    ],
+                  ),
+                );
+              }
             },
           ),
           IconButton(
@@ -57,7 +84,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
           // 요약 카드들 (스크롤 가능)
           SafeArea(
             child: SingleChildScrollView(
-              child: Column(
+              child: RepaintBoundary(
+                key: _captureKey,
+                child: Column(
                 children: [
                   Card(
                     child: Padding(
@@ -86,6 +115,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                   ),
                 ],
               ),
+              )
             ),
           ),
           // 다이어리 위젯을 포함한 드래그 가능한 바닥 시트
