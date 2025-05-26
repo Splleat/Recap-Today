@@ -1,4 +1,4 @@
-package com.example.recap_today
+package com.tangsuyukisbumeok.recap_today
 
 import android.app.AppOpsManager
 import android.content.Context
