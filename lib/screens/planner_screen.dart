@@ -44,7 +44,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
                   onDateSelectedCallback: (selectedDay) async {
                     final weatherProvider = context.read<WeatherProvider>();
                     await weatherProvider.loadCachedWeather(selectedDay);
-
+                    debugPrint('${weatherProvider.getWeather(selectedDay)}');
                     showDialog(
                       context: context,
                       builder: (context) => Dialog(
