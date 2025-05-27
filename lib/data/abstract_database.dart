@@ -65,4 +65,28 @@ abstract class AbstractDatabase {
   Future<EmotionRecord?> getEmotionRecordForHour(String date, int hour);
   Future<List<EmotionRecord>> getEmotionRecordsForDay(String date);
   Future<int> deleteEmotionRecord(String id);
+
+  // 위치 로그 관련 메서드
+  Future<int> insertLocationLog(Map<String, dynamic> locationLog);
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(
+    String userId,
+    String date,
+  );
+  Future<List<Map<String, dynamic>>> getLocationLogsForUser(String userId);
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  );
+  Future<int> deleteLocationLogsInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  );
+
+  // 동기화 대기열 관련 메서드
+  Future<int> insertPendingSyncLocation(Map<String, dynamic> locationLog);
+  Future<List<Map<String, dynamic>>> getPendingSyncLocations();
+  Future<int> removePendingSyncLocation(String locationId);
+  Future<int> clearPendingSyncQueue();
 }

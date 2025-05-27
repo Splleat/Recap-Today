@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'dio_client.dart';
 import '../model/full_weather_model.dart';
 
@@ -7,10 +6,7 @@ class WeatherService {
     try {
       final response = await DioClient.dio.get(
         '/weather/full',
-        queryParameters: {
-          'nx': nx,
-          'ny': ny,
-        },
+        queryParameters: {'nx': nx, 'ny': ny},
       );
 
       final data = response.data as List;

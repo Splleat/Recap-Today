@@ -428,4 +428,111 @@ class SqfliteDatabase extends AbstractDatabase {
       rethrow;
     }
   }
+
+  // 위치 로그 관련 메서드 구현
+  @override
+  Future<int> insertLocationLog(Map<String, dynamic> locationLog) async {
+    try {
+      return await _helper.insertLocationLog(locationLog);
+    } catch (e) {
+      debugPrint('위치 로그 삽입 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(
+    String userId,
+    String date,
+  ) async {
+    try {
+      return await _helper.getLocationLogsForUserAndDate(userId, date);
+    } catch (e) {
+      debugPrint('특정 날짜 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getLocationLogsForUser(
+    String userId,
+  ) async {
+    try {
+      return await _helper.getLocationLogsForUser(userId);
+    } catch (e) {
+      debugPrint('사용자 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      return await _helper.getLocationLogsForUserInRange(userId, start, end);
+    } catch (e) {
+      debugPrint('날짜 범위 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<int> deleteLocationLogsInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      return await _helper.deleteLocationLogsInRange(userId, start, end);
+    } catch (e) {
+      debugPrint('위치 로그 삭제 중 오류 발생: $e');
+      return 0;
+    }
+  }
+
+  // 동기화 대기열 관련 메서드 구현
+  @override
+  Future<int> insertPendingSyncLocation(
+    Map<String, dynamic> locationLog,
+  ) async {
+    try {
+      return await _helper.insertPendingSyncLocation(locationLog);
+    } catch (e) {
+      debugPrint('동기화 대기열 추가 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getPendingSyncLocations() async {
+    try {
+      return await _helper.getPendingSyncLocations();
+    } catch (e) {
+      debugPrint('동기화 대기열 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<int> removePendingSyncLocation(String locationId) async {
+    try {
+      return await _helper.removePendingSyncLocation(locationId);
+    } catch (e) {
+      debugPrint('동기화 대기열 제거 중 오류 발생: $e');
+      return 0;
+    }
+  }
+
+  @override
+  Future<int> clearPendingSyncQueue() async {
+    try {
+      return await _helper.clearPendingSyncQueue();
+    } catch (e) {
+      debugPrint('동기화 대기열 초기화 중 오류 발생: $e');
+      return 0;
+    }
+  }
 }

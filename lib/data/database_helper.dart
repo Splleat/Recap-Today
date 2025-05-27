@@ -21,6 +21,7 @@ class DatabaseHelper {
   static const String tablePhotos = 'photos';
   static const String tableAppUsage = 'app_usage';
   static const String tableSchedule = 'schedule_items'; // 새로운 테이블 이름
+  static const String tableLocationLogs = 'location_logs'; // 위치 로그 테이블
   static const String tableEmotionRecords =
       'emotion_records'; // 감정 기록 테이블 이름 직접 정의
 
@@ -40,7 +41,7 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 8, // Incremented version to 8
+      version: 9, // Incremented version to 9 for sync queue support
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onConfigure: _configureDB,
@@ -122,6 +123,29 @@ class DatabaseHelper {
         UNIQUE (date, hour)
       )
     ''');
+
+    // 위치 로그 테이블 생성
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tableLocationLogs (
+        id TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        timestamp TEXT NOT NULL
+      )
+    ''');
+
+    // 동기화 대기열 테이블 생성
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS pending_sync_locations (
+        id TEXT PRIMARY KEY,
+        userId TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        timestamp TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    ''');
   }
 
   /// 데이터베이스 업그레이드 (스키마 마이그레이션)
@@ -183,6 +207,31 @@ class DatabaseHelper {
           emotionType TEXT NOT NULL,
           notes TEXT,
           UNIQUE (date, hour)
+        )
+      ''');
+
+      // 위치 로그 테이블 추가
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $tableLocationLogs (
+          id TEXT PRIMARY KEY,
+          userId TEXT NOT NULL,
+          latitude REAL NOT NULL,
+          longitude REAL NOT NULL,
+          timestamp TEXT NOT NULL
+        )
+      ''');
+    }
+
+    if (oldVersion < 9) {
+      // 버전 9로 업그레이드: 동기화 대기열 테이블 추가
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS pending_sync_locations (
+          id TEXT PRIMARY KEY,
+          userId TEXT NOT NULL,
+          latitude REAL NOT NULL,
+          longitude REAL NOT NULL,
+          timestamp TEXT NOT NULL,
+          created_at TEXT NOT NULL
         )
       ''');
     }
@@ -290,8 +339,6 @@ class DatabaseHelper {
     final totalCount = Sqflite.firstIntValue(countResult) ?? 0;
 
     String orderBy = 'date DESC';
-    String? limitClause = limit != null ? 'LIMIT $limit' : null;
-    String? offsetClause = offset != null ? 'OFFSET $offset' : null;
 
     final maps = await db.query(
       tableDiaries,
@@ -873,6 +920,175 @@ class DatabaseHelper {
     } catch (e) {
       debugPrint('모든 일정 삭제 중 오류 발생: $e');
       rethrow;
+    }
+  }
+
+  // 위치 로그 관련 메서드들
+
+  /// 위치 데이터 삽입
+  Future<int> insertLocationLog(Map<String, dynamic> locationLog) async {
+    try {
+      final db = await instance.database;
+      return await db.insert(
+        tableLocationLogs,
+        locationLog,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      debugPrint('위치 로그 삽입 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  /// 특정 사용자의 특정 날짜 위치 데이터 조회
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(
+    String userId,
+    String date,
+  ) async {
+    try {
+      final db = await instance.database;
+
+      // 해당 날짜의 시작과 끝 시간 계산
+      final startOfDay = '${date}T00:00:00';
+      final endOfDay = '${date}T23:59:59';
+
+      final result = await db.query(
+        tableLocationLogs,
+        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
+        whereArgs: [userId, startOfDay, endOfDay],
+        orderBy: 'timestamp ASC',
+      );
+
+      return result;
+    } catch (e) {
+      debugPrint('특정 날짜 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 특정 사용자의 모든 위치 데이터 조회
+  Future<List<Map<String, dynamic>>> getLocationLogsForUser(
+    String userId,
+  ) async {
+    try {
+      final db = await instance.database;
+      final result = await db.query(
+        tableLocationLogs,
+        where: 'userId = ?',
+        whereArgs: [userId],
+        orderBy: 'timestamp DESC',
+        limit: 100, // 최근 100개만 조회
+      );
+
+      return result;
+    } catch (e) {
+      debugPrint('사용자 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 위치 로그 삭제 (특정 기간)
+  Future<int> deleteLocationLogsInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final db = await instance.database;
+      final startStr = start.toIso8601String();
+      final endStr = end.toIso8601String();
+
+      return await db.delete(
+        tableLocationLogs,
+        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
+        whereArgs: [userId, startStr, endStr],
+      );
+    } catch (e) {
+      debugPrint('위치 로그 삭제 중 오류 발생: $e');
+      return 0;
+    }
+  }
+
+  /// 특정 날짜 범위의 위치 데이터 조회
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final db = await instance.database;
+      final startStr = start.toIso8601String();
+      final endStr = end.toIso8601String();
+
+      final result = await db.query(
+        tableLocationLogs,
+        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
+        whereArgs: [userId, startStr, endStr],
+        orderBy: 'timestamp ASC',
+      );
+
+      return result;
+    } catch (e) {
+      debugPrint('날짜 범위 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 동기화 대기열에 위치 데이터 추가
+  Future<int> insertPendingSyncLocation(
+    Map<String, dynamic> locationLog,
+  ) async {
+    try {
+      final db = await instance.database;
+      return await db.insert('pending_sync_locations', {
+        ...locationLog,
+        'created_at': DateTime.now().toIso8601String(),
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    } catch (e) {
+      debugPrint('동기화 대기열 추가 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  /// 동기화 대기 중인 위치 데이터 조회
+  Future<List<Map<String, dynamic>>> getPendingSyncLocations() async {
+    try {
+      final db = await instance.database;
+      final result = await db.query(
+        'pending_sync_locations',
+        orderBy: 'created_at ASC',
+      );
+
+      return result;
+    } catch (e) {
+      debugPrint('동기화 대기열 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 동기화 대기열에서 위치 데이터 제거
+  Future<int> removePendingSyncLocation(String locationId) async {
+    try {
+      final db = await instance.database;
+      return await db.delete(
+        'pending_sync_locations',
+        where: 'id = ?',
+        whereArgs: [locationId],
+      );
+    } catch (e) {
+      debugPrint('동기화 대기열 제거 중 오류 발생: $e');
+      return 0;
+    }
+  }
+
+  /// 동기화 대기열 초기화
+  Future<int> clearPendingSyncQueue() async {
+    try {
+      final db = await instance.database;
+      return await db.delete('pending_sync_locations');
+    } catch (e) {
+      debugPrint('동기화 대기열 초기화 중 오류 발생: $e');
+      return 0;
     }
   }
 }

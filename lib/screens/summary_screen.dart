@@ -92,7 +92,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 key: _captureKey,
                 child: Column(
                   children: [
-                    Card(child: LocationInfo()),
+                    Card(child: LocationInfo(date: DateTime.now())),
                     Card(
                       child: Padding(
                         // 패딩 추가
@@ -107,11 +107,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     // EmotionSummaryGraph 추가
                     Card(child: EmotionSummaryGraph(date: DateTime.now())),
                     Card(child: AiFeedback()),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 35.0),
-                      ),
-                    ),
+                    const SizedBox(height: 35.0), // 빈 Card 대신 SizedBox 사용
                   ],
                 ),
               ),

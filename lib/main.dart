@@ -23,6 +23,7 @@ import 'package:recap_today/service/date_change_service.dart';
 import 'package:recap_today/theme/lightTheme.dart';
 import 'package:recap_today/provider/weather_provider.dart';
 import 'package:recap_today/api/weather_service.dart';
+import 'package:recap_today/service/location_tracking_service.dart';
 
 import 'router.dart';
 
@@ -38,6 +39,9 @@ void main() async {
   } catch (e) {
     print('Kakao Map initialization failed: $e');
   }
+
+  // Initialize Location Tracking Service
+  LocationTrackingService.instance.initialize();
 
   final dio = Dio(BaseOptions(baseUrl: kBaseUrl));
   final sharedPreferences = await SharedPreferences.getInstance();
