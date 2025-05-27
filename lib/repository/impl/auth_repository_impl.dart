@@ -69,4 +69,23 @@ final class AuthRepositoryImpl implements AuthRepository {
     _token = null;
     sharedPreferences.remove('token');
   }
+
+  @override
+  Future<bool> validateToken() async {
+    if (_token == null) return false;
+
+    try {
+      // 서버에 토큰 유효성 검증 요청
+      final response = await dio.get(
+        '/auth/validate',
+        options: Options(headers: {'Authorization': 'Bearer $_token'}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Token validation failed: $e');
+      // 토큰이 유효하지 않으면 로컬에서 제거
+      clearToken();
+      return false;
+    }
+  }
 }

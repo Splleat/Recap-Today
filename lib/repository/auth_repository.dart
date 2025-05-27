@@ -10,6 +10,9 @@ abstract interface class AuthRepository {
   /// 회원가입
   Future<UserCredential> register(String userId, String password, String name);
 
+  /// 토큰 유효성 검증
+  Future<bool> validateToken();
+
   String? getToken();
 
   void setToken(String token);

@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:recap_today/provider/login_provider.dart';
 
@@ -123,22 +120,26 @@ class _LoginScreenState extends State<LoginScreen> {
                                       : () async {
                                         if (_formKey.currentState!.validate()) {
                                           _formKey.currentState!.save();
-                                          await loginProvider.login();
+                                          final success =
+                                              await loginProvider.login();
                                           if (mounted) {
-                                            if (loginProvider.isLoggedIn) {
+                                            if (success) {
                                               Navigator.pushNamedAndRemoveUntil(
                                                 context,
                                                 '/settings',
                                                 (route) => false,
                                               );
                                             } else {
+                                              // 구체적인 에러 메시지 표시
+                                              final errorMessage =
+                                                  loginProvider.errorMessage ??
+                                                  '로그인에 실패했습니다. 다시 시도해주세요.';
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text(
-                                                    'Login failed. Please check your credentials.',
-                                                  ),
+                                                SnackBar(
+                                                  content: Text(errorMessage),
+                                                  backgroundColor: Colors.red,
                                                 ),
                                               );
                                             }

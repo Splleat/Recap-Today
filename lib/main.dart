@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:kakao_map_plugin/kakao_map_plugin.dart' as kakao_map;
 
 import 'package:recap_today/constants.dart';
 import 'package:recap_today/data/abstract_database.dart';
@@ -27,6 +28,17 @@ import 'router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Kakao Map with error handling
+  try {
+    kakao_map.AuthRepository.initialize(
+      appKey: '7341c18ac0804aea8c7b1f26fdda3569',
+    );
+    print('Kakao Map initialized successfully');
+  } catch (e) {
+    print('Kakao Map initialization failed: $e');
+  }
+
   final dio = Dio(BaseOptions(baseUrl: kBaseUrl));
   final sharedPreferences = await SharedPreferences.getInstance();
 
@@ -63,7 +75,9 @@ void main() async {
             return EmotionRepository(db);
           },
         ),
-        ChangeNotifierProvider(create: (context) => WeatherProvider(WeatherService())),
+        ChangeNotifierProvider(
+          create: (context) => WeatherProvider(WeatherService()),
+        ),
         ChangeNotifierProvider(create: (context) => checklistProvider),
         ChangeNotifierProvider(create: (context) => ScheduleProvider()),
         ChangeNotifierProvider(create: (context) => DiaryProvider()),

@@ -12,6 +12,7 @@ import android.app.usage.UsageStatsManager
 import android.app.usage.UsageStats
 import android.provider.Settings
 import android.util.Log
+import android.webkit.WebView
 import androidx.annotation.NonNull
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -22,6 +23,20 @@ import java.util.concurrent.TimeUnit
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "app_usage_channel"
     private val TAG = "AppUsageChannel"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // WebView 디버깅 활성화 (디버그 빌드에서만)
+        try {
+            val appInfo = applicationInfo
+            if ((appInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                WebView.setWebContentsDebuggingEnabled(true)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to enable WebView debugging", e)
+        }
+    }
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

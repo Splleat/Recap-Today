@@ -48,25 +48,29 @@ class _SummaryScreenState extends State<SummaryScreen> {
               if (imageBytes != null) {
                 showDialog(
                   context: context,
-                  builder: (_) => AlertDialog(
-                    content: Image.memory(imageBytes),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text('닫기'),
+                  builder:
+                      (_) => AlertDialog(
+                        content: Image.memory(imageBytes),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('닫기'),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              final file = await ShareUtil.saveToTempFile(
+                                imageBytes,
+                                'recap_preview',
+                              );
+                              if (file != null) {
+                                await ShareUtil.shareImageFile(file);
+                              }
+                              Navigator.pop(context);
+                            },
+                            child: Text('공유하기'),
+                          ),
+                        ],
                       ),
-                      TextButton(
-                        onPressed: () async {
-                          final file = await ShareUtil.saveToTempFile(imageBytes, 'recap_preview');
-                          if (file != null) {
-                            await ShareUtil.shareImageFile(file);
-                          }
-                          Navigator.pop(context);
-                        },
-                        child: Text('공유하기'),
-                      ),
-                    ],
-                  ),
                 );
               }
             },
@@ -87,35 +91,30 @@ class _SummaryScreenState extends State<SummaryScreen> {
               child: RepaintBoundary(
                 key: _captureKey,
                 child: Column(
-                children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 80.0),
-                      child: LocationInfo(),
+                  children: [
+                    Card(child: LocationInfo()),
+                    Card(
+                      child: Padding(
+                        // 패딩 추가
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 80.0,
+                        ), // LocationInfo와 동일한 패딩 적용
+                        child: WeatherSummary(),
+                      ),
+                    ), // 날씨 요약 위젯 추가
+                    Card(child: AppUsage()),
+                    Card(child: ChecklistAchievement()),
+                    // EmotionSummaryGraph 추가
+                    Card(child: EmotionSummaryGraph(date: DateTime.now())),
+                    Card(child: AiFeedback()),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 35.0),
+                      ),
                     ),
-                  ),
-                  Card(
-                    child: Padding(
-                      // 패딩 추가
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 80.0,
-                      ), // LocationInfo와 동일한 패딩 적용
-                      child: WeatherSummary(),
-                    ),
-                  ), // 날씨 요약 위젯 추가
-                  Card(child: AppUsage()),
-                  Card(child: ChecklistAchievement()),
-                  // EmotionSummaryGraph 추가
-                  Card(child: EmotionSummaryGraph(date: DateTime.now())),
-                  Card(child: AiFeedback()),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 35.0),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              )
             ),
           ),
           // 다이어리 위젯을 포함한 드래그 가능한 바닥 시트
