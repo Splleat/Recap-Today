@@ -1,3 +1,4 @@
+// filepath: d:\FlutterProjects\newclone\Recap-Today\lib\widget\summary\location_info.dart
 import 'package:flutter/material.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
 import 'package:intl/intl.dart';
@@ -62,14 +63,11 @@ class _LocationInfoState extends State<LocationInfo> {
       );
       _currentUserId = authRepository.getCurrentUserId();
 
-      // 로컬 first 앱이므로 로그인이 없어도 로컬 사용자 ID 생성
       if (_currentUserId == null) {
-        _currentUserId = 'local_user'; // 로컬 사용자 기본 ID
-        debugPrint('로컬 사용자 ID 사용: $_currentUserId');
+        debugPrint('사용자 ID를 찾을 수 없습니다. 로그인이 필요합니다.');
       }
     } catch (e) {
-      debugPrint('사용자 ID 가져오기 실패, 로컬 ID 사용: $e');
-      _currentUserId = 'local_user'; // 오류 시에도 로컬 ID 사용
+      debugPrint('사용자 ID 가져오기 실패: $e');
     }
   }
 
@@ -83,15 +81,10 @@ class _LocationInfoState extends State<LocationInfo> {
     try {
       // GPS 권한 확인
       _hasPermission = await _checkLocationPermission();
+
       if (_hasPermission && _currentUserId != null) {
         await _loadLocationData();
-      } else if (!_hasPermission) {
-        // GPS 권한이 없는 경우에만 로딩 중지
-        setState(() {
-          _isLoading = false;
-        });
       } else {
-        // 사용자 ID가 있으면 로딩 진행 (로컬 first이므로 항상 ID가 있어야 함)
         setState(() {
           _isLoading = false;
         });
@@ -252,7 +245,7 @@ class _LocationInfoState extends State<LocationInfo> {
         try {
           mapController!.fitBounds(points);
         } catch (e) {
-          print("지도 범위 설정 오류: $e");
+          print("Error calling fitBounds(points): $e");
           // Fallback: center on the first point with a default zoom
           if (points.isNotEmpty) {
             mapController!.setCenter(points.first);
@@ -312,14 +305,35 @@ class _LocationInfoState extends State<LocationInfo> {
       );
     }
 
-    // 로컬 first 앱이므로 로그인 체크 제거
-    // _currentUserId는 항상 'local_user' 또는 실제 사용자 ID가 설정됨
+    if (_currentUserId == null) {
+      return _buildLoginRequiredMessage();
+    }
 
     if (!_hasPermission) {
       return _buildPermissionRequest();
     }
 
     return _buildLocationMap();
+  }
+
+  Widget _buildLoginRequiredMessage() {
+    return SizedBox(
+      height: 300,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.login, size: 48, color: Colors.orange),
+            SizedBox(height: 16),
+            Text(
+              '위치 정보를 보려면 로그인이 필요합니다.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildPermissionRequest() {

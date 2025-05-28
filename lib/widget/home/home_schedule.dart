@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:recap_today/provider/weather_provider.dart';
-import 'package:recap_today/model/full_weather_model.dart';
 import 'package:recap_today/widget/planner/timeline.dart';
 
 class HomeSchedule extends StatefulWidget {
@@ -29,9 +28,7 @@ class _HomeScheduleState extends State<HomeSchedule> {
       child: Card(
         elevation: 0.1,
         color: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
         child: Container(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -46,7 +43,7 @@ class _HomeScheduleState extends State<HomeSchedule> {
                   allItems,
                   weatherList ?? [],
                 ),
-              )
+              ),
             ],
           ),
         ),
@@ -87,7 +84,6 @@ class _HomeScheduleTime extends State<HomeScheduleTime> {
   }
 
   Widget build(BuildContext context) {
-
     return Text('$_formattedTime');
   }
 }

@@ -18,4 +18,7 @@ abstract interface class AuthRepository {
   void setToken(String token);
 
   void clearToken();
+
+  /// 현재 로그인된 사용자 ID 반환
+  String? getCurrentUserId();
 }

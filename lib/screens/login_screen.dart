@@ -72,7 +72,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Column(
                         children: [
                           TextFormField(
-                            // Change TextField to TextFormField
                             onChanged:
                                 (value) => context
                                     .read<LoginProvider>()
@@ -82,7 +81,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               prefixIcon: Icon(Icons.person),
                             ),
                             validator: (value) {
-                              // Add validator
                               if (value == null || value.isEmpty) {
                                 return '아이디를 입력하세요';
                               }
@@ -91,7 +89,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 20),
                           TextFormField(
-                            // Change TextField to TextFormField
                             obscureText: true,
                             onChanged:
                                 (value) => context
@@ -102,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               prefixIcon: Icon(Icons.lock),
                             ),
                             validator: (value) {
-                              // Add validator
                               if (value == null || value.isEmpty) {
                                 return '비밀번호를 입력하세요';
                               }
@@ -124,11 +120,20 @@ class _LoginScreenState extends State<LoginScreen> {
                                               await loginProvider.login();
                                           if (mounted) {
                                             if (success) {
-                                              Navigator.pushNamedAndRemoveUntil(
-                                                context,
-                                                '/settings',
-                                                (route) => false,
-                                              );
+                                              // 로그인 성공 후 데이터 마이그레이션 처리
+                                              await loginProvider
+                                                  .handlePostLoginMigration(
+                                                    context,
+                                                  );
+
+                                              // 마이그레이션 완료 후 설정 화면으로 이동
+                                              if (mounted) {
+                                                Navigator.pushNamedAndRemoveUntil(
+                                                  context,
+                                                  '/settings',
+                                                  (route) => false,
+                                                );
+                                              }
                                             } else {
                                               // 구체적인 에러 메시지 표시
                                               final errorMessage =

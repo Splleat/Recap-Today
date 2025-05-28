@@ -23,6 +23,7 @@ import 'package:recap_today/service/date_change_service.dart';
 import 'package:recap_today/theme/lightTheme.dart';
 import 'package:recap_today/provider/weather_provider.dart';
 import 'package:recap_today/api/weather_service.dart';
+import 'package:recap_today/api/location_service.dart';
 import 'package:recap_today/service/location_tracking_service.dart';
 
 import 'router.dart';
@@ -45,10 +46,13 @@ void main() async {
 
   final dio = Dio(BaseOptions(baseUrl: kBaseUrl));
   final sharedPreferences = await SharedPreferences.getInstance();
+  final database = SqfliteDatabase();
+  final locationService = LocationService(database);
 
   final AuthRepository authRepository = AuthRepositoryImpl(
     dio,
     sharedPreferences,
+    locationService,
   );
 
   dio.interceptors.add(
@@ -71,7 +75,9 @@ void main() async {
     MultiProvider(
       providers: [
         // 데이터베이스 Provider 추가
-        Provider<AbstractDatabase>(create: (_) => SqfliteDatabase()),
+        Provider<AbstractDatabase>(create: (_) => database),
+        // LocationService Provider 추가
+        Provider<LocationService>(create: (_) => locationService),
         // EmotionRepository Provider 추가
         ProxyProvider<AbstractDatabase, AbstractEmotionRepository>(
           update: (context, db, previous) {

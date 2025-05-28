@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:recap_today/widget/background.dart';
-import 'package:recap_today/widget/planner/timetable.dart';
 import 'package:recap_today/widget/planner/timetable_widget.dart';
 import 'package:recap_today/widget/planner/schedule_add.dart';
 
 class TimetableScreen extends StatelessWidget {
   const TimetableScreen({super.key});
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,

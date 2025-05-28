@@ -4,7 +4,7 @@ import 'package:recap_today/model/checklist_item.dart';
 import 'package:recap_today/model/app_usage_model.dart';
 import 'package:recap_today/model/emotion_model.dart'; // EmotionRecord 모델 import 추가
 import 'package:recap_today/model/schedule_item.dart';
-import 'package:sqflite/sqflite.dart'; // sqflite import 추가
+import 'package:sqflite/sqflite.dart';
 
 /// 데이터베이스 접근을 위한 추상 인터페이스
 /// 다양한 데이터베이스 구현체를 일관적으로 사용할 수 있도록 정의합니다.
@@ -73,6 +73,12 @@ abstract class AbstractDatabase {
     String date,
   );
   Future<List<Map<String, dynamic>>> getLocationLogsForUser(String userId);
+  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(
+    String userId,
+  ); // 추가: 특정 사용자의 모든 위치 데이터
+  Future<int> deleteAllLocationLogsForUser(
+    String userId,
+  ); // 추가: 특정 사용자의 모든 위치 데이터 삭제
   Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
     String userId,
     DateTime start,

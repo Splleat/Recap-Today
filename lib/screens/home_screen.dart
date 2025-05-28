@@ -3,12 +3,10 @@ import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/router.dart';
 import 'package:recap_today/widget/home/home_checklist.dart';
 import 'package:recap_today/widget/home/home_schedule.dart';
-import 'package:recap_today/widget/planner/checklist_screen.dart';
 import 'package:recap_today/widget/home/hourly_emotion_logger.dart';
 import 'package:recap_today/APItest/weather_test_page.dart';
 import 'package:recap_today/provider/weather_provider.dart';
 import 'package:provider/provider.dart';
-
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
       await weatherProvider.fetchWeather(today, 58, 74, force: true);
     });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

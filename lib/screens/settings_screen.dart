@@ -159,7 +159,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     //subtitle: const Text('캘린더 화면에 표시할 위젯을 선택하세요'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
-                      // TODO: 캘린더 화면 위젯 선택 화면으로 이동
+                      // 캘린더 화면 위젯 선택 기능 - 추후 구현 예정
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('캘린더 위젯 선택 기능은 추후 업데이트 예정입니다.'),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -179,7 +184,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     //subtitle: const Text('요약 화면에 표시할 위젯을 선택하세요'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
-                      // TODO: 요약 화면 위젯 선택 화면으로 이동
+                      // 요약 화면 위젯 선택 기능 - 추후 구현 예정
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('요약 화면 위젯 선택 기능은 추후 업데이트 예정입니다.'),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -199,7 +209,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     //subtitle: const Text('AI 피드백에 포함될 정보를 선택하세요'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
-                      // TODO: AI 피드백 정보 선택 화면으로 이동
+                      // AI 피드백 정보 선택 기능 - 추후 구현 예정
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('AI 피드백 설정 기능은 추후 업데이트 예정입니다.'),
+                        ),
+                      );
                     },
                   ),
                 ),
@@ -219,7 +234,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     //subtitle: const Text('공유할 때 포함될 위젯을 선택하세요'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
-                      // TODO: 공유 기능 위젯 선택 화면으로 이동
+                      // 공유 기능 위젯 선택 기능 - 추후 구현 예정
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('공유 기능 설정은 추후 업데이트 예정입니다.'),
+                        ),
+                      );
                     },
                   ),
                 ),

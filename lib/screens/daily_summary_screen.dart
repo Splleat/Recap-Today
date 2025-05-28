@@ -36,6 +36,13 @@ class DailySummaryScreen extends StatelessWidget {
                       horizontal: 8.0,
                       vertical: 8.0,
                     ),
+                    child: LocationInfo(date: selectedDate),
+                  ),
+                  Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 8.0,
+                    ),
                     child: AppUsage(date: selectedDate),
                   ),
                   Card(
@@ -51,13 +58,6 @@ class DailySummaryScreen extends StatelessWidget {
                       vertical: 8.0,
                     ),
                     child: EmotionSummaryGraph(date: selectedDate),
-                  ),
-                  Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 8.0,
-                      vertical: 8.0,
-                    ),
-                    child: LocationInfo(date: selectedDate),
                   ),
                   Card(
                     // Add this Card for DiaryWidget

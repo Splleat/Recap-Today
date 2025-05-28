@@ -331,4 +331,70 @@ class LocationService {
     await processPendingSyncQueue();
     developer.log('전체 동기화 완료', name: 'LocationService');
   }
+
+  /// 로컬 사용자 데이터를 실제 사용자 계정으로 마이그레이션
+  Future<bool> migrateLocalUserDataToRealUser(String realUserId) async {
+    try {
+      const String localUserId = 'local_user';
+
+      // 로컬 사용자의 모든 위치 데이터 조회
+      final localData = await _database.getAllLocationLogsForUser(localUserId);
+
+      if (localData.isEmpty) {
+        developer.log('마이그레이션할 로컬 데이터가 없습니다.', name: 'LocationService');
+        return true; // 데이터가 없어도 성공으로 처리
+      }
+
+      developer.log(
+        '${localData.length}개의 로컬 위치 데이터를 $realUserId로 마이그레이션 시작',
+        name: 'LocationService',
+      );
+
+      // 각 로컬 데이터를 실제 사용자 ID로 변경하여 저장
+      int migratedCount = 0;
+      for (final locationMap in localData) {
+        final location = LocationModel.fromMap(locationMap);
+
+        // 새로운 사용자 ID로 위치 데이터 저장
+        final newLocation = LocationModel(
+          id: _uuid.v4(), // 새로운 ID 생성
+          userId: realUserId, // 실제 사용자 ID로 변경
+          latitude: location.latitude,
+          longitude: location.longitude,
+          timestamp: location.timestamp,
+        );
+
+        await _database.insertLocationLog(newLocation.toMap());
+        migratedCount++;
+      }
+
+      // 로컬 사용자의 원본 데이터 삭제
+      await _database.deleteAllLocationLogsForUser(localUserId);
+
+      developer.log(
+        '$migratedCount개의 위치 데이터 마이그레이션 완료',
+        name: 'LocationService',
+      );
+
+      // 마이그레이션된 데이터를 서버에 동기화
+      await processPendingSyncQueue();
+
+      return true;
+    } catch (e) {
+      developer.log('데이터 마이그레이션 실패: $e', name: 'LocationService');
+      return false;
+    }
+  }
+
+  /// 로컬 사용자 데이터 존재 여부 확인
+  Future<bool> hasLocalUserData() async {
+    try {
+      const String localUserId = 'local_user';
+      final localData = await _database.getAllLocationLogsForUser(localUserId);
+      return localData.isNotEmpty;
+    } catch (e) {
+      developer.log('로컬 데이터 확인 실패: $e', name: 'LocationService');
+      return false;
+    }
+  }
 }

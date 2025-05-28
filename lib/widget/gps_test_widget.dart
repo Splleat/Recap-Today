@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 import '../service/location_tracking_service.dart';
+import '../repository/auth_repository.dart' as auth;
 
 /// GPS 테스트를 위한 개선된 위젯 (애뮬레이터 지원 포함)
 class GPSTestWidget extends StatefulWidget {
@@ -15,14 +17,35 @@ class _GPSTestWidgetState extends State<GPSTestWidget> {
   final LocationTrackingService _trackingService =
       LocationTrackingService.instance;
   String _statusText = 'GPS 테스트 준비됨';
-  Position? _currentPosition;
   bool _isTracking = false;
-
+  String? _currentUserId;
   @override
   void initState() {
     super.initState();
     _trackingService.initialize();
+    _getCurrentUserId();
     _checkGPSStatus();
+  }
+
+  Future<void> _getCurrentUserId() async {
+    try {
+      final authRepository = Provider.of<auth.AuthRepository>(
+        context,
+        listen: false,
+      );
+      _currentUserId = authRepository.getCurrentUserId();
+
+      // 로컬 first 앱이므로 로그인이 없어도 로컬 사용자 ID 생성
+      if (_currentUserId == null) {
+        _currentUserId = 'local_user'; // 로컬 사용자 기본 ID
+        debugPrint('GPS 테스트 - 로컬 사용자 ID 사용: $_currentUserId');
+      } else {
+        debugPrint('GPS 테스트 - 현재 사용자 ID: $_currentUserId');
+      }
+    } catch (e) {
+      debugPrint('사용자 ID 가져오기 실패, 로컬 ID 사용: $e');
+      _currentUserId = 'local_user'; // 오류 시에도 로컬 ID 사용
+    }
   }
 
   Future<void> _checkGPSStatus() async {
@@ -71,7 +94,6 @@ class _GPSTestWidgetState extends State<GPSTestWidget> {
         ),
       );
       setState(() {
-        _currentPosition = position;
         _statusText =
             '현재 위치 획득 성공!\n'
             '위도: ${position.latitude.toStringAsFixed(6)}\n'
@@ -87,8 +109,9 @@ class _GPSTestWidgetState extends State<GPSTestWidget> {
   }
 
   Future<void> _startTracking() async {
+    // 로컬 first 앱이므로 _currentUserId는 항상 설정되어 있음
     try {
-      bool success = await _trackingService.startTracking('test-user');
+      bool success = await _trackingService.startTracking(_currentUserId!);
       setState(() {
         _isTracking = success;
         _statusText = success ? '위치 추적 시작됨' : '위치 추적 시작 실패';
@@ -109,8 +132,9 @@ class _GPSTestWidgetState extends State<GPSTestWidget> {
   }
 
   Future<void> _saveCurrentLocation() async {
+    // 로컬 first 앱이므로 _currentUserId는 항상 설정되어 있음
     try {
-      await _trackingService.saveCurrentLocation('test-user');
+      await _trackingService.saveCurrentLocation(_currentUserId!);
       setState(() {
         _statusText = '현재 위치 저장 완료';
       });
@@ -257,6 +281,22 @@ class _GPSTestWidgetState extends State<GPSTestWidget> {
                     ),
                     const SizedBox(height: 8),
                     Text(_statusText),
+                    const SizedBox(
+                      height: 16,
+                    ), // 사용자 로그인 상태 표시 (로컬 앱이므로 항상 사용 가능)
+                    Row(
+                      children: [
+                        Icon(Icons.person, color: Colors.green),
+                        const SizedBox(width: 8),
+                        Text(
+                          '사용자: ${_currentUserId ?? "로컬 사용자"}',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
@@ -363,24 +403,21 @@ class _GPSTestWidgetState extends State<GPSTestWidget> {
                 ),
               ),
               const SizedBox(height: 8),
-
               ElevatedButton.icon(
                 onPressed: _saveCurrentLocation,
                 icon: const Icon(Icons.save),
-                label: const Text('현재 위치 저장'),
+                label: Text('현재 위치 저장'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // 추적 제어 버튼
+              const SizedBox(height: 16), // 추적 제어 버튼
               if (!_isTracking)
                 ElevatedButton.icon(
                   onPressed: _startTracking,
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('위치 추적 시작'),
+                  label: Text('위치 추적 시작'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,

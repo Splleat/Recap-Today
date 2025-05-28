@@ -1,1 +1,1 @@
-const String kBaseUrl = 'http://localhost:3000';
+const String kBaseUrl = 'http://10.0.2.2:3000';

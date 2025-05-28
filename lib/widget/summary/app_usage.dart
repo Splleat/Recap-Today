@@ -70,9 +70,7 @@ class _AppUsageState extends State<AppUsage> {
         if (_hasPermission) {
           // 캐시된 데이터 먼저 로드
           final storedSummary = await _appUsageService
-              .getAppUsageSummaryForDate(
-                _displayedDateString,
-              ); // Use _displayedDateString
+              .getAppUsageSummaryForDate(_displayedDateString);
 
           // UI 빠르게 업데이트
           if (storedSummary != null && mounted) {

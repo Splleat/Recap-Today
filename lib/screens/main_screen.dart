@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:recap_today/router.dart';
 import 'package:recap_today/widget/bottom_navigation.dart';
 import 'home_screen.dart';
 import 'planner_screen.dart';
@@ -15,12 +14,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  final List<String> _routes = [
-    AppRoutes.home,
-    AppRoutes.planner,
-    AppRoutes.calendar,
-    AppRoutes.summary,
-  ];
 
   void _onTabTapped(int index) {
     setState(() {

@@ -1,8 +1,6 @@
 // file_manager.dart
 import 'dart:io';
 import 'dart:math';
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
@@ -53,19 +51,6 @@ class FileManager {
 
     final directory = await getApplicationDocumentsDirectory();
     return path.join(directory.path, 'diary_photos', fileName);
-  }
-
-  /// 파일 해시값 계산
-  static Future<String> _computeFileHash(File file) async {
-    try {
-      final bytes = await file.readAsBytes();
-      final digest = sha256.convert(bytes);
-      return digest.toString();
-    } catch (e) {
-      debugPrint('Error computing file hash: $e');
-      // 오류 발생 시 현재 시간 기반 해시를 반환
-      return DateTime.now().millisecondsSinceEpoch.toString();
-    }
   }
 
   /// 고유한 파일명 생성

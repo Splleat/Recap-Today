@@ -6,8 +6,8 @@ import 'package:recap_today/model/app_usage_model.dart';
 import 'package:recap_today/model/schedule_item.dart';
 import 'package:recap_today/data/abstract_database.dart';
 import 'package:recap_today/data/database_helper.dart';
-import 'package:sqflite/sqflite.dart'; // sqflite import 추가
-import 'package:recap_today/model/emotion_model.dart'; // Added import for EmotionRecord
+import 'package:sqflite/sqflite.dart';
+import 'package:recap_today/model/emotion_model.dart';
 
 // SQLite 데이터베이스 접근을 위한 구현 클래스
 // AbstractDatabase 인터페이스를 구현하여 애플리케이션과 데이터베이스 사이의 중간 계층 역할
@@ -60,23 +60,16 @@ class SqfliteDatabase extends AbstractDatabase {
   }
 
   @override
-  // Future<List<DiaryModel>> searchDiaries(String query) async { // Old signature
   Future<Map<String, dynamic>> searchDiaries(
     String query, {
     int? limit,
     int? offset,
   }) async {
     try {
-      // return await _helper.searchDiaries(query); // Old call
-      return await _helper.searchDiaries(
-        query,
-        limit: limit,
-        offset: offset,
-      ); // New call
+      return await _helper.searchDiaries(query, limit: limit, offset: offset);
     } catch (e) {
       debugPrint('일기 검색 중 오류 발생: $e');
-      // return []; // Old return
-      return {'diaries': [], 'totalCount': 0}; // New return for error case
+      return {'diaries': [], 'totalCount': 0};
     }
   }
 
@@ -340,25 +333,12 @@ class SqfliteDatabase extends AbstractDatabase {
   @override
   Future<int> addEmotionRecord(EmotionRecord record) async {
     final db = await database;
-    // Ensure id is not null, as it's a primary key.
-    // The EmotionRecord model should handle UUID generation if id is null upon creation.
-    if (record.id == null) {
-      // This case should ideally be handled by the model/repository layer
-      // by ensuring EmotionRecord always has an ID before DB insertion.
-      // For safety, we can log or throw an error, but for now, let's assume
-      // the model populates it.
-      debugPrint(
-        "Error: EmotionRecord ID is null during addEmotionRecord. This should not happen.",
-      );
-      // throw Exception("Cannot insert EmotionRecord with null ID");
-      // Or, let the insert proceed if the model now auto-generates it.
-    }
     await db.insert(
       DatabaseHelper.tableEmotionRecords,
       record.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
-    return 1; // Return 1 as a generic success indicator, though not strictly used for ID.
+    return 1;
   }
 
   @override
@@ -462,6 +442,28 @@ class SqfliteDatabase extends AbstractDatabase {
     } catch (e) {
       debugPrint('사용자 위치 로그 조회 중 오류 발생: $e');
       return [];
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(
+    String userId,
+  ) async {
+    try {
+      return await _helper.getAllLocationLogsForUser(userId);
+    } catch (e) {
+      debugPrint('사용자 전체 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<int> deleteAllLocationLogsForUser(String userId) async {
+    try {
+      return await _helper.deleteAllLocationLogsForUser(userId);
+    } catch (e) {
+      debugPrint('사용자 위치 로그 전체 삭제 중 오류 발생: $e');
+      return 0;
     }
   }
 

@@ -4,19 +4,19 @@ import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/widget/calendar.dart';
 import 'package:recap_today/widget/planner/timeline_widget.dart';
 import 'package:recap_today/widget/planner/checklist_screen.dart';
-import 'package:recap_today/widget/planner/user_schedule_list_widget.dart';
 import 'package:recap_today/provider/weather_provider.dart';
 import 'package:provider/provider.dart';
 
 class PlannerScreen extends StatefulWidget {
   const PlannerScreen({super.key});
 
+  @override
   State<PlannerScreen> createState() => _PlannerScreenState();
 }
 
 class _PlannerScreenState extends State<PlannerScreen> {
+  @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -34,9 +34,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
       ),
       body: Stack(
         children: [
-          Container(
-            decoration: commonTabDecoration(),
-          ),
+          Container(decoration: commonTabDecoration()),
           SafeArea(
             child: Column(
               children: [
@@ -47,20 +45,20 @@ class _PlannerScreenState extends State<PlannerScreen> {
                     debugPrint('${weatherProvider.getWeather(selectedDay)}');
                     showDialog(
                       context: context,
-                      builder: (context) => Dialog(
-                        child: DailyTimelineWidget(date: selectedDay),
-                      )
+                      builder:
+                          (context) => Dialog(
+                            child: DailyTimelineWidget(date: selectedDay),
+                          ),
                     );
                   },
                 ),
                 Expanded(
                   child: Container(
                     padding: EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                    ),
+                    decoration: BoxDecoration(),
                     child: ChecklistScreen(),
                   ),
-                )
+                ),
               ],
             ),
           ),

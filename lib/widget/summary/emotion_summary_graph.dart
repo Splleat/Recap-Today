@@ -1,10 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Added import for DateFormat
+import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:recap_today/model/emotion_model.dart';
 import 'package:recap_today/repository/abstract_emotion_repository.dart';
-import 'package:recap_today/widget/home/hourly_emotion_logger.dart'; // Added
+import 'package:recap_today/widget/home/hourly_emotion_logger.dart';
 
 class EmotionSummaryGraph extends StatefulWidget {
   final DateTime date;
@@ -74,7 +75,7 @@ class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
         });
       }
       // Handle error appropriately, maybe show a message
-      print("Error loading emotion data for graph: $e");
+      debugPrint("감정 그래프 데이터 로드 중 오류: $e");
       if (mounted) {
         ScaffoldMessenger.of(
           context,

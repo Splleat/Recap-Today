@@ -42,9 +42,8 @@ class EmotionRecord {
     int? hour,
     String? emotionType,
     String? notes,
-    bool clearId = false, // Added to allow explicitly setting id to null
-    bool clearNotes =
-        false, // Renamed from setNotesToNull for consistency & clarity
+    bool clearId = false, // ID를 명시적으로 null로 설정
+    bool clearNotes = false, // Notes를 명시적으로 null로 설정
   }) {
     return EmotionRecord(
       id: clearId ? null : (id ?? this.id),

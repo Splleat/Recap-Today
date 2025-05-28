@@ -6,7 +6,7 @@ import 'package:recap_today/model/diary_model.dart';
 import 'package:recap_today/model/photo_model.dart';
 import 'package:recap_today/model/checklist_item.dart';
 import 'package:recap_today/model/app_usage_model.dart';
-import 'package:recap_today/model/schedule_item.dart'; // 추가된 import
+import 'package:recap_today/model/schedule_item.dart';
 
 /// SQLite 데이터베이스 관리를 위한 헬퍼 클래스
 /// 일기와 체크리스트 항목의 영구 저장소 역할
@@ -20,10 +20,9 @@ class DatabaseHelper {
   static const String tableDiaries = 'diaries';
   static const String tablePhotos = 'photos';
   static const String tableAppUsage = 'app_usage';
-  static const String tableSchedule = 'schedule_items'; // 새로운 테이블 이름
+  static const String tableSchedule = 'schedule_items';
   static const String tableLocationLogs = 'location_logs'; // 위치 로그 테이블
-  static const String tableEmotionRecords =
-      'emotion_records'; // 감정 기록 테이블 이름 직접 정의
+  static const String tableEmotionRecords = 'emotion_records';
 
   // 프라이빗 생성자
   DatabaseHelper._init();
@@ -41,7 +40,7 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 9, // Incremented version to 9 for sync queue support
+      version: 9,
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onConfigure: _configureDB,
@@ -987,29 +986,42 @@ class DatabaseHelper {
     }
   }
 
-  /// 위치 로그 삭제 (특정 기간)
-  Future<int> deleteLocationLogsInRange(
+  /// 특정 사용자의 모든 위치 데이터 조회 (제한 없음)
+  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(
     String userId,
-    DateTime start,
-    DateTime end,
   ) async {
     try {
       final db = await instance.database;
-      final startStr = start.toIso8601String();
-      final endStr = end.toIso8601String();
+      final result = await db.query(
+        tableLocationLogs,
+        where: 'userId = ?',
+        whereArgs: [userId],
+        orderBy: 'timestamp ASC',
+      );
 
+      return result;
+    } catch (e) {
+      debugPrint('사용자 전체 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 특정 사용자의 모든 위치 데이터 삭제
+  Future<int> deleteAllLocationLogsForUser(String userId) async {
+    try {
+      final db = await instance.database;
       return await db.delete(
         tableLocationLogs,
-        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
-        whereArgs: [userId, startStr, endStr],
+        where: 'userId = ?',
+        whereArgs: [userId],
       );
     } catch (e) {
-      debugPrint('위치 로그 삭제 중 오류 발생: $e');
+      debugPrint('사용자 위치 로그 전체 삭제 중 오류 발생: $e');
       return 0;
     }
   }
 
-  /// 특정 날짜 범위의 위치 데이터 조회
+  /// 특정 사용자의 날짜 범위 위치 데이터 조회
   Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
     String userId,
     DateTime start,
@@ -1017,13 +1029,13 @@ class DatabaseHelper {
   ) async {
     try {
       final db = await instance.database;
-      final startStr = start.toIso8601String();
-      final endStr = end.toIso8601String();
+      final startTime = start.toIso8601String();
+      final endTime = end.toIso8601String();
 
       final result = await db.query(
         tableLocationLogs,
         where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
-        whereArgs: [userId, startStr, endStr],
+        whereArgs: [userId, startTime, endTime],
         orderBy: 'timestamp ASC',
       );
 
@@ -1031,6 +1043,28 @@ class DatabaseHelper {
     } catch (e) {
       debugPrint('날짜 범위 위치 로그 조회 중 오류 발생: $e');
       return [];
+    }
+  }
+
+  /// 특정 사용자의 날짜 범위 위치 데이터 삭제
+  Future<int> deleteLocationLogsInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final db = await instance.database;
+      final startTime = start.toIso8601String();
+      final endTime = end.toIso8601String();
+
+      return await db.delete(
+        tableLocationLogs,
+        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
+        whereArgs: [userId, startTime, endTime],
+      );
+    } catch (e) {
+      debugPrint('날짜 범위 위치 로그 삭제 중 오류 발생: $e');
+      return 0;
     }
   }
 
