@@ -42,14 +42,12 @@ class HourlyEmotionLogger extends StatefulWidget {
 
 class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
   late AbstractEmotionRepository _emotionRepository;
-  late PageController _pageController;
   late DateTime _selectedDate;
   Map<int, EmotionRecord?> _hourlyEmotions = {};
   bool _isLoading = true;
   int _currentHour = DateTime.now().hour;
 
   final List<String> _emotionTypes = emotionDetailsConfig.keys.toList();
-
   @override
   void initState() {
     super.initState();
@@ -59,10 +57,6 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
     );
     _selectedDate = widget.initialDate;
     _currentHour = DateTime.now().hour;
-    _pageController = PageController(
-      initialPage: _currentHour,
-      viewportFraction: 0.3,
-    );
     _loadEmotionData();
   }
 
@@ -79,11 +73,25 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
                   DateTime.now().year == _selectedDate.year
               ? DateTime.now().hour
               : 0;
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(_currentHour);
-      }
       _loadEmotionData();
     }
+  }
+
+  double _calculateCenterOffsetWithContext(BuildContext context) {
+    // 카드 너비 (72) + 양쪽 마진 (4) = 76
+    const double cardTotalWidth = 76.0;
+
+    // 실제 화면 너비 가져오기
+    final double screenWidth = MediaQuery.of(context).size.width;
+
+    // 현재 시간의 위치에서 화면 중앙으로 맞추기 위한 오프셋 계산
+    double targetOffset =
+        (_currentHour * cardTotalWidth) -
+        (screenWidth / 2) +
+        (cardTotalWidth / 2);
+
+    // 음수 값 방지 (처음 몇 시간의 경우)
+    return targetOffset < 0 ? 0 : targetOffset;
   }
 
   Future<void> _loadEmotionData() async {
@@ -339,20 +347,28 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
           ),
         ),
         SizedBox(
-          height: 100, // Adjust height as needed
-          child: PageView.builder(
-            controller: _pageController,
-            itemCount: 24,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 4.0,
-                ), // Spacing between cards
-                child: _buildEmotionCard(index),
+          height: 100,
+          child: Builder(
+            builder: (context) {
+              // MediaQuery에 접근할 수 있는 시점에서 ScrollController 생성
+              final scrollController = ScrollController(
+                initialScrollOffset: _calculateCenterOffsetWithContext(context),
               );
-            },
-            onPageChanged: (index) {
-              // Optional: handle page change if needed
+
+              return ListView.builder(
+                controller: scrollController,
+                scrollDirection: Axis.horizontal,
+                physics:
+                    const BouncingScrollPhysics(), // Smooth iOS-like scrolling
+                itemCount: 24,
+                itemBuilder: (context, index) {
+                  return Container(
+                    width: 72, // Fixed width for each card
+                    margin: const EdgeInsets.symmetric(horizontal: 2.0),
+                    child: _buildEmotionCard(index),
+                  );
+                },
+              );
             },
           ),
         ),
@@ -362,7 +378,6 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
 
   @override
   void dispose() {
-    _pageController.dispose();
     super.dispose();
   }
 }
