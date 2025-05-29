@@ -1,4 +1,5 @@
 import 'package:recap_today/model/user_credential.dart';
+import 'package:recap_today/model/user_model.dart';
 
 abstract interface class AuthRepository {
   /// 로그인
@@ -12,6 +13,9 @@ abstract interface class AuthRepository {
 
   /// 토큰 유효성 검증
   Future<bool> validateToken();
+
+  /// 현재 사용자 정보 조회
+  Future<User?> getCurrentUser();
 
   String? getToken();
 

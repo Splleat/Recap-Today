@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:recap_today/repository/auth_repository.dart';
 import 'package:recap_today/service/migration_service.dart';
+import 'package:recap_today/model/user_model.dart';
 
 class LoginProvider with ChangeNotifier {
   String _userId = '';
@@ -9,12 +10,14 @@ class LoginProvider with ChangeNotifier {
   bool _isLoading = false;
   bool _isLoggedIn = false;
   String? _errorMessage;
+  User? _currentUser;
 
   String get userId => _userId;
   String get password => _password;
   bool get isLoading => _isLoading;
   bool get isLoggedIn => _isLoggedIn;
   String? get errorMessage => _errorMessage;
+  User? get currentUser => _currentUser;
 
   final AuthRepository _authRepository;
 
@@ -28,6 +31,11 @@ class LoginProvider with ChangeNotifier {
       // 토큰이 있으면 유효성 검증
       final isValid = await _authRepository.validateToken();
       _isLoggedIn = isValid;
+      
+      // 토큰이 유효하면 사용자 정보 불러오기
+      if (isValid) {
+        _currentUser = await _authRepository.getCurrentUser();
+      }
     } else {
       _isLoggedIn = false;
     }
@@ -62,6 +70,7 @@ class LoginProvider with ChangeNotifier {
       final credential = await _authRepository.login(userId, password);
       print(credential);
       _authRepository.setToken(credential.accessToken);
+      _currentUser = credential.user; // 사용자 정보 저장
       _isLoggedIn = true;
       _errorMessage = null;
       return true;
@@ -109,11 +118,13 @@ class LoginProvider with ChangeNotifier {
     try {
       await _authRepository.logout();
       _isLoggedIn = false;
+      _currentUser = null; // 사용자 정보 초기화
       _errorMessage = null;
     } catch (e) {
       print('Logout failed: $e');
       // 로그아웃 실패 시에도 로컬 상태는 초기화
       _isLoggedIn = false;
+      _currentUser = null; // 사용자 정보 초기화
       _errorMessage = null;
     } finally {
       setLoading(false);

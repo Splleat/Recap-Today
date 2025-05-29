@@ -104,7 +104,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Icons.logout,
                         color: Colors.redAccent,
                       ),
-                      title: const Text('로그아웃'),
+                      title: Text(
+                        '${loginProvider.currentUser?.name ?? '사용자'}님 로그아웃',
+                      ),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () async {
                         // Show logout confirmation dialog

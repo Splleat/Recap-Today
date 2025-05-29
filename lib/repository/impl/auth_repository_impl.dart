@@ -5,6 +5,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 
 import 'package:recap_today/model/user_credential.dart';
+import 'package:recap_today/model/user_model.dart';
 import 'package:recap_today/repository/auth_repository.dart';
 import 'package:recap_today/api/location_service.dart';
 
@@ -158,6 +159,22 @@ final class AuthRepositoryImpl implements AuthRepository {
       return data['sub']?.toString();
     } catch (e) {
       debugPrint('JWT 토큰 디코딩 실패: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<User?> getCurrentUser() async {
+    if (_token == null) return null;
+
+    try {
+      final response = await dio.get(
+        '/auth/me',
+        options: Options(headers: {'Authorization': 'Bearer $_token'}),
+      );
+      return User.fromJson(response.data);
+    } catch (e) {
+      debugPrint('현재 사용자 정보 조회 실패: $e');
       return null;
     }
   }
