@@ -25,4 +25,14 @@ abstract interface class AuthRepository {
 
   /// 현재 로그인된 사용자 ID 반환
   String? getCurrentUserId();
+
+  /// 사용자 이름 업데이트
+  Future<User> updateUserName(String name);
+
+  /// 사용자 프로필 업데이트 (이름과 비밀번호)
+  Future<User> updateUserProfile({
+    required String name,
+    required String currentPassword,
+    required String newPassword,
+  });
 }
