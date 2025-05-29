@@ -4,6 +4,7 @@ import 'package:recap_today/provider/login_provider.dart'; // Import LoginProvid
 import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/screens/login_screen.dart';
 import 'package:recap_today/screens/signup_screen.dart';
+import 'package:recap_today/screens/user_profile_edit_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -141,6 +142,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             (route) => false,
                           );
                         }
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  // 사용자 정보 수정 버튼
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 4,
+                    child: ListTile(
+                      leading: const Icon(Icons.edit, color: Colors.blueAccent),
+                      title: const Text('프로필 수정'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const UserProfileEditScreen(),
+                          ),
+                        );
                       },
                     ),
                   ),

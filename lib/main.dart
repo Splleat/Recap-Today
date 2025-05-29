@@ -14,6 +14,7 @@ import 'package:recap_today/provider/diary_provider.dart';
 import 'package:recap_today/provider/login_provider.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:recap_today/provider/signup_provider.dart'; // SignupProvider import
+import 'package:recap_today/provider/user_profile_provider.dart'; // UserProfileProvider import
 import 'package:recap_today/repository/abstract_emotion_repository.dart'; // 추가
 import 'package:recap_today/repository/auth_repository.dart';
 import 'package:recap_today/repository/emotion_repository.dart'; // 추가
@@ -99,6 +100,12 @@ void main() async {
         ChangeNotifierProvider(
           // Add SignupProvider
           create: (context) => SignupProvider(authRepository),
+        ),
+        ChangeNotifierProxyProvider<LoginProvider, UserProfileProvider>(
+          create: (context) => UserProfileProvider(authRepository),
+          update:
+              (context, loginProvider, previous) =>
+                  UserProfileProvider(authRepository, loginProvider),
         ),
       ],
       child: const RecapToday(),

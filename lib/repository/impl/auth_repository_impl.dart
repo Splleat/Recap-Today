@@ -178,4 +178,46 @@ final class AuthRepositoryImpl implements AuthRepository {
       return null;
     }
   }
+
+  @override
+  Future<User> updateUserName(String name) async {
+    if (_token == null) throw Exception('로그인이 필요합니다.');
+
+    try {
+      final response = await dio.patch(
+        '/auth/profile',
+        data: {'name': name},
+        options: Options(headers: {'Authorization': 'Bearer $_token'}),
+      );
+      return User.fromJson(response.data);
+    } catch (e) {
+      debugPrint('사용자 이름 업데이트 실패: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<User> updateUserProfile({
+    required String name,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    if (_token == null) throw Exception('로그인이 필요합니다.');
+
+    try {
+      final response = await dio.patch(
+        '/auth/profile',
+        data: {
+          'name': name,
+          'currentPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $_token'}),
+      );
+      return User.fromJson(response.data);
+    } catch (e) {
+      debugPrint('사용자 프로필 업데이트 실패: $e');
+      rethrow;
+    }
+  }
 }

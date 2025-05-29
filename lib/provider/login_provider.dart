@@ -31,7 +31,7 @@ class LoginProvider with ChangeNotifier {
       // 토큰이 있으면 유효성 검증
       final isValid = await _authRepository.validateToken();
       _isLoggedIn = isValid;
-      
+
       // 토큰이 유효하면 사용자 정보 불러오기
       if (isValid) {
         _currentUser = await _authRepository.getCurrentUser();
@@ -129,6 +129,20 @@ class LoginProvider with ChangeNotifier {
     } finally {
       setLoading(false);
       notifyListeners();
+    }
+  }
+
+  /// 현재 사용자 정보를 새로고침
+  Future<void> refreshCurrentUser() async {
+    if (!_isLoggedIn) {
+      return;
+    }
+
+    try {
+      _currentUser = await _authRepository.getCurrentUser();
+      notifyListeners();
+    } catch (e) {
+      print('Failed to refresh user info: $e');
     }
   }
 }
