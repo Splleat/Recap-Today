@@ -25,6 +25,7 @@ import 'package:recap_today/provider/weather_provider.dart';
 import 'package:recap_today/api/weather_service.dart';
 import 'package:recap_today/api/location_service.dart';
 import 'package:recap_today/service/location_tracking_service.dart';
+import 'package:recap_today/provider/step_provider.dart';
 
 import 'router.dart';
 
@@ -85,6 +86,7 @@ void main() async {
             return EmotionRepository(db);
           },
         ),
+        ChangeNotifierProvider(create: (context) => StepProvider()..initialize()),
         ChangeNotifierProvider(
           create: (context) => WeatherProvider(WeatherService()),
         ),
