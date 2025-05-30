@@ -24,7 +24,6 @@ class _HomeScheduleState extends State<HomeSchedule> {
     final weatherList = weatherProvider.getWeather(widget.date);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       child: Card(
         elevation: 0.1,
         color: Colors.transparent,

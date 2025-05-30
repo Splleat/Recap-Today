@@ -17,9 +17,11 @@ IconData getWeatherIcon(String sky) {
     case '흐림':
       return Icons.cloud_rounded;
     case '비':
-      return Icons.umbrella_rounded;
+      return Icons.beach_access_rounded;
     case '눈':
       return Icons.ac_unit_rounded;
+    case '소나기':
+      return Icons.shower_rounded;
     default:
       return Icons.help_outline_rounded;
   }
@@ -50,9 +52,26 @@ Widget buildWeatherTimeAxis(List<WeatherData>? weatherList) {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text((weather == null) ? '' : weather.temperature),
-            Icon((weather == null) ? Icons.help_outline_rounded : getWeatherIcon(weather.sky)),
+          children: weather == null
+          ? [
+            Text('-'),
+            Icon(Icons.help_outline_rounded),
+            Text('-'),
+            Text(hourStr),
+          ]
+          : [
+            Text(weather.temperature),
+            Icon(getWeatherIcon(weather.sky)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.opacity_rounded,
+                  size: 16,
+                ),
+                Text(weather.precipitationProbability),
+              ],
+            ),
             Text(hourStr),
           ],
         ),

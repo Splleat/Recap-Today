@@ -4,9 +4,10 @@ import 'package:recap_today/router.dart';
 import 'package:recap_today/widget/home/home_checklist.dart';
 import 'package:recap_today/widget/home/home_schedule.dart';
 import 'package:recap_today/widget/home/hourly_emotion_logger.dart';
-import 'package:recap_today/APItest/weather_test_page.dart';
 import 'package:recap_today/provider/weather_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:recap_today/widget/summary/step_counter.dart';
+import 'package:recap_today/APItest/weather_test_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -55,6 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     HomeSchedule(date: DateTime.now()),
                     const SizedBox(height: 16),
+                    StepWidget(),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -86,36 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 16),
                     HourlyEmotionLogger(initialDate: DateTime.now()),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const WeatherTestPage(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.8),
-                          padding: const EdgeInsets.all(16.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          elevation: 0,
-                          shadowColor: Colors.transparent,
-                        ),
-                        child: Row(
-                          children: [
-                            Text('날씨 데이터 테스트'),
-                            Spacer(),
-                            Icon(Icons.arrow_forward),
-                          ],
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
