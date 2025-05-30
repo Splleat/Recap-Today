@@ -38,7 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ); // 홈으로 이동
           },
         ),
-        title: Text('설정', style: TextStyle(color: Colors.black)),
+        title: Text('설정'),
       ),
       body: Container(
         decoration: commonTabDecoration(context),
