@@ -178,10 +178,8 @@ class _LocationInfoState extends State<LocationInfo> {
 
       if (_isMapReady && mounted) {
         _updateMapWithLocationData();
-      }
-
-      // 백그라운드에서 동기화 대기열 처리 (사용자 경험에 영향 없음)
-      _locationService.processPendingSyncQueue();
+      } // 백그라운드에서 백업 대기열 처리 (사용자 경험에 영향 없음)
+      _locationService.processPendingBackupQueue();
     } catch (e) {
       debugPrint('위치 데이터 로드 실패: $e');
 

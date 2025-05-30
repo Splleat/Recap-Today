@@ -92,14 +92,13 @@ class LocationTrackingService {
         final shouldTrack = _checkLocationChange(latitude, longitude);
 
         if (shouldTrack) {
-          // 로컬 우선 저장 방식 사용
-          await _locationService.addLocationLog(userId, latitude, longitude);
+          // 로컬 우선 저장 방식 사용          await _locationService.addLocationLog(userId, latitude, longitude);
           debugPrint(
             '위치 로그 로컬 저장됨: $latitude, $longitude (간격: ${interval.inMinutes}분, 정확도: ${position.accuracy}m)',
           );
 
-          // 백그라운드에서 동기화 시도
-          _locationService.processPendingSyncQueue();
+          // 백그라운드에서 백업 대기열 처리
+          _locationService.processPendingBackupQueue();
         }
 
         // 추적 간격 조정
@@ -123,7 +122,7 @@ class LocationTrackingService {
           if (shouldTrack) {
             await _locationService.addLocationLog(userId, latitude, longitude);
             debugPrint('더미 위치 로그 저장됨 (GPS 오류): $latitude, $longitude');
-            _locationService.processPendingSyncQueue();
+            _locationService.processPendingBackupQueue();
           }
         }
       }
