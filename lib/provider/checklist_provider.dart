@@ -60,14 +60,9 @@ class ChecklistProvider extends ChangeNotifier {
           await _dbHelper.getChecklistItems();
 
       _items.clear();
-      if (loadedItems.isEmpty) {
-        // 데이터베이스에 아이템이 없는 경우, 더미 데이터 추가
-        _addDummyItems();
-      } else {
-        // 데이터베이스에서 불러온 아이템으로 목록 업데이트
-        _items.addAll(loadedItems);
-        _sortItems();
-      }
+      // 데이터베이스에서 불러온 아이템으로 목록 업데이트
+      _items.addAll(loadedItems);
+      _sortItems();
 
       _isLoaded = true;
       _isBusy = false;
@@ -76,63 +71,10 @@ class ChecklistProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('체크리스트 아이템 로드 중 오류 발생: $e');
-      // 오류 발생 시 더미 데이터로 폴백
-      if (_items.isEmpty) {
-        _addDummyItems();
-      }
       _isBusy = false;
       _isLoaded = true;
       notifyListeners();
     }
-  }
-
-  /// 더미 데이터 추가 헬퍼 메서드
-  void _addDummyItems() {
-    _items.addAll([
-      ChecklistItem(id: '1', text: '오늘 할 일 1', isChecked: false),
-      ChecklistItem(
-        id: '2',
-        text: '내일 할 일 1',
-        isChecked: false,
-        dueDate: DateTime.now().add(const Duration(days: 1)),
-      ),
-      ChecklistItem(
-        id: '3',
-        text: '이번 주말 할 일 1',
-        isChecked: false,
-        subtext: '세부 내용',
-      ),
-      ChecklistItem(id: '4', text: '오늘 할 일 2', isChecked: false),
-      ChecklistItem(
-        id: '5',
-        text: '내일 할 일 2',
-        isChecked: false,
-        dueDate: DateTime.now().add(const Duration(days: 1)),
-      ),
-      ChecklistItem(
-        id: '6',
-        text: '이번 주말 할 일 2',
-        isChecked: false,
-        subtext: '세부 내용',
-      ),
-      ChecklistItem(id: '7', text: '오늘 할 일 3', isChecked: false),
-      ChecklistItem(
-        id: '8',
-        text: '내일 할 일 3',
-        isChecked: false,
-        dueDate: DateTime.now().add(const Duration(days: 1)),
-      ),
-      ChecklistItem(
-        id: '9',
-        text: '이번 주말 할 일 3',
-        isChecked: false,
-        subtext: '세부 내용',
-      ),
-    ]);
-
-    // 더미 데이터를 데이터베이스에 일괄 저장 (개선됨)
-    _saveAllItems();
-    _sortItems();
   }
 
   /// 모든 아이템을 데이터베이스에 일괄 저장 (배치 처리 사용)
