@@ -130,6 +130,7 @@ class _UserProfileEditScreenState extends State<UserProfileEditScreen> {
                                     color: Colors.blue.shade700,
                                   ),
                                 ),
+                                initiallyExpanded: _isPasswordExpanded,
                                 leading: const Icon(Icons.lock_outline),
                                 onExpansionChanged: (expanded) {
                                   setState(() {
