@@ -34,7 +34,7 @@ class _PlannerScreenState extends State<PlannerScreen> {
       ),
       body: Stack(
         children: [
-          Container(decoration: commonTabDecoration()),
+          Container(decoration: commonTabDecoration(context)),
           SafeArea(
             child: Column(
               children: [

@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 
-final lightTheme = ThemeData(
+final ThemeData lightTheme = ThemeData(
   brightness: Brightness.light,
   fontFamily: 'Pretendard',
   colorScheme: ColorScheme.fromSeed(
     seedColor: Colors.blue,
+    brightness: Brightness.light,
   ),
   useMaterial3: true,
   textTheme: const TextTheme(
     titleLarge: TextStyle(
       fontSize: 24,
-      fontWeight: FontWeight.w500,
-      color: Colors.white,
+      fontWeight: FontWeight.bold,
+      color: Colors.black,
     ),
     titleMedium: TextStyle(
       fontSize: 18,

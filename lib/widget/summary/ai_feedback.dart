@@ -10,7 +10,7 @@ class AiFeedback extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.85),
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
         borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
@@ -27,14 +27,13 @@ class AiFeedback extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.insights, color: Theme.of(context).primaryColor),
+                Icon(Icons.insights),
                 const SizedBox(width: 8),
                 Text(
                   'AI 인사이트',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
                   ),
                 ),
                 const Spacer(),
@@ -74,7 +73,6 @@ class AiFeedback extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 15,
                     height: 1.5,
-                    color: Colors.black87,
                   ),
                 ),
               )
@@ -86,7 +84,6 @@ class AiFeedback extends StatelessWidget {
                     '아직 피드백이 생성되지 않았습니다.',
                     style: TextStyle(
                       fontSize: 15,
-                      color: Colors.grey,
                       fontStyle: FontStyle.italic,
                     ),
                   ),

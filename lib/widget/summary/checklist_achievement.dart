@@ -28,7 +28,7 @@ class ChecklistAchievement extends StatelessWidget {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(12.0),
             boxShadow: [
               BoxShadow(

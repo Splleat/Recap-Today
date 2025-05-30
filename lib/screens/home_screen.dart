@@ -7,7 +7,6 @@ import 'package:recap_today/widget/home/hourly_emotion_logger.dart';
 import 'package:recap_today/provider/weather_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:recap_today/widget/summary/step_counter.dart';
-import 'package:recap_today/APItest/weather_test_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final weatherProvider = context.read<WeatherProvider>();
-      await weatherProvider.fetchWeather(today, 58, 74, force: true);
+      await weatherProvider.fetchWeather(today, 58, 74);
     });
   }
 
@@ -46,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Stack(
         children: [
-          Container(decoration: commonTabDecoration()),
+          Container(decoration: commonTabDecoration(context)),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -70,7 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white.withOpacity(0.8),
                           padding: const EdgeInsets.all(16.0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.0),

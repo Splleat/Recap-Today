@@ -7,11 +7,14 @@ import 'package:recap_today/model/step_model.dart';
 class StepProvider with ChangeNotifier {
   StepModel todayStep = StepModel(date: DateTime.now(), stepCount: 0);
   int _baseStepCount = 0;
+  int _dailyGoal = 5000;
+  int get dailyGoal => _dailyGoal;
   DateTime _lastDate = DateTime.now();
   StreamSubscription<StepCount>? _subscription;
 
   Future<void> initialize() async {
     await _loadBaseStepInfo();
+    await _loadDailyGoal();
     _subscription = Pedometer.stepCountStream.listen(
       _onStepCount,
       onError: (e) => debugPrint('걸음 수 오류: $e'),
@@ -40,8 +43,21 @@ class StepProvider with ChangeNotifier {
       await prefs.setString('stepDate', now.toIso8601String());
     }
 
-    final todaySteps = event.steps - _baseStepCount;
+    final todaySteps = (event.steps - _baseStepCount).clamp(0, 100000);
     todayStep = StepModel(date: now, stepCount: todaySteps);
+    notifyListeners();
+  }
+
+  Future<void> _loadDailyGoal() async {
+    final prefs = await SharedPreferences.getInstance();
+    _dailyGoal = prefs.getInt('dailyGoal') ?? 5000;
+    notifyListeners();
+  }
+
+  Future<void> updateDailyGoal(int goal) async {
+    final prefs = await SharedPreferences.getInstance();
+    _dailyGoal = goal;
+    await prefs.setInt('dailyGoal', goal);
     notifyListeners();
   }
 

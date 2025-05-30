@@ -34,7 +34,7 @@ class TimetableScreen extends StatelessWidget {
         ],
       ),
       body: Container(
-        decoration: commonTabDecoration(),
+        decoration: commonTabDecoration(context),
         child: TimetableWidget(),
       ),
     );

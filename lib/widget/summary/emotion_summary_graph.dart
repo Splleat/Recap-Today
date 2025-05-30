@@ -311,7 +311,6 @@ class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
             title, // Use the dynamic title
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.black, // Added color black
             ),
           ),
         ),
@@ -323,7 +322,7 @@ class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
             child: const Text(
               '오늘 기록된 감정이 없습니다.', // Updated message - timeline reference removed
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(fontSize: 16),
             ),
           )
         else
@@ -345,7 +344,6 @@ class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
             '시간별 감정 기록 보기',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.black54,
             ),
           ),
           children: <Widget>[

@@ -22,11 +22,13 @@ import 'package:recap_today/repository/impl/auth_repository_impl.dart';
 import 'package:recap_today/screens/main_screen.dart';
 import 'package:recap_today/service/date_change_service.dart';
 import 'package:recap_today/theme/lightTheme.dart';
+import 'package:recap_today/theme/darkTheme.dart';
 import 'package:recap_today/provider/weather_provider.dart';
 import 'package:recap_today/api/weather_service.dart';
 import 'package:recap_today/api/location_service.dart';
 import 'package:recap_today/service/location_tracking_service.dart';
 import 'package:recap_today/provider/step_provider.dart';
+import 'package:recap_today/provider/theme_provider.dart';
 
 import 'router.dart';
 
@@ -101,6 +103,7 @@ void main() async {
           // Add SignupProvider
           create: (context) => SignupProvider(authRepository),
         ),
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProxyProvider<LoginProvider, UserProfileProvider>(
           create: (context) => UserProfileProvider(authRepository),
           update:
@@ -127,11 +130,14 @@ class RecapToday extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Recap Today',
       theme: lightTheme,
-      //darkTheme: darkTheme,
+      darkTheme: darkTheme,
+      themeMode: themeProvider.themeMode,
       home: const MainScreen(),
       onGenerateRoute: AppRouter.generateRoute,
       supportedLocales: const [Locale('ko'), Locale('en')],

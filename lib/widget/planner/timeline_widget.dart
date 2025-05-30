@@ -35,7 +35,7 @@ class DailyTimelineWidget extends StatelessWidget {
               child: Container(
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
                 ),
                 child: UserScheduleListWidget(date: date),
               )

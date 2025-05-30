@@ -149,7 +149,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       body: Stack(
         children: [
-          Container(decoration: commonTabDecoration()),
+          Container(decoration: commonTabDecoration(context)),
           SafeArea(
             child: SingleChildScrollView(
               controller: _scrollController, // Attach scroll controller
@@ -167,7 +167,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.white,
+                        fillColor: Theme.of(context).colorScheme.surface,
                       ),
                     ),
                   ),

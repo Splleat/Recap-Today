@@ -22,7 +22,7 @@ class HomeChecklist extends StatelessWidget {
       body: Stack(
         children: [
           Container(
-            decoration: commonTabDecoration(),
+            decoration: commonTabDecoration(context),
           ),
           SafeArea(
             child: Padding(
@@ -35,7 +35,7 @@ class HomeChecklist extends StatelessWidget {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
                         borderRadius: BorderRadius.circular(12.0),
                       ),
                       child:Consumer<ChecklistProvider>(

@@ -32,17 +32,19 @@ class WeatherProvider with ChangeNotifier {
   }
 
   /// 기상청 API로 날씨 요청하고 캐시에 저장
-  Future<void> fetchWeather(DateTime date, int nx, int ny, {bool force = false}) async {
-    final dateStr = _formatDate(date);
-    if (!force && _weatherCache.containsKey(dateStr)) {
-      return; // 이미 존재하면 생략
+  Future<void> fetchWeather(DateTime date, int nx, int ny) async {
+    final reqDay = _formatDate(date);
+    final prefs = await SharedPreferences.getInstance();
+
+    if (reqDay == prefs.getString('lastReq')) {
+      debugPrint('이미 요청함');
+      loadCachedWeather(date);
+      return;
     }
-
-    isLoading = true;
-    notifyListeners();
-
+    
     try {
       final fullData = await _weatherService.fetchFullWeather(nx, ny);
+      isLoading = true;
       final prefs = await SharedPreferences.getInstance();
 
       for (final day in fullData) {
@@ -55,6 +57,8 @@ class WeatherProvider with ChangeNotifier {
 
         debugPrint('[캐시됨] $dayStr → ${day.weather.length}개 항목');
       }
+
+      prefs.setString('lastReq', reqDay);
 
       notifyListeners();
     } catch (e) {

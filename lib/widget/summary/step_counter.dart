@@ -5,14 +5,14 @@ import 'package:provider/provider.dart';
 import 'package:recap_today/provider/step_provider.dart';
 
 class StepWidget extends StatelessWidget {
-  final int dailyGoal;
 
-  const StepWidget({super.key, this.dailyGoal = 5000});
+  const StepWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
     final stepProvider = context.watch<StepProvider>();
     final step = stepProvider.todayStep.stepCount;
+    final dailyGoal = stepProvider.dailyGoal;
 
     final percent = step / dailyGoal;
     final formattedSteps = NumberFormat('#,###').format(step);
@@ -22,8 +22,8 @@ class StepWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
         borderRadius: BorderRadius.circular(12),
+        color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -35,10 +35,57 @@ class StepWidget extends StatelessWidget {
                 formattedSteps,
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              Text('/ $formattedGoal'),
+              Row(
+                children: [
+                  Text('/'),
+                  TextButton(
+                    onPressed: () async {
+                      final controller = TextEditingController(
+                        text: dailyGoal.toString(),
+                      );
+
+                      final result = await showDialog<int>(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: const Text('목표 걸음 수 설정'),
+                            content: TextField(
+                              controller: controller,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(labelText: '걸음 수'),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('취소'),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  final input = int.tryParse(controller.text);
+                                  Navigator.of(context).pop(input);
+                                },
+                                child: const Text('확인'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+
+                      if (result != null && result > 0) {
+                        await context.read<StepProvider>().updateDailyGoal(result);
+                      }
+                    },
+
+                    child: Text(
+                      formattedGoal,
+                      style: const TextStyle(decoration: TextDecoration.underline),
+                    ),
+                  ),
+                ],
+              )
             ],
           ),
-          const Spacer(flex: 1),
+          const Spacer(),
           Column(
             children: [
               const Text(
@@ -48,7 +95,7 @@ class StepWidget extends StatelessWidget {
               Text('$formattedDistance Km'),
             ],
           ),
-          const Spacer(flex: 2),
+          const Spacer(),
           CircularPercentIndicator(
             radius: 50.0,
             lineWidth: 10.0,

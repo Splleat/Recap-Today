@@ -400,7 +400,6 @@ class _LocationInfoState extends State<LocationInfo> {
                   '하루 동선',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
                   ),
                 ),
                 if (_locationData != null &&

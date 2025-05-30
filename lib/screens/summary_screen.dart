@@ -84,7 +84,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
       body: Stack(
         children: [
           // 배경 데코레이션
-          Container(decoration: commonTabDecoration()),
+          Container(decoration: commonTabDecoration(context)),
           // 요약 카드들 (스크롤 가능)
           SafeArea(
             child: SingleChildScrollView(
@@ -124,7 +124,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 ScrollController scrollController,
               ) {
                 return Container(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   child: SingleChildScrollView(
                     controller: scrollController,
                     child: DiaryWidget(), // Restored to original DiaryWidget

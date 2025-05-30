@@ -23,7 +23,7 @@ class DailySummaryScreen extends StatelessWidget {
         ),
       ),
       body: Container(
-        decoration: commonTabDecoration(),
+        decoration: commonTabDecoration(context),
         child: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
