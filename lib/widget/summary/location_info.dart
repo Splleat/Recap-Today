@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../model/location_model.dart';
 import '../../api/location_service.dart';
-import '../../data/sqflite_database.dart';
 import '../../repository/auth_repository.dart' as auth;
 import '../../service/location_tracking_service.dart';
 
@@ -39,7 +38,9 @@ class _LocationInfoState extends State<LocationInfo> {
   @override
   void initState() {
     super.initState();
-    _locationService = LocationService(SqfliteDatabase());
+    // _locationService = LocationService(SqfliteDatabase()); // Original instantiation
+    // Obtain LocationService from Provider, which is initialized in main.dart
+    _locationService = Provider.of<LocationService>(context, listen: false);
     _trackingService = LocationTrackingService.instance;
     _initialize();
   }
@@ -149,34 +150,21 @@ class _LocationInfoState extends State<LocationInfo> {
   }
 
   Future<void> _loadLocationData() async {
-    if (_currentUserId == null) {
-      setState(() {
-        _isLoading = false;
-      });
-      return;
-    }
+    if (!mounted || _currentUserId == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      final dateString = DateFormat('yyyy-MM-dd').format(widget.date);
-
-      // 로컬 우선 방식으로 위치 데이터 가져오기 (즉시 응답)
-      final locationData = await _locationService.fetchLocationDataForDate(
+      // final dateString = DateFormat('yyyy-MM-dd').format(widget.date);
+      // _locationData = await _locationService.fetchLocationDataForDate(_currentUserId!, dateString);
+      _locationData = await _locationService.fetchLocationDataForDate(
         _currentUserId!,
-        dateString,
+        widget.date,
       );
 
-      if (mounted) {
-        setState(() {
-          _locationData = locationData;
-          _isLoading = false;
-        });
-      }
-
-      if (_isMapReady && mounted) {
+      if (_locationData != null && _locationData!.locations.isNotEmpty) {
         _updateMapWithLocationData();
       } // 백그라운드에서 백업 대기열 처리 (사용자 경험에 영향 없음)
       _locationService.processPendingBackupQueue();
@@ -398,9 +386,9 @@ class _LocationInfoState extends State<LocationInfo> {
               children: [
                 Text(
                   '하루 동선',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 if (_locationData != null &&
                     _locationData!.locations.isNotEmpty)

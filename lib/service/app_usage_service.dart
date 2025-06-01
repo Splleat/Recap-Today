@@ -67,6 +67,9 @@ class AppUsageService {
       ); // 내일 0시 0분 0초
       final dateStr = DateFormat(_dateFormat).format(today);
 
+      // 기존 데이터 삭제
+      await _database.deleteAppUsagesByDate(dateStr);
+
       // 네이티브 코드로 앱 사용 통계 조회
       final result = await _channel.invokeMethod('getAppUsage', {
         'startTime': today.millisecondsSinceEpoch, // 오늘 0시
@@ -102,53 +105,61 @@ class AppUsageService {
             );
           }
         } catch (e) {
-          debugPrint('앱 정보 파싱 중 오류: $e');
+          debugPrint('앱 사용 데이터 파싱 중 오류: $e');
         }
       }
 
-      // 사용 시간으로 정렬
+      // 사용 시간 순으로 정렬
       appUsageList.sort(
         (a, b) => b.usageTimeInMillis.compareTo(a.usageTimeInMillis),
       );
 
-      // 상위 앱만 유지
-      final topApps = appUsageList.take(20).toList();
+      // 상위 3개 앱만 저장 (또는 설정된 개수만큼)
+      final topApps = appUsageList.take(3).toList();
 
       // 데이터베이스에 저장
       if (topApps.isNotEmpty) {
-        await _database.deleteAppUsageForDate(dateStr);
-        await _database.insertAppUsageBatch(topApps);
+        await _database.insertAppUsages(topApps);
       }
 
-      // 요약 정보 반환
       return AppUsageSummary(
         date: dateStr,
         totalUsageTimeInMillis: totalUsageTime,
-        topApps: topApps.take(3).toList(),
+        topApps: topApps,
       );
     } catch (e) {
-      debugPrint('앱 사용 통계 조회 중 오류 발생: $e');
+      debugPrint('오늘의 앱 사용 통계 가져오기 실패: $e');
       return null;
     }
   }
 
-  /// 특정 날짜의 앱 사용 요약 정보 조회
+  /// 특정 날짜의 앱 사용 요약 정보 가져오기
   Future<AppUsageSummary?> getAppUsageSummaryForDate(String date) async {
-    return _database.getAppUsageSummaryForDate(date);
+    try {
+      return await _database.getAppUsageSummaryForDate(date);
+    } catch (e) {
+      debugPrint('특정 날짜 앱 사용 요약 정보 가져오기 실패: $e');
+      return null;
+    }
   }
 
-  /// 사용 시간을 포맷팅하여 반환
+  /// 사용 시간을 보기 좋은 문자열로 변환 (예: 1h 30m)
   static String formatUsageTime(int milliseconds) {
-    final Duration duration = Duration(milliseconds: milliseconds);
-    final int hours = duration.inHours;
-    final int minutes = duration.inMinutes.remainder(60);
+    if (milliseconds < 0) return 'N/A';
+    if (milliseconds == 0) return '0m';
+
+    int seconds = (milliseconds / 1000).truncate();
+    int minutes = (seconds / 60).truncate();
+    int hours = (minutes / 60).truncate();
+
+    minutes %= 60;
 
     if (hours > 0) {
-      return '$hours시간 ${minutes > 0 ? '$minutes분' : ''}';
+      return '${hours}h ${minutes}m';
     } else if (minutes > 0) {
-      return '$minutes분';
+      return '${minutes}m';
     } else {
-      return '1분 미만';
+      return '< 1m'; // 1분 미만 사용 시간
     }
   }
 }

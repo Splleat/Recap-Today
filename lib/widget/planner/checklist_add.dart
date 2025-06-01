@@ -67,7 +67,12 @@ void showAddItemDialog(BuildContext context, ChecklistProvider checklistProvider
             child: const Text('추가'),
             onPressed: () {
               if (textController.text.isNotEmpty) {
-                final newItem = ChecklistItem(id: UniqueKey().toString(), text: textController.text, dueDate: selectedDueDate);
+                final newItem = ChecklistItem(
+                  id: UniqueKey().toString(), 
+                  checklistId: 'default_checklist', // Add required checklistId parameter
+                  text: textController.text, 
+                  dueDate: selectedDueDate
+                );
                 checklistProvider.addItem(newItem);
                 Navigator.of(context).pop();
               }

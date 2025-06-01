@@ -1,37 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:recap_today/model/schedule_item.dart';
 import 'package:collection/collection.dart';
+import 'package:recap_today/data/abstract_database.dart';
 
 class ScheduleProvider extends ChangeNotifier {
-  final List<ScheduleItem> _items = [];
+  List<ScheduleItem> _items = [];
+  final AbstractDatabase _database;
+
+  ScheduleProvider(this._database) {
+    loadItems();
+  }
 
   List<ScheduleItem> get items => _items;
+
+  Future<void> loadItems() async {
+    _items = await _database.getScheduleItems();
+    notifyListeners();
+  }
 
   ScheduleItem? getItemById(String id) {
     return _items.firstWhereOrNull((item) => item.id == id);
   }
 
-  void addItem(ScheduleItem item) {
-    _items.add(item);
-    // print('Provider Added: ${item.text} for day ${item.dayOfWeek}');
-    notifyListeners();
+  Future<void> addItem(ScheduleItem item) async {
+    await _database.insertScheduleItem(item);
+    await loadItems();
   }
 
-  void updateItem(ScheduleItem updatedItem) {
-    final index = _items.indexWhere((item) => item.id == updatedItem.id);
-    if (index != -1) {
-      _items[index] = updatedItem;
-      notifyListeners();
-    }
+  Future<void> updateItem(ScheduleItem updatedItem) async {
+    await _database.updateScheduleItem(updatedItem);
+    await loadItems();
   }
 
-  void removeItem(String id) {
-    _items.removeWhere((item) => item.id == id);
-    notifyListeners();
+  Future<void> removeItem(String id) async {
+    await _database.deleteScheduleItem(id);
+    await loadItems();
   }
 
   List<ScheduleItem> getItemsForDay(int dayOfWeek) {
-    return _items.where((item) => item.dayOfWeek == dayOfWeek).toList();
+    return _items
+        .where((item) => item.dayOfWeek == dayOfWeek && item.isRoutine)
+        .toList();
+  }
+
+  List<ScheduleItem> getItemsForDate(DateTime date) {
+    final String dateString = date.toIso8601String().substring(0, 10);
+    return _items.where((item) {
+      if (!item.isRoutine) {
+        return item.selectedDate?.toIso8601String().substring(0, 10) ==
+            dateString;
+      } else {
+        return item.dayOfWeek == date.weekday;
+      }
+    }).toList();
   }
 
   List<ScheduleItem> getRoutineItems() {

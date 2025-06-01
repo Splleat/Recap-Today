@@ -1,15 +1,15 @@
-import '../model/location_model.dart';
-import '../data/abstract_database.dart';
+import '../model/location_model.dart'; // Exports LocationRecord
+import '../repository/abstract_location_repository.dart';
 import 'dio_client.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:developer' as developer;
 
 class LocationService {
-  final AbstractDatabase _database;
+  final AbstractLocationRepository _locationRepository;
   final Uuid _uuid = const Uuid();
   bool _isOnline = true;
 
-  LocationService(this._database);
+  LocationService(this._locationRepository);
 
   /// 네트워크 상태 확인
   Future<bool> _checkNetworkConnection() async {
@@ -26,27 +26,30 @@ class LocationService {
   /// 로컬 데이터베이스에서만 위치 데이터 조회 (순수 로컬)
   Future<DailyLocationData> getLocalLocationDataForDate(
     String userId,
-    String date,
+    DateTime date, // Changed from String to DateTime
   ) async {
     try {
-      final localData = await _database.getLocationLogsForUserAndDate(
-        userId,
-        date,
+      // Assuming _locationRepository.getLocationRecordsForUserAndDate returns List<LocationRecord>
+      final locations = await _locationRepository
+          .getLocationRecordsForUserAndDate(userId, date);
+      // No mapping needed if repository returns List<LocationRecord>
+      return DailyLocationData(
+        date: date.toIso8601String().substring(0, 10),
+        locations: locations,
       );
-      final locations =
-          localData.map((map) => LocationModel.fromMap(map)).toList();
-
-      return DailyLocationData(date: date, locations: locations);
     } catch (e) {
       developer.log('로컬 위치 데이터 조회 실패: $e', name: 'LocationService');
-      return DailyLocationData(date: date, locations: []);
+      return DailyLocationData(
+        date: date.toIso8601String().substring(0, 10),
+        locations: [],
+      );
     }
   }
 
   /// 특정 날짜의 위치 데이터 조회 (로컬 전용)
   Future<DailyLocationData> fetchLocationDataForDate(
     String userId,
-    String date,
+    DateTime date, // Changed from String to DateTime
   ) async {
     // 로컬 데이터만 반환 (자동 동기화 제거)
     final localData = await getLocalLocationDataForDate(userId, date);
@@ -64,9 +67,10 @@ class LocationService {
       }
 
       // 해당 사용자의 모든 로컬 위치 데이터 조회
-      final localData = await _database.getAllLocationLogsForUser(userId);
+      final localRecords = await _locationRepository
+          .getAllLocationRecordsForUser(userId);
 
-      if (localData.isEmpty) {
+      if (localRecords.isEmpty) {
         developer.log('백업할 위치 데이터가 없습니다.', name: 'LocationService');
         return true;
       }
@@ -77,16 +81,18 @@ class LocationService {
       final serverIds = serverData.map((item) => item['id']).toSet();
 
       // 서버에 없는 로컬 데이터만 필터링
-      final newData =
-          localData.where((data) => !serverIds.contains(data['id'])).toList();
+      final newRecords =
+          localRecords
+              .where((record) => !serverIds.contains(record.id))
+              .toList();
 
-      if (newData.isEmpty) {
+      if (newRecords.isEmpty) {
         developer.log('백업할 새로운 데이터가 없습니다.', name: 'LocationService');
         return true;
       }
 
       developer.log(
-        '${newData.length}개의 위치 데이터를 서버에 백업합니다.',
+        '${newRecords.length}개의 위치 데이터를 서버에 백업합니다.',
         name: 'LocationService',
       );
 
@@ -94,18 +100,23 @@ class LocationService {
       const batchSize = 20;
       int successCount = 0;
 
-      for (int i = 0; i < newData.length; i += batchSize) {
-        final batch = newData.skip(i).take(batchSize).toList();
+      for (int i = 0; i < newRecords.length; i += batchSize) {
+        final batch = newRecords.skip(i).take(batchSize).toList();
 
         try {
           final batchData =
               batch
                   .map(
-                    (data) => {
-                      'userId': data['userId'],
-                      'latitude': data['latitude'],
-                      'longitude': data['longitude'],
-                      'timestamp': data['timestamp'],
+                    (record) => {
+                      'id':
+                          record
+                              .id, // Ensure ID is sent for potential server-side checks
+                      'userId': record.userId,
+                      'latitude': record.latitude,
+                      'longitude': record.longitude,
+                      'timestamp': record.timestamp.toIso8601String(),
+                      'lastSynced': record.lastSynced?.toIso8601String(),
+                      'isDeleted': record.isDeleted,
                     },
                   )
                   .toList();
@@ -113,6 +124,13 @@ class LocationService {
           await DioClient.dio.post(
             '/location/sync/batch',
             data: {'locations': batchData},
+          );
+
+          // Mark as synced in local DB
+          final syncedIds = batch.map((r) => r.id!).toList();
+          await _locationRepository.markLocationLogsAsSynced(
+            syncedIds,
+            DateTime.now(),
           );
 
           successCount += batch.length;
@@ -124,21 +142,27 @@ class LocationService {
           );
 
           // 배치 실패 시 개별 처리
-          for (final data in batch) {
+          for (final record in batch) {
             try {
               await DioClient.dio.post(
                 '/location/sync',
                 data: {
-                  'userId': data['userId'],
-                  'latitude': data['latitude'],
-                  'longitude': data['longitude'],
-                  'timestamp': data['timestamp'],
+                  'id': record.id,
+                  'userId': record.userId,
+                  'latitude': record.latitude,
+                  'longitude': record.longitude,
+                  'timestamp': record.timestamp.toIso8601String(),
+                  'lastSynced': record.lastSynced?.toIso8601String(),
+                  'isDeleted': record.isDeleted,
                 },
               );
+              await _locationRepository.markLocationLogsAsSynced([
+                record.id!,
+              ], DateTime.now());
               successCount++;
             } catch (e) {
               developer.log(
-                '개별 백업 실패: ${data['id']} - $e',
+                '개별 백업 실패: ${record.id} - $e',
                 name: 'LocationService',
               );
             }
@@ -147,10 +171,10 @@ class LocationService {
       }
 
       developer.log(
-        '위치 데이터 백업 완료: $successCount/${newData.length}개',
+        '위치 데이터 백업 완료: $successCount/${newRecords.length}개',
         name: 'LocationService',
       );
-      return successCount == newData.length;
+      return successCount == newRecords.length;
     } catch (e) {
       developer.log('위치 데이터 백업 실패: $e', name: 'LocationService');
       return false;
@@ -169,8 +193,9 @@ class LocationService {
 
       final response = await DioClient.dio.get('/location/sync/$userId');
       final serverData = response.data as List;
+      // Assuming LocationRecord.fromJson exists and handles the new fields
       final serverLocations =
-          serverData.map((item) => LocationModel.fromJson(item)).toList();
+          serverData.map((item) => LocationRecord.fromJson(item)).toList();
 
       if (serverLocations.isEmpty) {
         developer.log('다운로드할 서버 데이터가 없습니다.', name: 'LocationService');
@@ -178,18 +203,45 @@ class LocationService {
       }
 
       // 로컬에 없는 서버 데이터만 추가
-      final localData = await _database.getAllLocationLogsForUser(userId);
-      final localIds = localData.map((m) => m['id']).toSet();
+      final localRecords = await _locationRepository
+          .getAllLocationRecordsForUser(userId);
+      final localIds = localRecords.map((record) => record.id).toSet();
 
       int downloadCount = 0;
-      for (final location in serverLocations) {
-        if (!localIds.contains(location.id)) {
-          await _database.insertLocationLog(location.toMap());
+      for (final locationRecordFromServer in serverLocations) {
+        // Server data should be the source of truth for lastSynced and isDeleted
+        // If local record exists, update it. Otherwise, insert.
+        final existingLocalRecord = localRecords.firstWhere(
+          (lr) => lr.id == locationRecordFromServer.id,
+          orElse:
+              () => locationRecordFromServer.copyWith(
+                id: locationRecordFromServer.id,
+              ),
+        );
+
+        LocationRecord recordToSave = existingLocalRecord.copyWith(
+          userId: locationRecordFromServer.userId,
+          latitude: locationRecordFromServer.latitude,
+          longitude: locationRecordFromServer.longitude,
+          timestamp: locationRecordFromServer.timestamp,
+          lastSynced:
+              locationRecordFromServer.lastSynced ??
+              DateTime.now(), // Assume synced if from server
+          isDeleted: locationRecordFromServer.isDeleted,
+        );
+
+        await _locationRepository.insertLocationRecord(
+          recordToSave,
+        ); // insert handles upsert via saveLocationLog
+        if (!localIds.contains(locationRecordFromServer.id)) {
           downloadCount++;
         }
       }
 
-      developer.log('위치 데이터 다운로드 완료: $downloadCount개', name: 'LocationService');
+      developer.log(
+        '위치 데이터 다운로드 완료: $downloadCount개 새로 추가됨',
+        name: 'LocationService',
+      );
       return true;
     } catch (e) {
       developer.log('위치 데이터 다운로드 실패: $e', name: 'LocationService');
@@ -198,23 +250,22 @@ class LocationService {
   }
 
   /// 위치 데이터 로컬 저장 전용 (자동 동기화 제거)
-  Future<void> saveLocationDataLocally(LocationModel location) async {
+  Future<void> saveLocationDataLocally(LocationRecord location) async {
+    // Changed LocationModel to LocationRecord
     try {
-      // 로컬 데이터베이스에만 저장 (서버 동기화 제거)
-      await _database.insertLocationLog(location.toMap());
-      developer.log('위치 데이터 로컬 저장 완료: ${location.id}', name: 'LocationService');
+      // Ensure ID is generated if null
+      LocationRecord recordToSave = location;
+      if (location.id == null) {
+        recordToSave = location.copyWith(id: _uuid.v4());
+      }
+      await _locationRepository.insertLocationRecord(recordToSave);
+      developer.log(
+        '위치 데이터 로컬 저장 완료: ${recordToSave.id}',
+        name: 'LocationService',
+      );
     } catch (e) {
       developer.log('로컬 위치 데이터 저장 실패: $e', name: 'LocationService');
       throw Exception('위치 데이터를 로컬에 저장하지 못했습니다: $e');
-    }
-  }
-
-  /// 동기화 대기열에서 제거
-  Future<void> _removeFromSyncQueue(String locationId) async {
-    try {
-      await _database.removePendingSyncLocation(locationId);
-    } catch (e) {
-      developer.log('동기화 대기열 제거 실패: $e', name: 'LocationService');
     }
   }
 
@@ -226,14 +277,20 @@ class LocationService {
         return false;
       }
 
-      final pendingData = await _database.getPendingSyncLocations();
-      if (pendingData.isEmpty) {
-        developer.log('처리할 백업 대기열 데이터 없음', name: 'LocationService');
+      // getUnsyncedLocationLogs will be used as a proxy for pending items
+      // as getPendingSyncLocationRecords was a placeholder for it.
+      final pendingRecords =
+          await _locationRepository.getUnsyncedLocationLogs();
+      if (pendingRecords.isEmpty) {
+        developer.log(
+          '처리할 백업 대기열 데이터 없음 (unsynced logs)',
+          name: 'LocationService',
+        );
         return true;
       }
 
       developer.log(
-        '처리할 백업 대기열 데이터: ${pendingData.length}개',
+        '처리할 백업 대기열 데이터 (unsynced logs): ${pendingRecords.length}개',
         name: 'LocationService',
       );
 
@@ -241,15 +298,17 @@ class LocationService {
       const batchSize = 10;
       int totalSuccess = 0;
 
-      for (int i = 0; i < pendingData.length; i += batchSize) {
-        final batch = pendingData.skip(i).take(batchSize).toList();
-        final successCount = await _processBatch(batch);
+      for (int i = 0; i < pendingRecords.length; i += batchSize) {
+        final batch = pendingRecords.skip(i).take(batchSize).toList();
+        final successCount = await _processBatch(
+          batch,
+        ); // Pass List<LocationRecord>
         totalSuccess += successCount;
       }
 
-      final isAllSuccess = totalSuccess == pendingData.length;
+      final isAllSuccess = totalSuccess == pendingRecords.length;
       developer.log(
-        '백업 대기열 처리 완료: $totalSuccess/${pendingData.length}개 성공',
+        '백업 대기열 처리 완료: $totalSuccess/${pendingRecords.length}개 성공',
         name: 'LocationService',
       );
       return isAllSuccess;
@@ -260,72 +319,74 @@ class LocationService {
   }
 
   /// 배치 단위로 백업 처리
-  Future<int> _processBatch(List<Map<String, dynamic>> batch) async {
+  Future<int> _processBatch(List<LocationRecord> batch) async {
+    // Changed to List<LocationRecord>
     int successCount = 0;
 
     try {
-      // 배치 API 사용 시도
-      try {
-        final batchData =
-            batch
-                .map(
-                  (data) => {
-                    'userId': data['userId'],
-                    'latitude': data['latitude'],
-                    'longitude': data['longitude'],
-                    'timestamp': data['timestamp'],
-                  },
-                )
-                .toList();
+      final batchData =
+          batch
+              .map(
+                (record) => {
+                  'id': record.id,
+                  'userId': record.userId,
+                  'latitude': record.latitude,
+                  'longitude': record.longitude,
+                  'timestamp': record.timestamp.toIso8601String(),
+                  'lastSynced': record.lastSynced?.toIso8601String(),
+                  'isDeleted': record.isDeleted,
+                },
+              )
+              .toList();
 
-        await DioClient.dio.post(
-          '/location/sync/batch',
-          data: {'locations': batchData},
-        );
+      await DioClient.dio.post(
+        '/location/sync/batch',
+        data: {'locations': batchData},
+      );
 
-        // 배치 동기화 성공 시 모든 아이템을 대기열에서 제거
-        for (final data in batch) {
-          await _removeFromSyncQueue(data['id']);
-        }
+      final syncedIds = batch.map((r) => r.id!).toList();
+      await _locationRepository.markLocationLogsAsSynced(
+        syncedIds,
+        DateTime.now(),
+      );
+      // Also remove from explicit pending sync queue if it were used separately
+      // for (final record in batch) {
+      //   await _removeFromSyncQueue(record.id!);
+      // }
 
-        successCount = batch.length;
-        developer.log('배치 백업 완료: ${batch.length}개', name: 'LocationService');
-        return successCount;
-      } catch (batchError) {
-        developer.log(
-          '배치 백업 실패, 개별 처리로 전환: $batchError',
-          name: 'LocationService',
-        );
-      }
-
-      // 배치 실패 시 개별 처리
-      for (final data in batch) {
-        final location = LocationModel.fromMap(data);
+      successCount = batch.length;
+      developer.log('배치 백업 완료: ${batch.length}개', name: 'LocationService');
+      return successCount;
+    } catch (batchError) {
+      developer.log(
+        '배치 백업 실패, 개별 처리로 전환: $batchError',
+        name: 'LocationService',
+      );
+      for (final record in batch) {
         try {
           await DioClient.dio.post(
             '/location/sync',
             data: {
-              'userId': location.userId,
-              'latitude': location.latitude,
-              'longitude': location.longitude,
-              'timestamp': location.timestamp.toIso8601String(),
+              'id': record.id,
+              'userId': record.userId,
+              'latitude': record.latitude,
+              'longitude': record.longitude,
+              'timestamp': record.timestamp.toIso8601String(),
+              'lastSynced': record.lastSynced?.toIso8601String(),
+              'isDeleted': record.isDeleted,
             },
           );
-
-          await _removeFromSyncQueue(location.id);
+          await _locationRepository.markLocationLogsAsSynced([
+            record.id!,
+          ], DateTime.now());
+          // await _removeFromSyncQueue(record.id!);
           successCount++;
-          developer.log('개별 백업 완료: ${location.id}', name: 'LocationService');
+          developer.log('개별 백업 완료: ${record.id}', name: 'LocationService');
         } catch (e) {
-          developer.log(
-            '개별 백업 실패: ${location.id} - $e',
-            name: 'LocationService',
-          );
+          developer.log('개별 백업 실패: ${record.id} - $e', name: 'LocationService');
         }
       }
-    } catch (e) {
-      developer.log('배치 처리 실패: $e', name: 'LocationService');
     }
-
     return successCount;
   }
 
@@ -335,22 +396,29 @@ class LocationService {
     double latitude,
     double longitude,
   ) async {
-    final location = LocationModel(
-      id: _uuid.v4(),
+    final locationRecord = LocationRecord(
+      id:
+          _uuid
+              .v4(), // ID generation responsibility might shift to repository later
       userId: userId,
       latitude: latitude,
       longitude: longitude,
       timestamp: DateTime.now(),
+      lastSynced: null, // Added field
+      isDeleted: false, // Added field
     );
 
-    await saveLocationDataLocally(location);
+    await saveLocationDataLocally(locationRecord);
   }
 
   /// 특정 사용자의 모든 위치 데이터 조회 (로컬 전용)
-  Future<List<LocationModel>> getAllLocationDataForUser(String userId) async {
+  Future<List<LocationRecord>> getAllLocationDataForUser(String userId) async {
+    // Return List<LocationRecord>
     try {
-      final localData = await _database.getLocationLogsForUser(userId);
-      return localData.map((map) => LocationModel.fromMap(map)).toList();
+      // Assuming repository returns List<LocationRecord>
+      final localRecords = await _locationRepository
+          .getAllLocationRecordsForUser(userId);
+      return localRecords;
     } catch (e) {
       developer.log('사용자 위치 데이터 조회 실패: $e', name: 'LocationService');
       return [];
@@ -358,18 +426,17 @@ class LocationService {
   }
 
   /// 특정 날짜 범위의 위치 데이터 조회 (로컬 전용)
-  Future<List<LocationModel>> getLocationDataForDateRange(
+  Future<List<LocationRecord>> getLocationDataForDateRange(
+    // Return List<LocationRecord>
     String userId,
     DateTime startDate,
     DateTime endDate,
   ) async {
     try {
-      final localData = await _database.getLocationLogsForUserInRange(
-        userId,
-        startDate,
-        endDate,
-      );
-      return localData.map((map) => LocationModel.fromMap(map)).toList();
+      // Assuming repository returns List<LocationRecord>
+      final localRecords = await _locationRepository
+          .getLocationRecordsForUserInRange(userId, startDate, endDate);
+      return localRecords;
     } catch (e) {
       developer.log('날짜 범위 위치 데이터 조회 실패: $e', name: 'LocationService');
       return [];
@@ -383,7 +450,11 @@ class LocationService {
     DateTime end,
   ) async {
     try {
-      await _database.deleteLocationLogsInRange(userId, start, end);
+      await _locationRepository.deleteLocationRecordsInRange(
+        userId,
+        start,
+        end,
+      ); // Updated method
       developer.log(
         '위치 데이터 정리 완료: $userId ($start ~ $end)',
         name: 'LocationService',
@@ -397,11 +468,16 @@ class LocationService {
   bool get isOnline => _isOnline;
 
   /// 수동으로 전체 백업 실행
-  Future<bool> forceSyncAll() async {
-    developer.log('전체 백업 시작', name: 'LocationService');
-    final result = await processPendingBackupQueue();
-    developer.log('전체 백업 완료', name: 'LocationService');
-    return result;
+  Future<bool> forceSyncAll(String userId) async {
+    // Added userId parameter
+    developer.log('전체 백업 시작 for $userId', name: 'LocationService');
+    // First, process any items that might be in a conceptual "pending queue"
+    // (represented by unsynced items)
+    bool pendingQueueSuccess = await processPendingBackupQueue();
+    // Then, ensure all other local data is backed up
+    bool fullBackupSuccess = await backupLocationDataToServer(userId);
+    developer.log('전체 백업 완료 for $userId', name: 'LocationService');
+    return pendingQueueSuccess && fullBackupSuccess;
   }
 
   /// 로컬 사용자 데이터를 실제 사용자 계정으로 마이그레이션
@@ -410,45 +486,50 @@ class LocationService {
       const String localUserId = 'local_user';
 
       // 로컬 사용자의 모든 위치 데이터 조회
-      final localData = await _database.getAllLocationLogsForUser(localUserId);
+      final localRecords = await _locationRepository
+          .getAllLocationRecordsForUser(localUserId);
 
-      if (localData.isEmpty) {
+      if (localRecords.isEmpty) {
         developer.log('마이그레이션할 로컬 데이터가 없습니다.', name: 'LocationService');
         return true; // 데이터가 없어도 성공으로 처리
       }
 
       developer.log(
-        '${localData.length}개의 로컬 위치 데이터를 $realUserId로 마이그레이션 시작',
+        '${localRecords.length}개의 로컬 위치 데이터를 $realUserId로 마이그레이션 시작',
         name: 'LocationService',
       );
 
       // 각 로컬 데이터를 실제 사용자 ID로 변경하여 저장
       int migratedCount = 0;
-      for (final locationMap in localData) {
-        final location = LocationModel.fromMap(locationMap);
-
+      for (final record in localRecords) {
+        // Changed from locationMap to record
         // 새로운 사용자 ID로 위치 데이터 저장
-        final newLocation = LocationModel(
+        final newLocationRecord = LocationRecord(
+          // Changed to LocationRecord
           id: _uuid.v4(), // 새로운 ID 생성
           userId: realUserId, // 실제 사용자 ID로 변경
-          latitude: location.latitude,
-          longitude: location.longitude,
-          timestamp: location.timestamp,
+          latitude: record.latitude,
+          longitude: record.longitude,
+          timestamp: record.timestamp,
+          lastSynced: null, // Ensure new fields are handled
+          isDeleted: false,
         );
 
-        await _database.insertLocationLog(newLocation.toMap());
+        await _locationRepository.insertLocationRecord(
+          newLocationRecord,
+        ); // Updated method
         migratedCount++;
       }
 
       // 로컬 사용자의 원본 데이터 삭제
-      await _database.deleteAllLocationLogsForUser(localUserId);
+      await _locationRepository.deleteAllLocationRecordsForUser(
+        localUserId,
+      ); // Updated method
 
       developer.log(
         '$migratedCount개의 위치 데이터 마이그레이션 완료',
         name: 'LocationService',
-      ); // 마이그레이션된 데이터를 서버에 백업 (사용자 요청 시에만)
-      // await processPendingBackupQueue(); // 필요 시 수동으로 백업 호출
-
+      );
       return true;
     } catch (e) {
       developer.log('데이터 마이그레이션 실패: $e', name: 'LocationService');
@@ -460,8 +541,9 @@ class LocationService {
   Future<bool> hasLocalUserData() async {
     try {
       const String localUserId = 'local_user';
-      final localData = await _database.getAllLocationLogsForUser(localUserId);
-      return localData.isNotEmpty;
+      final localRecords = await _locationRepository
+          .getAllLocationRecordsForUser(localUserId);
+      return localRecords.isNotEmpty;
     } catch (e) {
       developer.log('로컬 데이터 확인 실패: $e', name: 'LocationService');
       return false;
@@ -471,8 +553,10 @@ class LocationService {
   /// 백업 대기 중인 데이터 개수 확인
   Future<int> getPendingBackupCount() async {
     try {
-      final pendingData = await _database.getPendingSyncLocations();
-      return pendingData.length;
+      // Using getUnsyncedLocationLogs as the source for this count
+      final pendingRecords =
+          await _locationRepository.getUnsyncedLocationLogs();
+      return pendingRecords.length;
     } catch (e) {
       developer.log('백업 대기 개수 확인 실패: $e', name: 'LocationService');
       return 0;
@@ -491,7 +575,8 @@ class LocationService {
       }
 
       // 로컬 데이터 조회
-      final localData = await _database.getAllLocationLogsForUser(userId);
+      final localRecords = await _locationRepository
+          .getAllLocationRecordsForUser(userId);
 
       // 서버 데이터 조회
       final response = await DioClient.dio.get('/location/sync/$userId');
@@ -500,7 +585,7 @@ class LocationService {
 
       // 서버에 없는 로컬 데이터 개수 계산
       final localOnlyCount =
-          localData.where((data) => !serverIds.contains(data['id'])).length;
+          localRecords.where((record) => !serverIds.contains(record.id)).length;
 
       return localOnlyCount;
     } catch (e) {
@@ -527,6 +612,7 @@ class LocationService {
       }
 
       final latestData = serverData.first;
+      // Ensure server 'timestamp' is a valid ISO 8601 string
       return DateTime.parse(latestData['timestamp']);
     } catch (e) {
       developer.log('마지막 백업 시간 확인 실패: $e', name: 'LocationService');

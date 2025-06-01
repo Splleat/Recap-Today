@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../api/location_service.dart';
-import '../data/sqflite_database.dart';
 
 /// GPS 위치 추적 서비스
 class LocationTrackingService {
@@ -33,8 +32,11 @@ class LocationTrackingService {
     minutes: 5,
   ); // 정적 상태 추적 간격
 
-  void initialize() {
-    _locationService = LocationService(SqfliteDatabase());
+  // void initialize() {
+  //   _locationService = LocationService(SqfliteDatabase());
+  // }
+  void initialize(LocationService locationService) {
+    _locationService = locationService;
   }
 
   /// 위치 추적 시작

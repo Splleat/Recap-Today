@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:recap_today/model/checklist_item.dart';
 import 'package:collection/collection.dart';
-import 'package:recap_today/data/database_helper.dart';
+import 'package:recap_today/data/abstract_database.dart';
 import 'package:intl/intl.dart';
 
 /// 체크리스트 항목을 관리하는 Provider 클래스
 /// 앱 전체에서 체크리스트 상태를 관리하고 데이터베이스와 동기화합니다.
 class ChecklistProvider extends ChangeNotifier {
   final List<ChecklistItem> _items = [];
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  final AbstractDatabase _database;
   bool _isLoaded = false;
   bool _isBusy = false; // 데이터베이스 작업 중 상태를 추적하는 플래그
 
@@ -18,7 +18,7 @@ class ChecklistProvider extends ChangeNotifier {
   String _todayDateString = '';
 
   // 생성자
-  ChecklistProvider() {
+  ChecklistProvider(this._database) {
     _updateTodayDateString();
     _loadItems();
   }
@@ -57,7 +57,7 @@ class ChecklistProvider extends ChangeNotifier {
       _isBusy = true;
       // 데이터베이스에서 체크리스트 아이템 불러오기
       final List<ChecklistItem> loadedItems =
-          await _dbHelper.getChecklistItems();
+          await _database.getChecklistItems();
 
       _items.clear();
       // 데이터베이스에서 불러온 아이템으로 목록 업데이트
@@ -83,7 +83,7 @@ class ChecklistProvider extends ChangeNotifier {
 
     try {
       // 개선된 일괄 저장 메서드 사용
-      await _dbHelper.saveChecklistItems(List<ChecklistItem>.from(_items));
+      await _database.saveChecklistItems(List<ChecklistItem>.from(_items));
       _invalidateCache();
     } catch (e) {
       debugPrint('체크리스트 아이템 일괄 저장 중 오류 발생: $e');
@@ -117,7 +117,7 @@ class ChecklistProvider extends ChangeNotifier {
     // 데이터베이스에 저장
     try {
       _isBusy = true;
-      await _dbHelper.insertChecklistItem(item);
+      await _database.insertChecklistItem(item);
     } catch (e) {
       debugPrint('체크리스트 아이템 추가 중 오류 발생: $e');
     } finally {
@@ -146,7 +146,7 @@ class ChecklistProvider extends ChangeNotifier {
     // 데이터베이스 업데이트
     try {
       _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
+      await _database.updateChecklistItem(_items[index]);
     } catch (e) {
       debugPrint('체크리스트 아이템 상태 업데이트 중 오류 발생: $e');
       // 실패 시 상태 롤백
@@ -173,7 +173,7 @@ class ChecklistProvider extends ChangeNotifier {
     // 데이터베이스 업데이트
     try {
       _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
+      await _database.updateChecklistItem(_items[index]);
     } catch (e) {
       debugPrint('체크리스트 아이템 텍스트 업데이트 중 오류 발생: $e');
       // 실패 시 상태 롤백
@@ -199,7 +199,7 @@ class ChecklistProvider extends ChangeNotifier {
     // 데이터베이스 업데이트
     try {
       _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
+      await _database.updateChecklistItem(_items[index]);
     } catch (e) {
       debugPrint('체크리스트 아이템 세부 내용 업데이트 중 오류 발생: $e');
       // 실패 시 상태 롤백
@@ -225,7 +225,7 @@ class ChecklistProvider extends ChangeNotifier {
     // 데이터베이스 업데이트
     try {
       _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
+      await _database.updateChecklistItem(_items[index]);
     } catch (e) {
       debugPrint('체크리스트 아이템 마감일 업데이트 중 오류 발생: $e');
       // 실패 시 상태 롤백
@@ -251,7 +251,7 @@ class ChecklistProvider extends ChangeNotifier {
     // 데이터베이스에서 삭제
     try {
       _isBusy = true;
-      await _dbHelper.deleteChecklistItem(id);
+      await _database.deleteChecklistItem(id);
     } catch (e) {
       debugPrint('체크리스트 아이템 삭제 중 오류 발생: $e');
       // 실패 시 상태 롤백
