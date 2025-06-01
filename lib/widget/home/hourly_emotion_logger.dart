@@ -7,28 +7,26 @@ import 'package:intl/intl.dart'; // For date formatting
 // Define a mapping for emotions to numerical values, colors, and icons
 const Map<String, ({double value, Color color, IconData icon})>
 emotionDetailsConfig = {
-  "행복": (
+  "매우 좋음": (
     value: 5.0,
     color: Colors.greenAccent,
     icon: Icons.sentiment_very_satisfied,
   ),
-  "놀람": (
+  "좋음": (
     value: 4.0,
     color: Colors.blueAccent,
     icon: Icons.sentiment_satisfied_alt,
   ),
   "보통": (value: 3.0, color: Colors.grey, icon: Icons.sentiment_neutral),
-  "피곤": (
+  "나쁨": (
     value: 2.0,
     color: Colors.orangeAccent,
     icon: Icons.sentiment_dissatisfied,
   ),
-  "슬픔": (
-    value: 1.0,
-    color: Colors.lightBlue,
-    icon: Icons.sentiment_very_dissatisfied,
+  "매우 나쁨": (value: 0.0,
+    color: Colors.redAccent,
+    icon: Icons.mood_bad
   ),
-  "화남": (value: 0.0, color: Colors.redAccent, icon: Icons.mood_bad),
 };
 
 class HourlyEmotionLogger extends StatefulWidget {
@@ -158,23 +156,22 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
                     children: <Widget>[
                       DropdownButtonFormField<String>(
                         decoration: const InputDecoration(labelText: '감정 선택'),
-                        value: dialogSelectedEmotion,
-                        items:
-                            _emotionTypes.map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      emotionDetailsConfig[value]!.icon,
-                                      color: emotionDetailsConfig[value]!.color,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(value),
-                                  ],
+                        value: _emotionTypes.contains(dialogSelectedEmotion) ? dialogSelectedEmotion : null,
+                        items: _emotionTypes.map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  emotionDetailsConfig[value]!.icon,
+                                  color: emotionDetailsConfig[value]!.color,
                                 ),
-                              );
-                            }).toList(),
+                                const SizedBox(width: 8),
+                                Text(value),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                         onChanged: (String? newValue) {
                           setStateDialog(() {
                             dialogSelectedEmotion = newValue;
@@ -483,23 +480,22 @@ class _HourlyEmotionTimelineDrawerState
                     children: <Widget>[
                       DropdownButtonFormField<String>(
                         decoration: const InputDecoration(labelText: '감정 선택'),
-                        value: dialogSelectedEmotion,
-                        items:
-                            _emotionTypes.map((String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      emotionDetailsConfig[value]!.icon,
-                                      color: emotionDetailsConfig[value]!.color,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(value),
-                                  ],
+                        value: _emotionTypes.contains(dialogSelectedEmotion) ? dialogSelectedEmotion : null,
+                        items: _emotionTypes.map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  emotionDetailsConfig[value]!.icon,
+                                  color: emotionDetailsConfig[value]!.color,
                                 ),
-                              );
-                            }).toList(),
+                                const SizedBox(width: 8),
+                                Text(value),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                         onChanged: (String? newValue) {
                           setStateDialog(() {
                             dialogSelectedEmotion = newValue;

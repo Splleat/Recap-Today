@@ -32,18 +32,18 @@ class WeatherProvider with ChangeNotifier {
   }
 
   /// 기상청 API로 날씨 요청하고 캐시에 저장
-  Future<void> fetchWeather(DateTime date, int nx, int ny) async {
+  Future<void> fetchWeather(DateTime date, {bool force = false}) async {
     final reqDay = _formatDate(date);
     final prefs = await SharedPreferences.getInstance();
 
-    if (reqDay == prefs.getString('lastReq')) {
+    if (reqDay == prefs.getString('lastReq') && !force) {
       debugPrint('이미 요청함');
       loadCachedWeather(date);
       return;
     }
     
     try {
-      final fullData = await _weatherService.fetchFullWeather(nx, ny);
+      final fullData = await _weatherService.fetchFullWeather();
       isLoading = true;
       final prefs = await SharedPreferences.getInstance();
 

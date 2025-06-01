@@ -23,7 +23,7 @@ class _WeatherTestPageState extends State<WeatherTestPage> {
 
   Future<void> _loadWeather() async {
     try {
-      final data = await _weatherService.fetchFullWeather(58, 74); // nx, ny
+      final data = await _weatherService.fetchFullWeather();
       setState(() {
         _weatherList = data;
         _isLoading = false;

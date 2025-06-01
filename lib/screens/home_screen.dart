@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final weatherProvider = context.read<WeatherProvider>();
-      await weatherProvider.fetchWeather(today, 58, 74);
+      await weatherProvider.fetchWeather(today);
     });
   }
 

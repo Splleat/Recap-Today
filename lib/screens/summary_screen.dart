@@ -44,7 +44,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
             icon: const Icon(Icons.share),
             onPressed: () async {
               final imageBytes = await ShareUtil.capture(_captureKey);
-
               if (imageBytes != null) {
                 showDialog(
                   context: context,

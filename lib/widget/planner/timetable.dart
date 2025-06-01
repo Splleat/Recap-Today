@@ -11,7 +11,8 @@ const double kFirstColumnHeight = 20;
 const double kBoxSize = 60;
 
 Widget buildTimeColumn() {
-  return Expanded(
+  return SizedBox(
+    width: 20,
     child: Column(
       children: [
         SizedBox(height: kFirstColumnHeight),
