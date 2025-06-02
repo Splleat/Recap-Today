@@ -89,7 +89,9 @@ void main() async {
             return EmotionRepository(db);
           },
         ),
-        ChangeNotifierProvider(create: (context) => StepProvider()..initialize()),
+        ChangeNotifierProvider(
+          create: (context) => StepProvider()..initialize(),
+        ),
         ChangeNotifierProvider(
           create: (context) => WeatherProvider(WeatherService()),
         ),
@@ -110,6 +112,7 @@ void main() async {
               (context, loginProvider, previous) =>
                   UserProfileProvider(authRepository, loginProvider),
         ),
+        Provider<AuthRepository>(create: (_) => authRepository),
       ],
       child: const RecapToday(),
     ),
