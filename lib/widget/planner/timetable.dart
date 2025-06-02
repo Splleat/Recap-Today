@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:recap_today/model/schedule_item.dart';
+import 'package:recap_today/model/schedule/schedule_item.dart';
 import 'package:recap_today/utils/time_util.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:provider/provider.dart';

@@ -8,6 +8,7 @@ import 'package:recap_today/provider/weather_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:recap_today/widget/summary/step_counter.dart';
 
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 

@@ -18,40 +18,66 @@ class ChecklistScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
       ),
       child: Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('TODO', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-            FloatingActionButton(
-              mini: true,
-              elevation: 0,
-              onPressed: () {
-                showAddItemDialog(context, checklistProvider);
-              },
-              child: const Icon(Icons.add),
-            ),
-          ],
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: checklistProvider.items.length,
-            itemBuilder: (context, index) {
-              final item = checklistProvider.items[index];
-              return ChecklistItemWidget(
-                item: item,
-                onCheckboxChanged: (itemId, newValue) {
-                  checklistProvider.toggleItem(itemId, newValue);
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'TODO',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+              ),
+              FloatingActionButton(
+                mini: true,
+                elevation: 0,
+                onPressed: () {
+                  showAddItemDialog(context, checklistProvider);
                 },
-                onDelete: (itemId) {
-                  checklistProvider.removeItem(itemId);
-                },
-              );
-            },
+                child: const Icon(Icons.add),
+              ),
+            ],
           ),
-        ),
-      ],
-    ),
-  );
-}
+          Expanded(
+            child: ListView.builder(
+              itemCount: checklistProvider.items.length,
+              itemBuilder: (context, index) {
+                final item = checklistProvider.items[index];
+                return ChecklistItemWidget(
+                  item: item,
+                  onCheckboxChanged: (itemId, newValue) async {
+                    try {
+                      await checklistProvider.updateItem(
+                        id: itemId,
+                        isChecked: newValue,
+                      );
+                    } catch (e) {
+                      debugPrint('항목 업데이트 중 오류: $e');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('항목 업데이트 실패'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  onDelete: (itemId) async {
+                    try {
+                      await checklistProvider.removeItem(itemId);
+                    } catch (e) {
+                      debugPrint('항목 삭제 중 오류: $e');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('항목 삭제 실패'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

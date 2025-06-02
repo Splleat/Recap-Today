@@ -2,25 +2,21 @@ import 'package:flutter/material.dart';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:path/path.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart' as kakao_map;
 
 import 'package:recap_today/constants.dart';
-import 'package:recap_today/data/abstract_database.dart';
-import 'package:recap_today/data/sqflite_database.dart';
 import 'package:recap_today/provider/checklist_provider.dart';
 import 'package:recap_today/provider/diary_provider.dart';
 import 'package:recap_today/provider/login_provider.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:recap_today/provider/signup_provider.dart'; // SignupProvider import
 import 'package:recap_today/provider/user_profile_provider.dart'; // UserProfileProvider import
-import 'package:recap_today/repository/abstract_emotion_repository.dart'; // 추가
 import 'package:recap_today/repository/auth_repository.dart';
-import 'package:recap_today/repository/emotion_repository.dart'; // 추가
 import 'package:recap_today/repository/impl/auth_repository_impl.dart';
 import 'package:recap_today/screens/main_screen.dart';
-import 'package:recap_today/service/date_change_service.dart';
 import 'package:recap_today/theme/lightTheme.dart';
 import 'package:recap_today/theme/darkTheme.dart';
 import 'package:recap_today/provider/weather_provider.dart';
@@ -29,6 +25,10 @@ import 'package:recap_today/api/location_service.dart';
 import 'package:recap_today/service/location_tracking_service.dart';
 import 'package:recap_today/provider/step_provider.dart';
 import 'package:recap_today/provider/theme_provider.dart';
+import 'package:recap_today/provider/login_provider.dart';
+import 'package:recap_today/repository/emotion_repository.dart';
+import 'package:recap_today/dao/emotion_dao.dart';
+import 'package:recap_today/repository/abstract_emotion_repository.dart';
 
 import 'router.dart';
 
@@ -45,18 +45,12 @@ void main() async {
     print('Kakao Map initialization failed: $e');
   }
 
-  // Initialize Location Tracking Service
-  LocationTrackingService.instance.initialize();
-
   final dio = Dio(BaseOptions(baseUrl: kBaseUrl));
   final sharedPreferences = await SharedPreferences.getInstance();
-  final database = SqfliteDatabase();
-  final locationService = LocationService(database);
 
   final AuthRepository authRepository = AuthRepositoryImpl(
     dio,
     sharedPreferences,
-    locationService,
   );
 
   dio.interceptors.add(
@@ -78,27 +72,18 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        // 데이터베이스 Provider 추가
-        Provider<AbstractDatabase>(create: (_) => database),
-        // LocationService Provider 추가
-        Provider<LocationService>(create: (_) => locationService),
-        // EmotionRepository Provider 추가
-        ProxyProvider<AbstractDatabase, AbstractEmotionRepository>(
-          update: (context, db, previous) {
-            // EmotionRepository now accepts AbstractDatabase directly.
-            return EmotionRepository(db);
-          },
+        Provider<AuthRepository>(
+          create: (_) => authRepository,
         ),
-        ChangeNotifierProvider(create: (context) => StepProvider()..initialize()),
+        ChangeNotifierProvider(create: (context) => LoginProvider(authRepository)..initTemporaryUserId()),
+        // EmotionRepository Provider 추가
+        ChangeNotifierProvider(create: (context) => StepProvider()..initialize(context)),
         ChangeNotifierProvider(
           create: (context) => WeatherProvider(WeatherService()),
         ),
         ChangeNotifierProvider(create: (context) => checklistProvider),
         ChangeNotifierProvider(create: (context) => ScheduleProvider()),
         ChangeNotifierProvider(create: (context) => DiaryProvider()),
-        ChangeNotifierProvider(
-          create: (context) => LoginProvider(authRepository),
-        ),
         ChangeNotifierProvider(
           // Add SignupProvider
           create: (context) => SignupProvider(authRepository),
@@ -110,19 +95,13 @@ void main() async {
               (context, loginProvider, previous) =>
                   UserProfileProvider(authRepository, loginProvider),
         ),
+        Provider<AbstractEmotionRepository>(
+          create: (_) => EmotionRepository(EmotionDao()), // EmotionRepository 제공
+        ),
       ],
       child: const RecapToday(),
     ),
   );
-
-  // 앱 시작 후 날짜 변경 확인 (비동기적으로 실행하여 앱 시작 지연 방지)
-  Future.microtask(() async {
-    try {
-      await DateChangeService.checkForDateChange(checklistProvider);
-    } catch (e) {
-      debugPrint('날짜 변경 확인 중 오류 발생: $e');
-    }
-  });
 }
 
 class RecapToday extends StatelessWidget {

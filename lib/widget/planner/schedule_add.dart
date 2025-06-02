@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
-import 'package:recap_today/model/schedule_item.dart';
+import 'package:recap_today/model/schedule/schedule_item.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
+import 'package:recap_today/repository/auth_repository.dart';
 
 class ScheduleAddForm extends StatefulWidget {
   final bool isRoutineContext;
@@ -149,6 +150,9 @@ class _ScheduleAddFormState extends State<ScheduleAddForm> {
   }
 
   void _submitForm() {
+    final authRepo = context.read<AuthRepository>();
+    final userId = authRepo.getCurrentUserId();
+    
     if (_formKey.currentState?.validate() ?? false) {
       _formKey.currentState?.save();
 
@@ -176,6 +180,7 @@ class _ScheduleAddFormState extends State<ScheduleAddForm> {
 
       final scheduleData = ScheduleItem(
         id: _isEditMode ? widget.initialItem!.id : const Uuid().v4(),
+        userId: userId,
         text: _titleController.text,
         subText:
             _subTextController.text.isNotEmpty ? _subTextController.text : null,

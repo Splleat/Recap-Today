@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:recap_today/model/schedule_item.dart';
+import 'package:recap_today/model/schedule/schedule_item.dart';
 import 'package:collection/collection.dart';
 
 class ScheduleProvider extends ChangeNotifier {

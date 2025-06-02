@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:recap_today/model/emotion_model.dart';
+import 'package:recap_today/model/emotion/emotion_model.dart'; // 올바른 경로로 수정
 import 'package:recap_today/repository/abstract_emotion_repository.dart';
 import 'package:recap_today/widget/home/hourly_emotion_logger.dart';
 
@@ -14,8 +14,7 @@ class EmotionSummaryGraph extends StatefulWidget {
 }
 
 class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
-  late AbstractEmotionRepository _emotionRepository;
-  List<EmotionRecord> _emotionRecords = [];
+  List<EmotionRecord> _emotionRecords = []; // EmotionRecord 타입 일치
   bool _isLoading = true;
 
   static const Map<String, ({double value, Color color})> _emotionConfig = {
@@ -29,28 +28,29 @@ class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
   @override
   void initState() {
     super.initState();
-    _emotionRepository = Provider.of<AbstractEmotionRepository>(context, listen: false);
     _loadEmotionData();
-  }
-
-  @override
-  void didUpdateWidget(covariant EmotionSummaryGraph oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.date != oldWidget.date) _loadEmotionData();
   }
 
   Future<void> _loadEmotionData() async {
     setState(() => _isLoading = true);
     try {
-      final dateString = DateFormat('yyyy-MM-dd').format(widget.date);
-      final records = await _emotionRepository.getEmotionRecordsForDay(dateString);
-      if (mounted) setState(() { _emotionRecords = records; _isLoading = false; });
+      final records = await Provider.of<AbstractEmotionRepository>(
+        context,
+        listen: false,
+      ).getEmotionRecordsForDay(DateFormat('yyyy-MM-dd').format(widget.date));
+      if (mounted) {
+        setState(() {
+          _emotionRecords = records; // 타입 일치
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('감정 데이터 로딩 오류: $e')));
+        setState(() {
+          _isLoading = false;
+        });
       }
-      debugPrint("감정 그래프 데이터 로드 중 오류: $e");
+      debugPrint('감정 데이터 로드 오류: $e');
     }
   }
 

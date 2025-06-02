@@ -36,7 +36,7 @@ class DailySummaryScreen extends StatelessWidget {
                       horizontal: 8.0,
                       vertical: 8.0,
                     ),
-                    child: LocationInfo(date: selectedDate),
+                    //child: LocationInfo(date: selectedDate),
                   ),
                   Card(
                     margin: const EdgeInsets.symmetric(

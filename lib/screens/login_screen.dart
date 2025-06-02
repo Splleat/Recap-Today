@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
 import 'package:recap_today/provider/login_provider.dart';
-
 import 'package:recap_today/screens/signup_screen.dart';
 import 'package:recap_today/widget/background.dart';
 
@@ -22,46 +20,36 @@ class _LoginScreenState extends State<LoginScreen> {
     final isLoading = context.select(
       (LoginProvider provider) => provider.isLoading,
     );
+
     return Scaffold(
-      resizeToAvoidBottomInset: true, // Enable resize when keyboard appears
+      resizeToAvoidBottomInset: true,
       body: Container(
         decoration: commonTabDecoration(context),
         constraints: const BoxConstraints.expand(),
         child: SafeArea(
           child: SingleChildScrollView(
-            // Add scroll capability
             child: Padding(
-              // Added padding property here
-              padding: EdgeInsets.only(
-                top: 24.0,
-                left: 24.0,
-                right: 24.0,
-                bottom: 24.0, // Added fixed bottom padding
-              ),
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 40),
-                  // Logo or app title
                   Text(
                     'Recap Today',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 32,
-                    ),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 32,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '생산적인 하루를 계획하세요',
                     textAlign: TextAlign.center,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(),
+                    style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 60),
-                  // Login form
                   Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(
@@ -74,10 +62,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Column(
                           children: [
                             TextFormField(
-                              onChanged:
-                                  (value) => context
-                                      .read<LoginProvider>()
-                                      .setUserId(value),
+                              onChanged: (value) =>
+                                  context.read<LoginProvider>().setUserId(value),
                               decoration: const InputDecoration(
                                 labelText: '아이디',
                                 prefixIcon: Icon(Icons.person),
@@ -92,10 +78,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             const SizedBox(height: 20),
                             TextFormField(
                               obscureText: true,
-                              onChanged:
-                                  (value) => context
-                                      .read<LoginProvider>()
-                                      .setPassword(value),
+                              onChanged: (value) =>
+                                  context.read<LoginProvider>().setPassword(value),
                               decoration: const InputDecoration(
                                 labelText: '비밀번호',
                                 prefixIcon: Icon(Icons.lock),
@@ -121,17 +105,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                               await loginProvider.login();
                                           if (mounted) {
                                             if (success) {
-                                              await loginProvider
-                                                  .handlePostLoginMigration(
+                                              Navigator.pushNamedAndRemoveUntil(
                                                 context,
+                                                '/settings',
+                                                (route) => false,
                                               );
-                                              if (mounted) {
-                                                Navigator.pushNamedAndRemoveUntil(
-                                                  context,
-                                                  '/settings',
-                                                  (route) => false,
-                                                );
-                                              }
                                             } else {
                                               final errorMessage =
                                                   loginProvider.errorMessage ??
@@ -197,7 +175,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // Sign up button
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

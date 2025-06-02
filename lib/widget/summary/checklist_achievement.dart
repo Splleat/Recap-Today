@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:recap_today/model/checklist_item.dart';
+import 'package:recap_today/model/checklist/checklist_item.dart';
 import 'package:recap_today/provider/checklist_provider.dart';
 
 class ChecklistAchievement extends StatelessWidget {

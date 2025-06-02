@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:recap_today/utils/time_util.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:recap_today/model/schedule_item.dart';
+import 'package:recap_today/model/schedule/schedule_item.dart';
 import 'package:recap_today/widget/planner/schedule_add.dart'; // Corrected import path for ScheduleAddForm
 
 class UserScheduleListWidget extends StatelessWidget {

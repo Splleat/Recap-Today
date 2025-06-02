@@ -8,37 +8,24 @@ part of 'app_usage_model.dart';
 
 _AppUsageModel _$AppUsageModelFromJson(Map<String, dynamic> json) =>
     _AppUsageModel(
-      id: (json['id'] as num?)?.toInt(),
+      id: json['id'] as String,
+      userId: json['userId'] as String,
       date: json['date'] as String,
       packageName: json['packageName'] as String,
       appName: json['appName'] as String,
       usageTimeInMillis: (json['usageTimeInMillis'] as num).toInt(),
       appIconPath: json['appIconPath'] as String?,
+      isSynced: json['isSynced'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$AppUsageModelToJson(_AppUsageModel instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'userId': instance.userId,
       'date': instance.date,
       'packageName': instance.packageName,
       'appName': instance.appName,
       'usageTimeInMillis': instance.usageTimeInMillis,
       'appIconPath': instance.appIconPath,
-    };
-
-_AppUsageSummary _$AppUsageSummaryFromJson(Map<String, dynamic> json) =>
-    _AppUsageSummary(
-      date: json['date'] as String,
-      totalUsageTimeInMillis: (json['totalUsageTimeInMillis'] as num).toInt(),
-      topApps:
-          (json['topApps'] as List<dynamic>)
-              .map((e) => AppUsageModel.fromJson(e as Map<String, dynamic>))
-              .toList(),
-    );
-
-Map<String, dynamic> _$AppUsageSummaryToJson(_AppUsageSummary instance) =>
-    <String, dynamic>{
-      'date': instance.date,
-      'totalUsageTimeInMillis': instance.totalUsageTimeInMillis,
-      'topApps': instance.topApps,
+      'isSynced': instance.isSynced,
     };

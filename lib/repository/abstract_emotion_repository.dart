@@ -1,4 +1,4 @@
-import 'package:recap_today/model/emotion_model.dart';
+import 'package:recap_today/model/emotion/emotion_model.dart';
 
 // Abstract class defining the interface for emotion data operations
 abstract class AbstractEmotionRepository {

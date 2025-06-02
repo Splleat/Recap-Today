@@ -91,7 +91,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 key: _captureKey,
                 child: Column(
                   children: [
-                    Card(child: LocationInfo(date: DateTime.now())),
+                   // Card(child: LocationInfo(date: DateTime.now())),
                     Card(
                       child: Padding(
                         // 패딩 추가

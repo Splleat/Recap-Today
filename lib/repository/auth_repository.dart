@@ -24,7 +24,7 @@ abstract interface class AuthRepository {
   void clearToken();
 
   /// 현재 로그인된 사용자 ID 반환
-  String? getCurrentUserId();
+  String getCurrentUserId();
 
   /// 사용자 이름 업데이트
   Future<User> updateUserName(String name);

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:recap_today/model/emotion_model.dart';
+import 'package:recap_today/model/emotion/emotion_model.dart';
 import 'package:recap_today/repository/abstract_emotion_repository.dart';
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:recap_today/repository/auth_repository.dart'; // For userId
 
 // Define a mapping for emotions to numerical values, colors, and icons
 const Map<String, ({double value, Color color, IconData icon})>
@@ -228,9 +229,12 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
 
     if (result != null) {
       final String dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      final authRepo = context.read<AuthRepository>();
+      final userId = authRepo.getCurrentUserId();
       if (result['action'] == 'save') {
         final newRecord = EmotionRecord(
-          id: currentRecord?.id,
+          id: currentRecord?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          userId: userId, // userId 설정
           date: dateString,
           hour: hour,
           emotionType: result['emotionType']!,
@@ -552,9 +556,12 @@ class _HourlyEmotionTimelineDrawerState
 
     if (result != null) {
       final String dateString = DateFormat('yyyy-MM-dd').format(widget.date);
+      final authRepo = context.read<AuthRepository>();
+      final userId = context.read<AuthRepository>().getCurrentUserId();
       if (result['action'] == 'save') {
         final newRecord = EmotionRecord(
-          id: currentRecord?.id,
+          id: currentRecord?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          userId: userId, // userId 설정
           date: dateString,
           hour: hour,
           emotionType: result['emotionType']!,

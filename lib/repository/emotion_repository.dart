@@ -1,18 +1,19 @@
-import 'package:recap_today/data/abstract_database.dart'; // Import AbstractDatabase
-import 'package:recap_today/model/emotion_model.dart';
+// emotion_repository.dart
+import 'package:recap_today/dao/emotion_dao.dart'; // Import EmotionDao
+import 'package:recap_today/model/emotion/emotion_model.dart';
 import 'package:recap_today/repository/abstract_emotion_repository.dart';
 
 class EmotionRepository implements AbstractEmotionRepository {
-  final AbstractDatabase _database; // Use AbstractDatabase
+  final EmotionDao _emotionDao; // Use EmotionDao
 
-  EmotionRepository(this._database); // Constructor updated
+  EmotionRepository(this._emotionDao); // Constructor updated
 
-  static const String tableName = 'emotion_records';
+  static const String tableName = 'emotion'; // 테이블 이름 업데이트
 
   @override
   Future<void> addEmotionRecord(EmotionRecord record) async {
     try {
-      await _database.addEmotionRecord(record); // Delegate to AbstractDatabase
+      await _emotionDao.insertEmotion(record); // Delegate to EmotionDao
     } catch (e) {
       print('Error adding emotion record via repository: $e');
       rethrow;
@@ -22,9 +23,7 @@ class EmotionRepository implements AbstractEmotionRepository {
   @override
   Future<void> updateEmotionRecord(EmotionRecord record) async {
     try {
-      await _database.updateEmotionRecord(
-        record,
-      ); // Delegate to AbstractDatabase
+      await _emotionDao.updateEmotion(record); // Delegate to EmotionDao
     } catch (e) {
       print('Error updating emotion record via repository: $e');
       rethrow;
@@ -33,12 +32,8 @@ class EmotionRepository implements AbstractEmotionRepository {
 
   @override
   Future<EmotionRecord?> getEmotionRecordForHour(String date, int hour) async {
-    // Signature updated
     try {
-      return await _database.getEmotionRecordForHour(
-        date,
-        hour,
-      ); // Delegate to AbstractDatabase
+      return await _emotionDao.getEmotionForHour(date, hour); // Delegate to EmotionDao
     } catch (e) {
       print('Error getting emotion record for hour via repository: $e');
       return null;
@@ -47,11 +42,8 @@ class EmotionRepository implements AbstractEmotionRepository {
 
   @override
   Future<List<EmotionRecord>> getEmotionRecordsForDay(String date) async {
-    // Signature updated
     try {
-      return await _database.getEmotionRecordsForDay(
-        date,
-      ); // Delegate to AbstractDatabase
+      return await _emotionDao.getEmotionsForDate(date); // Delegate to EmotionDao
     } catch (e) {
       print('Error getting emotion records for day via repository: $e');
       return [];
@@ -60,9 +52,8 @@ class EmotionRepository implements AbstractEmotionRepository {
 
   @override
   Future<void> deleteEmotionRecord(String id) async {
-    // Signature updated
     try {
-      await _database.deleteEmotionRecord(id); // Delegate to AbstractDatabase
+      await _emotionDao.deleteEmotion(id); // Delegate to EmotionDao
     } catch (e) {
       print('Error deleting emotion record via repository: $e');
       rethrow;

@@ -11,7 +11,7 @@ class StepWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stepProvider = context.watch<StepProvider>();
-    final step = stepProvider.todayStep.stepCount;
+    final step = stepProvider.todayStep?.stepCount ?? 0;
     final dailyGoal = stepProvider.dailyGoal;
 
     final percent = step / dailyGoal;

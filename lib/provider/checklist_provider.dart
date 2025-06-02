@@ -1,392 +1,169 @@
 import 'package:flutter/material.dart';
-import 'package:recap_today/model/checklist_item.dart';
-import 'package:collection/collection.dart';
-import 'package:recap_today/data/database_helper.dart';
+import 'package:recap_today/model/checklist/checklist_item.dart';
+import 'package:recap_today/dao/checklist_dao.dart';
 import 'package:intl/intl.dart';
 
-/// 체크리스트 항목을 관리하는 Provider 클래스
-/// 앱 전체에서 체크리스트 상태를 관리하고 데이터베이스와 동기화합니다.
 class ChecklistProvider extends ChangeNotifier {
   final List<ChecklistItem> _items = [];
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  final ChecklistDao _checklistDao;
+
   bool _isLoaded = false;
-  bool _isBusy = false; // 데이터베이스 작업 중 상태를 추적하는 플래그
+  bool _isBusy = false;
 
-  // 캐싱을 위한 변수들
-  DateTime? _lastRefreshTime;
-  List<ChecklistItem>? _cachedTodayCompletedItems;
-  String _todayDateString = '';
-
-  // 생성자
-  ChecklistProvider() {
-    _updateTodayDateString();
+  // 생성자: 데이터베이스 객체 초기화 및 항목 로드
+  ChecklistProvider({ChecklistDao? checklistDao})
+      : _checklistDao = checklistDao ?? ChecklistDao() {
     _loadItems();
   }
 
-  // Getter 메서드들
-  List<ChecklistItem> get items => List.unmodifiable(_items); // 불변 리스트 반환으로 변경
+  // 체크리스트 항목을 읽기 전용으로 반환
+  List<ChecklistItem> get items => List.unmodifiable(_items);
+
+  // 데이터 로드 상태를 반환
   bool get isLoading => !_isLoaded;
 
-  /// 특정 날짜에 완료된 항목들을 반환하는 메서드
-  List<ChecklistItem> getCompletedItemsForDate(DateTime date) {
-    // 날짜만 비교하기 위해 시간, 분, 초를 0으로 설정
-    final targetDay = DateTime(date.year, date.month, date.day);
-    return _items.where((item) {
-      if (!item.isChecked || item.completedDate == null) {
-        return false;
-      }
-      final completedDay = DateTime(
-        item.completedDate!.year,
-        item.completedDate!.month,
-        item.completedDate!.day,
-      );
-      return completedDay.isAtSameMomentAs(targetDay);
-    }).toList();
-  }
-
-  // 오늘 날짜 문자열 업데이트
-  void _updateTodayDateString() {
-    _todayDateString = DateFormat('yyyy-MM-dd').format(DateTime.now());
-  }
-
-  /// 데이터베이스에서 아이템 로드
-  Future<void> _loadItems() async {
-    if (_isLoaded || _isBusy) return;
-
-    try {
-      _isBusy = true;
-      // 데이터베이스에서 체크리스트 아이템 불러오기
-      final List<ChecklistItem> loadedItems =
-          await _dbHelper.getChecklistItems();
-
-      _items.clear();
-      // 데이터베이스에서 불러온 아이템으로 목록 업데이트
-      _items.addAll(loadedItems);
-      _sortItems();
-
-      _isLoaded = true;
-      _isBusy = false;
-      // 캐시 초기화
-      _invalidateCache();
-      notifyListeners();
-    } catch (e) {
-      debugPrint('체크리스트 아이템 로드 중 오류 발생: $e');
-      _isBusy = false;
-      _isLoaded = true;
-      notifyListeners();
-    }
-  }
-
-  /// 모든 아이템을 데이터베이스에 일괄 저장 (배치 처리 사용)
-  Future<void> _saveAllItems() async {
-    if (_items.isEmpty) return;
-
-    try {
-      // 개선된 일괄 저장 메서드 사용
-      await _dbHelper.saveChecklistItems(List<ChecklistItem>.from(_items));
-      _invalidateCache();
-    } catch (e) {
-      debugPrint('체크리스트 아이템 일괄 저장 중 오류 발생: $e');
-    }
-  }
-
-  /// 캐시 무효화 처리
-  void _invalidateCache() {
-    _cachedTodayCompletedItems = null;
-    _lastRefreshTime = null;
-    _updateTodayDateString();
-  }
-
-  /// ID로 아이템 인덱스 찾기
+  // ID로 항목의 인덱스를 찾음
   int _findIndexById(String id) => _items.indexWhere((item) => item.id == id);
 
-  /// 특정 ID 아이템 가져오기
-  ChecklistItem? getItemById(String id) {
-    return _items.firstWhereOrNull((item) => item.id == id);
-  }
+  // 데이터베이스에서 체크리스트 항목을 로드
+  Future<void> _loadItems() async {
+    await _lock(() async {
+      if (_isLoaded) return;
 
-  /// 새로운 아이템 추가
-  Future<void> addItem(ChecklistItem item) async {
-    if (_isBusy) return;
-
-    _items.add(item);
-    _sortItems();
-    _invalidateCache();
-    notifyListeners();
-
-    // 데이터베이스에 저장
-    try {
-      _isBusy = true;
-      await _dbHelper.insertChecklistItem(item);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 추가 중 오류 발생: $e');
-    } finally {
-      _isBusy = false;
-    }
-  }
-
-  /// 아이템 체크 상태 토글
-  Future<void> toggleItem(String id, bool isChecked) async {
-    final index = _findIndexById(id);
-    if (index == -1 || _isBusy) return;
-
-    _items[index].isChecked = isChecked;
-
-    // 체크 상태 변경 시 completedDate 업데이트
-    if (isChecked) {
-      _items[index].completedDate = DateTime.now();
-    } else {
-      _items[index].completedDate = null;
-    }
-
-    _sortItems();
-    _invalidateCache();
-    notifyListeners();
-
-    // 데이터베이스 업데이트
-    try {
-      _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 상태 업데이트 중 오류 발생: $e');
-      // 실패 시 상태 롤백
-      _items[index].isChecked = !isChecked;
-      _sortItems();
-      notifyListeners();
-    } finally {
-      _isBusy = false;
-    }
-  }
-
-  /// 아이템 텍스트 업데이트
-  Future<void> updateItemText(String id, String newText) async {
-    if (newText.isEmpty || _isBusy) return; // 빈 텍스트 허용 안함
-
-    final index = _findIndexById(id);
-    if (index == -1) return;
-
-    final oldText = _items[index].text;
-    _items[index].text = newText;
-    _sortItems();
-    notifyListeners();
-
-    // 데이터베이스 업데이트
-    try {
-      _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 텍스트 업데이트 중 오류 발생: $e');
-      // 실패 시 상태 롤백
-      _items[index].text = oldText;
-      _sortItems();
-      notifyListeners();
-    } finally {
-      _isBusy = false;
-    }
-  }
-
-  /// 아이템 세부 내용 업데이트
-  Future<void> updateItemSubtext(String id, String newSubtext) async {
-    if (_isBusy) return;
-
-    final index = _findIndexById(id);
-    if (index == -1) return;
-
-    final oldSubtext = _items[index].subtext;
-    _items[index].subtext = newSubtext;
-    notifyListeners();
-
-    // 데이터베이스 업데이트
-    try {
-      _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 세부 내용 업데이트 중 오류 발생: $e');
-      // 실패 시 상태 롤백
-      _items[index].subtext = oldSubtext;
-      notifyListeners();
-    } finally {
-      _isBusy = false;
-    }
-  }
-
-  /// 아이템 마감일 업데이트
-  Future<void> updateItemDueDate(String id, DateTime? newDueDate) async {
-    if (_isBusy) return;
-
-    final index = _findIndexById(id);
-    if (index == -1) return;
-
-    final oldDueDate = _items[index].dueDate;
-    _items[index].dueDate = newDueDate;
-    _sortItems();
-    notifyListeners();
-
-    // 데이터베이스 업데이트
-    try {
-      _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 마감일 업데이트 중 오류 발생: $e');
-      // 실패 시 상태 롤백
-      _items[index].dueDate = oldDueDate;
-      _sortItems();
-      notifyListeners();
-    } finally {
-      _isBusy = false;
-    }
-  }
-
-  /// 아이템 삭제
-  Future<void> removeItem(String id) async {
-    if (_isBusy) return;
-
-    final index = _findIndexById(id);
-    if (index == -1) return;
-
-    final deletedItem = _items[index];
-    _items.removeAt(index);
-    notifyListeners();
-
-    // 데이터베이스에서 삭제
-    try {
-      _isBusy = true;
-      await _dbHelper.deleteChecklistItem(id);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 삭제 중 오류 발생: $e');
-      // 실패 시 상태 롤백
-      _items.insert(index, deletedItem);
-      notifyListeners();
-    } finally {
-      _isBusy = false;
-    }
-  }
-
-  /// 내부 정렬 함수
-  void _sortItems() {
-    _items.sort((a, b) {
-      // 1순위: 완료 여부(미완료 아이템이 완료 아이템보다 앞으로)
-      int compareResult = (a.isChecked ? 1 : 0).compareTo(b.isChecked ? 1 : 0);
-      // 2순위: 마감 시간(마감 시간이 null일 경우 뒤로)
-      if (compareResult == 0) {
-        compareResult = _compareDueDates(a.dueDate, b.dueDate);
+      try {
+        final loadedItems = await _checklistDao.getAllChecklists();
+        _items
+          ..clear()
+          ..addAll(loadedItems);
+        _sortItems();
+        _isLoaded = true;
+        notifyListeners();
+      } catch (e) {
+        debugPrint('체크리스트 불러오기 오류: $e');
       }
-      return compareResult;
     });
   }
 
-  /// 마감일 비교 헬퍼 함수
-  int _compareDueDates(DateTime? aDate, DateTime? bDate) {
-    if (aDate == null && bDate == null) return 0;
-    if (aDate == null) return 1;
-    if (bDate == null) return -1;
-    return aDate.compareTo(bDate);
-  }
-
-  /// 데이터베이스에서 데이터 새로고침
+  // 항목을 새로고침
   Future<void> refreshItems() async {
-    if (_isBusy) return;
-
-    _isLoaded = false;
-    _invalidateCache();
-    notifyListeners(); // 로딩 상태 변경 알림
-    await _loadItems();
+    await _lock(() async {
+      _isLoaded = false;
+      notifyListeners();
+      await _loadItems();
+    });
   }
 
-  /// 여러 항목 동시에 상태 변경 (일괄 처리)
-  Future<void> toggleMultipleItems(List<String> ids, bool isChecked) async {
-    if (ids.isEmpty || _isBusy) return;
-
-    // 메모리 내 상태 업데이트
-    for (final id in ids) {
-      final index = _findIndexById(id);
-      if (index != -1) {
-        _items[index].isChecked = isChecked;
+  // 새로운 항목을 추가
+  Future<void> addItem(ChecklistItem item) async {
+    await _lock(() async {
+      try {
+        await _checklistDao.insertChecklist(item);
+        _items.add(item);
+        _sortItems();
+        notifyListeners();
+      } catch (e) {
+        debugPrint('체크리스트 추가 오류: $e');
       }
-    }
-
-    _sortItems();
-    notifyListeners();
-
-    // 모든 변경사항 저장
-    try {
-      _isBusy = true;
-      await _saveAllItems();
-    } catch (e) {
-      debugPrint('여러 항목 상태 변경 중 오류 발생: $e');
-      await refreshItems(); // 오류 발생 시 데이터베이스에서 다시 로드
-    } finally {
-      _isBusy = false;
-    }
+    });
   }
 
-  /// 완료된 항목들(체크 표시된 항목들)을 모두 제거하고 데이터베이스에는 저장
-  Future<void> clearCompletedItems() async {
-    if (_isBusy) return;
+  // 특정 항목을 업데이트
+  Future<void> updateItem({
+    required String id,
+    String? newText,
+    String? newSubtext,
+    DateTime? newDueDate,
+    bool? isChecked,
+  }) async {
+    await _lock(() async {
+      final index = _findIndexById(id);
+      if (index == -1) return;
 
-    // 완료된 항목만 제거하기 전에 현재 상태 백업
-    final List<ChecklistItem> completedItems =
-        _items.where((item) => item.isChecked).toList();
+      final oldItem = _items[index];
+      final updatedItem = oldItem.copyWith(
+        text: newText ?? oldItem.text,
+        subtext: newSubtext ?? oldItem.subtext,
+        dueDate: newDueDate ?? oldItem.dueDate,
+        isChecked: isChecked ?? oldItem.isChecked,
+        completedDate: isChecked != null
+            ? (isChecked ? DateTime.now() : null)
+            : oldItem.completedDate,
+      );
 
-    if (completedItems.isEmpty) {
-      return; // 완료된 항목이 없으면 처리 건너뛰기
-    }
-
-    // 완료된 항목 제거
-    _items.removeWhere((item) => item.isChecked);
-    _invalidateCache();
-    notifyListeners();
-
-    // 데이터베이스 업데이트
-    try {
-      _isBusy = true;
-      await _saveAllItems();
-    } catch (e) {
-      debugPrint('완료된 항목 제거 중 오류 발생: $e');
-      // 오류 발생 시 제거된 항목 복원
-      _items.addAll(completedItems);
+      _items[index] = updatedItem;
       _sortItems();
       notifyListeners();
-    } finally {
-      _isBusy = false;
-    }
+
+      try {
+        await _checklistDao.updateChecklist(updatedItem);
+      } catch (e) {
+        _items[index] = oldItem; // 실패 시 기존 항목 복구
+        _sortItems();
+        notifyListeners();
+        _logError('항목 업데이트', e);
+      }
+    });
   }
 
-  /// 특정 날짜에 완료된 항목들만 가져오기
-  List<ChecklistItem> getCompletedItemsByDate(DateTime date) {
-    final String dateString = DateFormat('yyyy-MM-dd').format(date);
+  // 특정 항목을 삭제
+  Future<void> removeItem(String id) async {
+    await _lock(() async {
+      final index = _findIndexById(id);
+      if (index == -1) return;
 
+      final deletedItem = _items.removeAt(index);
+      notifyListeners();
+
+      try {
+        await _checklistDao.deleteChecklist(id);
+      } catch (e) {
+        _items.insert(index, deletedItem); // 실패 시 항목 복구
+        _sortItems();
+        notifyListeners();
+        _logError('항목 삭제', e);
+      }
+    });
+  }
+
+  // 특정 날짜에 완료된 항목을 반환
+  List<ChecklistItem> getCompletedItemsForDate(DateTime date) {
+    final targetDate = DateFormat('yyyy-MM-dd').format(date);
     return _items.where((item) {
-      if (item.completedDate == null) return false;
-      return DateFormat('yyyy-MM-dd').format(item.completedDate!) == dateString;
+      if (!item.isChecked || item.completedDate == null) return false;
+      return DateFormat('yyyy-MM-dd').format(item.completedDate!) == targetDate;
     }).toList();
   }
 
-  /// 오늘 완료된 항목들만 가져오기 (캐싱 최적화)
-  List<ChecklistItem> getTodayCompletedItems() {
-    // 날짜가 변경되었는지 확인
-    final currentDateString = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    if (_todayDateString != currentDateString) {
-      _updateTodayDateString();
-      _invalidateCache();
+  // 항목을 정렬
+  void _sortItems() {
+    _items.sort((a, b) {
+      int result = (a.isChecked ? 1 : 0).compareTo(b.isChecked ? 1 : 0);
+      if (result == 0) result = _compareDueDates(a.dueDate, b.dueDate);
+      return result;
+    });
+  }
+
+  // 두 마감일을 비교
+  int _compareDueDates(DateTime? a, DateTime? b) {
+    if (a == null && b == null) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    return a.compareTo(b);
+  }
+
+  // 작업 중 상태를 관리하는 메소드
+  Future<void> _lock(Future<void> Function() action) async {
+    if (_isBusy) return;
+    _isBusy = true;
+    try {
+      await action();
+    } finally {
+      _isBusy = false;
     }
+  }
 
-    // 캐시된 결과가 있고 마지막 갱신 시간이 1분 이내면 캐시 사용
-    final now = DateTime.now();
-    if (_cachedTodayCompletedItems != null && _lastRefreshTime != null) {
-      final difference = now.difference(_lastRefreshTime!);
-      if (difference.inMinutes < 1) {
-        return _cachedTodayCompletedItems!;
-      }
-    }
-
-    // 오늘 완료된 항목 계산
-    _cachedTodayCompletedItems =
-        _items
-            .where((item) => item.isChecked && item.isCompletedToday)
-            .toList();
-    _lastRefreshTime = now;
-
-    return _cachedTodayCompletedItems!;
+  // 오류를 로그로 출력하는 메서드
+  void _logError(String message, Object error) {
+    debugPrint('$message 오류: $error');
   }
 }

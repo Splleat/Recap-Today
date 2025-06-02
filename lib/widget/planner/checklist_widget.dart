@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:recap_today/model/checklist_item.dart'; // CheckList 모델 임포트
+import 'package:recap_today/model/checklist/checklist_item.dart'; // CheckList 모델 임포트
 import 'package:intl/intl.dart';
 
 class ChecklistItemWidget extends StatelessWidget {

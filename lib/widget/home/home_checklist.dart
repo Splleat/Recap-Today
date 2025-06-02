@@ -7,6 +7,7 @@ import 'package:recap_today/widget/planner/checklist_widget.dart';
 class HomeChecklist extends StatelessWidget {
   const HomeChecklist({super.key});
 
+  @override
   Widget build(BuildContext context) {
     final checklistProvider = context.watch<ChecklistProvider>();
     final allItems = checklistProvider.items;
@@ -26,19 +27,19 @@ class HomeChecklist extends StatelessWidget {
           ),
           SafeArea(
             child: Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('완료하지 않은 할 일이 \n${remainItems.length}개 있습니다.'),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.surface.withOpacity(0.8),
                         borderRadius: BorderRadius.circular(12.0),
                       ),
-                      child:Consumer<ChecklistProvider>(
+                      child: Consumer<ChecklistProvider>(
                         builder: (context, checklistProvider, child) {
                           return ListView.builder(
                             itemCount: allItems.length,
@@ -46,8 +47,11 @@ class HomeChecklist extends StatelessWidget {
                               final item = allItems[index];
                               return ChecklistItemWidget(
                                 item: item,
-                                onCheckboxChanged: (itemId, newValue) {
-                                  checklistProvider.toggleItem(itemId, newValue);
+                                onCheckboxChanged: (itemId, newValue) async {
+                                  await checklistProvider.updateItem(
+                                    id: itemId,
+                                    isChecked: newValue,
+                                  );
                                 },
                                 onDelete: null,
                               );
@@ -55,7 +59,7 @@ class HomeChecklist extends StatelessWidget {
                           );
                         },
                       ),
-                    )
+                    ),
                   ),
                 ],
               ),

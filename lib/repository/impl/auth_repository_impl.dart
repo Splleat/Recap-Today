@@ -7,16 +7,14 @@ import 'package:flutter/foundation.dart';
 import 'package:recap_today/model/user_credential.dart';
 import 'package:recap_today/model/user_model.dart';
 import 'package:recap_today/repository/auth_repository.dart';
-import 'package:recap_today/api/location_service.dart';
 
 final class AuthRepositoryImpl implements AuthRepository {
   final Dio dio;
   final SharedPreferences sharedPreferences;
-  final LocationService? _locationService;
 
   late String? _token = sharedPreferences.getString('token');
 
-  AuthRepositoryImpl(this.dio, this.sharedPreferences, [this._locationService]);
+  AuthRepositoryImpl(this.dio, this.sharedPreferences);
 
   @override
   Future<UserCredential> login(String userId, String password) async {
@@ -30,45 +28,7 @@ final class AuthRepositoryImpl implements AuthRepository {
     // 로그인 성공 시 토큰 저장
     setToken(userCredential.accessToken);
 
-    // 로컬 사용자 데이터 마이그레이션 실행
-    if (_locationService != null) {
-      _migrateLocalDataInBackground(userId);
-    }
-
     return userCredential;
-  }
-
-  /// 백그라운드에서 로컬 사용자 데이터를 실제 사용자로 마이그레이션
-  Future<void> _migrateLocalDataInBackground(String realUserId) async {
-    try {
-      final locationService = _locationService;
-      if (locationService == null) return;
-
-      // 로컬 데이터 존재 여부 확인
-      final hasLocalData = await locationService.hasLocalUserData();
-      if (!hasLocalData) {
-        developer.log('마이그레이션할 로컬 데이터가 없습니다.', name: 'AuthRepository');
-        return;
-      }
-
-      developer.log(
-        '로그인 후 로컬 데이터 마이그레이션 시작: $realUserId',
-        name: 'AuthRepository',
-      );
-
-      // 백그라운드에서 마이그레이션 실행
-      final success = await locationService.migrateLocalUserDataToRealUser(
-        realUserId,
-      );
-
-      if (success) {
-        developer.log('로컬 데이터 마이그레이션 완료', name: 'AuthRepository');
-      } else {
-        developer.log('로컬 데이터 마이그레이션 실패', name: 'AuthRepository');
-      }
-    } catch (e) {
-      developer.log('마이그레이션 중 오류 발생: $e', name: 'AuthRepository');
-    }
   }
 
   @override
@@ -140,27 +100,32 @@ final class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  String? getCurrentUserId() {
-    if (_token == null) return null;
-
-    try {
-      // JWT 토큰을 '.'으로 분리
-      final parts = _token!.split('.');
-      if (parts.length != 3) return null;
-
-      // 페이로드 부분을 디코딩
-      final payload = parts[1];
-      // Base64Url 디코딩을 위해 패딩 추가
-      final normalized = payload.padRight((payload.length + 3) ~/ 4 * 4, '=');
-      final decoded = utf8.decode(base64Url.decode(normalized));
-      final Map<String, dynamic> data = json.decode(decoded);
-
-      // 'sub' 필드에서 사용자 ID 추출 (JWT 표준)
-      return data['sub']?.toString();
-    } catch (e) {
-      debugPrint('JWT 토큰 디코딩 실패: $e');
-      return null;
+  String getCurrentUserId() {
+    if (_token != null) {
+      try {
+        final parts = _token!.split('.');
+        if (parts.length == 3) {
+          final payload = parts[1];
+          final normalized = payload.padRight((payload.length + 3) ~/ 4 * 4, '=');
+          final decoded = utf8.decode(base64Url.decode(normalized));
+          final data = json.decode(decoded);
+          return data['sub']?.toString() ?? _getFallbackTempId();
+        }
+      } catch (e) {
+        debugPrint('JWT 디코딩 실패: $e');
+      }
     }
+
+    return _getFallbackTempId();
+  }
+
+  /// fallback: 임시 아이디가 없으면 예외 발생 대신 기본값 리턴
+  String _getFallbackTempId() {
+    final tempId = sharedPreferences.getString('temp_user_id');
+    if (tempId == null) {
+      throw Exception('임시 사용자 ID가 설정되어 있지 않습니다.');
+    }
+    return tempId;
   }
 
   @override

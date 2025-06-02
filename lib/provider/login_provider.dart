@@ -1,23 +1,17 @@
 import 'package:flutter/material.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:recap_today/repository/auth_repository.dart';
-import 'package:recap_today/service/migration_service.dart';
 import 'package:recap_today/model/user_model.dart';
+import 'package:recap_today/database/database_helper.dart';
 
 class LoginProvider with ChangeNotifier {
   String _userId = '';
+  String? _temporaryUserId;
   String _password = '';
   bool _isLoading = false;
   bool _isLoggedIn = false;
   String? _errorMessage;
   User? _currentUser;
-
-  String get userId => _userId;
-  String get password => _password;
-  bool get isLoading => _isLoading;
-  bool get isLoggedIn => _isLoggedIn;
-  String? get errorMessage => _errorMessage;
-  User? get currentUser => _currentUser;
 
   final AuthRepository _authRepository;
 
@@ -25,14 +19,43 @@ class LoginProvider with ChangeNotifier {
     _checkLoginStatus();
   }
 
+  Future<void> initTemporaryUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    _temporaryUserId = prefs.getString('temp_user_id');
+
+    if (_temporaryUserId == null) {
+      _temporaryUserId = _generateTempId();
+      await prefs.setString('temp_user_id', _temporaryUserId!);
+    }
+  }
+
+  String get userId {
+    if (_isLoggedIn && _currentUser != null) {
+      return _currentUser!.id;
+    } else if (_temporaryUserId != null) {
+      return _temporaryUserId!;
+    } else {
+      throw Exception('userId가 초기화되지 않았습니다. initTemporaryUserId()를 먼저 호출해야 합니다.');
+    }
+  }
+  String get password => _password;
+  bool get isLoading => _isLoading;
+  bool get isLoggedIn => _isLoggedIn;
+  String? get errorMessage => _errorMessage;
+  User? get currentUser => _currentUser;
+
+  String _generateTempId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final rand = UniqueKey().toString().substring(2, 8);
+    return 'temp_$timestamp$rand';
+  }
+
   Future<void> _checkLoginStatus() async {
     final token = _authRepository.getToken();
     if (token != null) {
-      // 토큰이 있으면 유효성 검증
       final isValid = await _authRepository.validateToken();
       _isLoggedIn = isValid;
 
-      // 토큰이 유효하면 사용자 정보 불러오기
       if (isValid) {
         _currentUser = await _authRepository.getCurrentUser();
       }
@@ -68,17 +91,18 @@ class LoginProvider with ChangeNotifier {
 
     try {
       final credential = await _authRepository.login(userId, password);
-      print(credential);
       _authRepository.setToken(credential.accessToken);
-      _currentUser = credential.user; // 사용자 정보 저장
+      _currentUser = credential.user;
       _isLoggedIn = true;
-      _errorMessage = null;
+
+      // ✅ 로그인 후 임시 아이디 데이터 마이그레이션
+      await migrateTempDataToRealUser(_currentUser!.id);
+
+      notifyListeners();
       return true;
     } catch (e) {
-      print('Login failed: $e');
       _isLoggedIn = false;
 
-      // 에러 타입에 따른 구체적인 메시지 설정
       if (e.toString().contains('User not found')) {
         _errorMessage = '존재하지 않는 사용자입니다.';
       } else if (e.toString().contains('Invalid password')) {
@@ -89,27 +113,10 @@ class LoginProvider with ChangeNotifier {
         _errorMessage = '로그인에 실패했습니다. 다시 시도해주세요.';
       }
 
+      notifyListeners();
       return false;
     } finally {
       setLoading(false);
-      notifyListeners();
-    }
-  }
-
-  /// 로그인 후 데이터 마이그레이션 처리 (UI와 함께)
-  Future<void> handlePostLoginMigration(BuildContext context) async {
-    if (!_isLoggedIn) {
-      print('로그인되지 않은 상태에서 마이그레이션 시도');
-      return;
-    }
-
-    try {
-      await MigrationService.handlePostLoginMigration(
-        context: context,
-        realUserId: userId,
-      );
-    } catch (e) {
-      print('마이그레이션 처리 중 오류: $e');
     }
   }
 
@@ -118,13 +125,11 @@ class LoginProvider with ChangeNotifier {
     try {
       await _authRepository.logout();
       _isLoggedIn = false;
-      _currentUser = null; // 사용자 정보 초기화
+      _currentUser = null;
       _errorMessage = null;
-    } catch (e) {
-      print('Logout failed: $e');
-      // 로그아웃 실패 시에도 로컬 상태는 초기화
+    } catch (_) {
       _isLoggedIn = false;
-      _currentUser = null; // 사용자 정보 초기화
+      _currentUser = null;
       _errorMessage = null;
     } finally {
       setLoading(false);
@@ -132,17 +137,41 @@ class LoginProvider with ChangeNotifier {
     }
   }
 
-  /// 현재 사용자 정보를 새로고침
   Future<void> refreshCurrentUser() async {
-    if (!_isLoggedIn) {
-      return;
-    }
-
+    if (!_isLoggedIn) return;
     try {
       _currentUser = await _authRepository.getCurrentUser();
       notifyListeners();
-    } catch (e) {
-      print('Failed to refresh user info: $e');
+    } catch (_) {}
+  }
+
+  Future<void> migrateTempDataToRealUser(String realUserId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final tempUserId = prefs.getString('temp_user_id');
+
+    if (tempUserId == null || tempUserId == realUserId) return;
+
+    final db = await DatabaseHelper().database;
+
+    final tablesToUpdate = [
+      'location',
+      'checklist',
+      'diary',
+      'photo',
+      'step',
+      'app_usage',
+    ];
+
+    for (final table in tablesToUpdate) {
+      await db.update(
+        table,
+        {'userId': realUserId},
+        where: 'userId = ?',
+        whereArgs: [tempUserId],
+      );
     }
+
+    // 완료 후 임시 아이디 제거
+    await prefs.remove('temp_user_id');
   }
 }

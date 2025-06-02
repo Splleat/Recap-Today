@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Add Provider import
 import 'package:recap_today/provider/diary_provider.dart'; // Add DiaryProvider import
-import 'package:recap_today/model/diary_model.dart'; // Add DiaryModel import
 import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/widget/calendar.dart';
 import 'package:recap_today/router.dart'; // Add this import
 import 'package:recap_today/screens/daily_summary_screen.dart'; // Add this import
 import 'dart:async'; // Import for Timer
+import 'package:recap_today/model/diary/diary_model.dart'; // Import DiaryModel
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -98,7 +98,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       offset: (loadMore ? (_currentPage - 1) * _limit : 0),
     );
 
-    List<DiaryModel> newDiaries = searchResult['diaries'] as List<DiaryModel>;
+    List<Diary> newDiaries = searchResult['diaries'] as List<Diary>;
     int totalCount = searchResult['totalCount'] as int;
 
     List<Map<String, dynamic>> newResults =
