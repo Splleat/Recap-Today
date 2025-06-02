@@ -321,67 +321,61 @@ class _LocationInfoState extends State<LocationInfo> {
   }
 
   Widget _buildPermissionRequest() {
-    return SizedBox(
-      height: 300,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+    return Padding(
+      // SizedBox, Center, Expanded 제거
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Column이 최소한의 크기만 차지하도록 추가
+        children: [
+          Icon(Icons.location_off, size: 48, color: Colors.orange),
+          SizedBox(height: 16),
+          Text(
+            '위치 정보를 보려면 GPS 권한이 필요합니다.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 8),
+          Text(
+            '위치 추적을 허용하면 하루 동선을 확인할 수 있습니다.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          SizedBox(height: 16),
+          Text(
+            '📱 배터리 최적화 설정 팁',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            '정확한 위치 추적을 위해 앱이 자동으로 종료되지 않도록 배터리 최적화에서 제외해주세요.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          SizedBox(height: 24),
+          Column(
             children: [
-              Icon(Icons.location_off, size: 48, color: Colors.orange),
-              SizedBox(height: 16),
-              Text(
-                '위치 정보를 보려면 GPS 권한이 필요합니다.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text(
-                '위치 추적을 허용하면 하루 동선을 확인할 수 있습니다.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              SizedBox(height: 16),
-              Text(
-                '📱 배터리 최적화 설정 팁',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+              ElevatedButton.icon(
+                onPressed: _requestLocationPermission,
+                icon: Icon(Icons.gps_fixed),
+                label: Text('위치 권한 허용'),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
               ),
               SizedBox(height: 8),
-              Text(
-                '정확한 위치 추적을 위해 앱이 자동으로 종료되지 않도록 배터리 최적화에서 제외해주세요.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              SizedBox(height: 24),
-              Column(
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: _requestLocationPermission,
-                    icon: Icon(Icons.gps_fixed),
-                    label: Text('위치 권한 허용'),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  TextButton.icon(
-                    onPressed: _openLocationSettings,
-                    icon: Icon(Icons.settings),
-                    label: Text('설정에서 권한 관리'),
-                  ),
-                ],
+              TextButton.icon(
+                onPressed: _openLocationSettings,
+                icon: Icon(Icons.settings),
+                label: Text('설정에서 권한 관리'),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
@@ -398,9 +392,9 @@ class _LocationInfoState extends State<LocationInfo> {
               children: [
                 Text(
                   '하루 동선',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 if (_locationData != null &&
                     _locationData!.locations.isNotEmpty)
