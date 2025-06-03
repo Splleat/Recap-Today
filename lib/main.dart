@@ -29,6 +29,7 @@ import 'package:recap_today/api/location_service.dart';
 import 'package:recap_today/service/location_tracking_service.dart';
 import 'package:recap_today/provider/step_provider.dart';
 import 'package:recap_today/provider/theme_provider.dart';
+import 'package:recap_today/provider/location_provider.dart';
 
 import 'router.dart';
 
@@ -47,6 +48,9 @@ void main() async {
 
   // Initialize Location Tracking Service
   LocationTrackingService.instance.initialize();
+
+  // [추가] 앱 라이프사이클 감지 및 종료 시 dispose 호출
+  WidgetsBinding.instance.addObserver(MyAppLifecycleObserver());
 
   final dio = Dio(BaseOptions(baseUrl: kBaseUrl));
   final sharedPreferences = await SharedPreferences.getInstance();
@@ -113,10 +117,27 @@ void main() async {
                   UserProfileProvider(authRepository, loginProvider),
         ),
         Provider<AuthRepository>(create: (_) => authRepository),
+        ChangeNotifierProvider(
+          create:
+              (context) => LocationProvider(
+                Provider.of<LocationService>(context, listen: false),
+                LocationTrackingService.instance,
+              ),
+        ),
       ],
       child: const RecapToday(),
     ),
   );
+
+  // 앱 시작 후 위치 추적 자동 시작 (local_user 기준)
+  Future.microtask(() async {
+    try {
+      const userId = 'local_user';
+      await LocationTrackingService.instance.startTracking(userId);
+    } catch (e) {
+      debugPrint('위치 추적 자동 시작 중 오류 발생: $e');
+    }
+  });
 
   // 앱 시작 후 날짜 변경 확인 (비동기적으로 실행하여 앱 시작 지연 방지)
   Future.microtask(() async {
@@ -126,6 +147,17 @@ void main() async {
       debugPrint('날짜 변경 확인 중 오류 발생: $e');
     }
   });
+}
+
+// [추가] 앱 라이프사이클 감지용 Observer
+class MyAppLifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      // 앱 완전 종료 시 리소스 해제
+      LocationTrackingService.instance.dispose();
+    }
+  }
 }
 
 class RecapToday extends StatelessWidget {

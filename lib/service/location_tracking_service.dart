@@ -26,19 +26,37 @@ class LocationTrackingService {
 
   // 설정 가능한 상수들
   static const double _stationaryThresholdMeters =
-      50.0; // 50미터 미만 이동 시 정적 상태로 판단
+      10.0; // 50미터 미만 이동 시 정적 상태로 판단
   static const int _stationaryCheckCount = 3; // 3번 연속 정적 상태일 때 최적화 시작
   static const Duration _normalInterval = Duration(minutes: 1); // 정상 추적 간격
   static const Duration _stationaryInterval = Duration(
     minutes: 5,
   ); // 정적 상태 추적 간격
 
+  // [추가] 위치 저장 이벤트 StreamController (broadcast)
+  final StreamController<Position> _locationLogStreamController =
+      StreamController<Position>.broadcast();
+  Stream<Position> get locationLogStream => _locationLogStreamController.stream;
+
   void initialize() {
     _locationService = LocationService(SqfliteDatabase());
   }
 
+  // [수정] dispose가 여러 번 호출되어도 안전하게 동작
+  bool _disposed = false;
+  void dispose() {
+    if (!_disposed) {
+      _locationLogStreamController.close();
+      _disposed = true;
+    }
+  }
+
   /// 위치 추적 시작
   Future<bool> startTracking(String userId) async {
+    debugPrint(
+      '[LocationTrackingService] startTracking called: userId=$userId',
+    );
+
     // GPS 서비스 사용 가능 여부 확인
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -80,53 +98,44 @@ class LocationTrackingService {
   /// 위치 추적 타이머 시작
   void _startLocationTracking(String userId, Duration interval) {
     _trackingTimer?.cancel();
-
     _trackingTimer = Timer.periodic(interval, (timer) async {
-      try {
-        // 실제 GPS 위치 가져오기
-        Position position = await _getCurrentPosition();
-        final latitude = position.latitude;
-        final longitude = position.longitude;
-
-        // 위치 변화 체크 및 최적화 로직
-        final shouldTrack = _checkLocationChange(latitude, longitude);
-
-        if (shouldTrack) {
-          // 로컬 우선 저장 방식 사용          await _locationService.addLocationLog(userId, latitude, longitude);
-          debugPrint(
-            '위치 로그 로컬 저장됨: $latitude, $longitude (간격: ${interval.inMinutes}분, 정확도: ${position.accuracy}m)',
-          );
-
-          // 백그라운드에서 백업 대기열 처리
-          _locationService.processPendingBackupQueue();
-        }
-
-        // 추적 간격 조정
-        _adjustTrackingInterval(userId);
-      } catch (e) {
-        debugPrint('위치 로그 저장 실패: $e');
-
-        // GPS 오류 시 더미 데이터 사용 (개발/테스트용)
-        if (e.toString().contains('PERMISSION_DENIED') ||
-            e.toString().contains('LOCATION_SERVICES_DISABLED')) {
-          debugPrint('GPS 권한 문제 또는 서비스 비활성화 감지됨');
-        } else {
-          // 네트워크나 기타 오류일 경우 더미 데이터로 테스트 계속
-          final latitude =
-              37.5665 + (DateTime.now().millisecondsSinceEpoch % 1000) / 100000;
-          final longitude =
-              126.9780 +
-              (DateTime.now().millisecondsSinceEpoch % 1000) / 100000;
-
-          final shouldTrack = _checkLocationChange(latitude, longitude);
-          if (shouldTrack) {
-            await _locationService.addLocationLog(userId, latitude, longitude);
-            debugPrint('더미 위치 로그 저장됨 (GPS 오류): $latitude, $longitude');
-            _locationService.processPendingBackupQueue();
-          }
-        }
-      }
+      await _handleLocationTrackingTick(userId, interval);
     });
+  }
+
+  /// 위치 추적 주기별 처리 (리팩토링)
+  Future<void> _handleLocationTrackingTick(
+    String userId,
+    Duration interval,
+  ) async {
+    try {
+      Position position = await _getCurrentPosition();
+      final latitude = position.latitude;
+      final longitude = position.longitude;
+
+      final shouldTrack = _checkLocationChange(latitude, longitude);
+      if (shouldTrack) {
+        await _locationService.addLocationLog(userId, latitude, longitude);
+        // [추가] 위치 저장 이벤트 발생
+        _locationLogStreamController.add(position);
+        debugPrint(
+          '위치 로그 로컬 저장됨: $latitude, $longitude (간격: \\${interval.inMinutes}분, 정확도: \\${position.accuracy}m)',
+        );
+      }
+      _adjustTrackingInterval(userId);
+    } catch (e) {
+      debugPrint('위치 로그 저장 실패: $e');
+      _handleLocationError(e);
+    }
+  }
+
+  /// 위치 관련 예외 처리 (더미 데이터 생성 삭제)
+  void _handleLocationError(Object e) {
+    if (e.toString().contains('PERMISSION_DENIED') ||
+        e.toString().contains('LOCATION_SERVICES_DISABLED')) {
+      debugPrint('GPS 권한 문제 또는 서비스 비활성화 감지됨');
+    }
+    // 더미 데이터 생성 및 저장 로직 완전 삭제
   }
 
   /// 현재 GPS 위치 가져오기
@@ -287,8 +296,10 @@ class LocationTrackingService {
         position.latitude,
         position.longitude,
       );
+      // [추가] 위치 저장 이벤트 발생
+      _locationLogStreamController.add(position);
       debugPrint(
-        '현재 위치 저장됨: ${position.latitude}, ${position.longitude} (정확도: ${position.accuracy}m)',
+        '현재 위치 저장됨: \\${position.latitude}, \\${position.longitude} (정확도: \\${position.accuracy}m)',
       );
     } catch (e) {
       debugPrint('현재 위치 저장 실패: $e');

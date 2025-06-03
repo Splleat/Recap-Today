@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kakao_map_plugin/kakao_map_plugin.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../model/location_model.dart';
@@ -8,6 +8,7 @@ import '../../api/location_service.dart';
 import '../../data/sqflite_database.dart';
 import '../../repository/auth_repository.dart' as auth;
 import '../../service/location_tracking_service.dart';
+import '../../provider/location_provider.dart';
 
 class LocationInfo extends StatefulWidget {
   final DateTime date;
@@ -28,7 +29,7 @@ class LocationInfo extends StatefulWidget {
 // 지도 및 위치 상태를 하나의 객체로 통합
 class LocationMapState {
   static final LatLng defaultCenter = LatLng(37.5665, 126.9780); // 서울 시청
-  static const int defaultZoomLevel = 7;
+  static const int defaultZoomLevel = 3; // 3으로 고정
   static const int minZoomLevel = 1;
   static const int maxZoomLevel = 14;
   static const int fitBoundsFallbackZoom = 5;
@@ -52,7 +53,7 @@ class LocationMapState {
     this.locationData,
     List<Marker>? markers,
     List<Polyline>? polylines,
-    this.currentZoomLevel = defaultZoomLevel,
+    this.currentZoomLevel = defaultZoomLevel, // defaultZoomLevel 사용
     this.errorMessage,
     this.waitingForCurrentLocation = false,
   }) : markers = markers ?? [],
@@ -66,6 +67,8 @@ class LocationInfoState extends State<LocationInfo>
   late LocationService _locationService;
   late LocationTrackingService _trackingService;
   String? _currentUserId;
+  StreamSubscription<Position>? _locationLogSubscription;
+  // _autoZoomApplied 등 자동 줌 관련 코드 제거
 
   @override
   void initState() {
@@ -73,12 +76,53 @@ class LocationInfoState extends State<LocationInfo>
     _locationService = LocationService(SqfliteDatabase());
     _trackingService = LocationTrackingService.instance;
     _mapState = LocationMapState();
-    _initialize();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _getCurrentUserId();
+      if (_currentUserId != null) {
+        final provider = Provider.of<LocationProvider>(context, listen: false);
+        provider.loadLocationData(_currentUserId!, widget.date);
+      }
+    });
   }
 
-  Future<void> _initialize() async {
-    await _getCurrentUserId();
-    await _checkPermissionAndLoadData();
+  @override
+  void dispose() {
+    _locationLogSubscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    // 화면이 비활성화(탭 이동 등)될 때 구독 해제
+    _locationLogSubscription?.cancel();
+    _locationLogSubscription = null;
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    // 화면이 다시 활성화될 때 조건 만족 시 재구독
+    _setupLocationLogListener();
+  }
+
+  void _setupLocationLogListener() {
+    // 오늘 날짜 + 권한 허용 + userId 존재 시만 구독
+    if (_isToday() && _currentUserId != null) {
+      _locationLogSubscription?.cancel();
+      final provider = Provider.of<LocationProvider>(context, listen: false);
+      _locationLogSubscription = _trackingService.locationLogStream.listen((
+        position,
+      ) {
+        // 위치 저장 이벤트 발생 시 동선 데이터 재로딩
+        if (mounted) {
+          provider.loadLocationData(_currentUserId!, widget.date);
+        }
+      });
+    } else {
+      _locationLogSubscription?.cancel();
+      _locationLogSubscription = null;
+    }
   }
 
   Future<void> _getCurrentUserId() async {
@@ -105,132 +149,6 @@ class LocationInfoState extends State<LocationInfo>
     }
   }
 
-  Future<void> _checkPermissionAndLoadData() async {
-    if (!mounted) return;
-    setState(() {
-      _mapState.isLoading = true;
-      _mapState.errorMessage = null;
-    });
-    try {
-      _mapState.hasPermission = await _checkLocationPermission();
-      if (_mapState.hasPermission && _currentUserId != null) {
-        await _loadLocationData();
-      } else {
-        setState(() {
-          _mapState.isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('권한 확인 및 데이터 로드 실패: $e');
-      setState(() {
-        _mapState.isLoading = false;
-        _mapState.errorMessage = '위치 권한 확인 또는 데이터 로드 중 오류가 발생했습니다.';
-      });
-    }
-  }
-
-  Future<bool> _checkLocationPermission() async {
-    try {
-      LocationPermission permission =
-          await _trackingService.checkLocationPermission();
-      return permission == LocationPermission.always ||
-          permission == LocationPermission.whileInUse;
-    } catch (e) {
-      debugPrint('위치 권한 확인 실패: $e');
-      return false;
-    }
-  }
-
-  Future<void> _requestLocationPermission() async {
-    try {
-      LocationPermission permission =
-          await _trackingService.requestLocationPermission();
-      bool hasPermission =
-          permission == LocationPermission.always ||
-          permission == LocationPermission.whileInUse;
-
-      setState(() {
-        _mapState.hasPermission = hasPermission;
-      });
-
-      if (hasPermission && _currentUserId != null) {
-        await _loadLocationData();
-      }
-    } catch (e) {
-      debugPrint('위치 권한 요청 실패: $e');
-    }
-  }
-
-  Future<void> _openLocationSettings() async {
-    try {
-      await _trackingService.openLocationSettings();
-      // 설정에서 돌아온 후 권한 다시 확인
-      if (mounted) {
-        await _checkPermissionAndLoadData();
-      }
-    } catch (e) {
-      debugPrint('위치 설정 열기 실패: $e');
-    }
-  }
-
-  Future<void> _loadLocationData() async {
-    if (_currentUserId == null) {
-      if (_mapState.isLoading != false ||
-          _mapState.errorMessage != '사용자 정보를 불러올 수 없습니다.') {
-        setState(() {
-          _mapState.isLoading = false;
-          _mapState.errorMessage = '사용자 정보를 불러올 수 없습니다.';
-        });
-      }
-      return;
-    }
-    try {
-      if (_mapState.isLoading != true || _mapState.errorMessage != null) {
-        setState(() {
-          _mapState.isLoading = true;
-          _mapState.errorMessage = null;
-        });
-      }
-      final dateString = DateFormat('yyyy-MM-dd').format(widget.date);
-      final locationData = await _locationService.fetchLocationDataForDate(
-        _currentUserId!,
-        dateString,
-      );
-      if (!mounted) return;
-      if (_mapState.locationData != locationData ||
-          _mapState.isLoading != false) {
-        setState(() {
-          _mapState.locationData = locationData;
-          _mapState.isLoading = false;
-        });
-      }
-      _updateMapView(isToday: _isToday());
-      if (_mapState.isMapReady) {
-        _updateMapWithLocationData();
-      }
-      _locationService.processPendingBackupQueue();
-    } catch (e) {
-      debugPrint('위치 데이터 로드 실패: $e');
-      if (!mounted) return;
-      final errorState = DailyLocationData(
-        date: DateFormat('yyyy-MM-dd').format(widget.date),
-        locations: [],
-      );
-      if (_mapState.locationData != errorState ||
-          _mapState.isLoading != false ||
-          _mapState.errorMessage != '위치 데이터를 불러오는 중 오류가 발생했습니다.') {
-        setState(() {
-          _mapState.locationData = errorState;
-          _mapState.isLoading = false;
-          _mapState.errorMessage = '위치 데이터를 불러오는 중 오류가 발생했습니다.';
-        });
-      }
-      if (_mapState.isMapReady) {
-        _updateMapWithLocationData();
-      }
-    }
-  }
-
   void _resetMapToDefaultView() {
     if (mapController == null) return;
     mapController!.setCenter(LocationMapState.defaultCenter);
@@ -249,7 +167,6 @@ class LocationInfoState extends State<LocationInfo>
 
   void _updateMapWithLocationData({bool isToday = false}) async {
     if (mapController == null) return;
-    // 오늘+위치데이터없음: 현재 위치 마커만 표시 (기존 로직 유지)
     if (isToday &&
         (_mapState.locationData == null ||
             _mapState.locationData!.locations.isEmpty)) {
@@ -259,36 +176,32 @@ class LocationInfoState extends State<LocationInfo>
           desiredAccuracy: LocationAccuracy.high,
         );
         if (!mounted) return;
-        final currentLatLng = LatLng(position.latitude, position.longitude);
-        final currentMarker = Marker(
-          markerId: 'current_location',
-          latLng: currentLatLng,
-          width: 36,
-          height: 36,
-        );
-        if (!mounted) return;
-        setState(() {
-          _mapState.markers = [currentMarker];
-          _mapState.polylines = [];
-        });
-        mapController?.setCenter(currentLatLng);
-        mapController?.setLevel(LocationMapState.defaultZoomLevel);
+        if (_currentUserId != null) {
+          await _locationService.addLocationLog(
+            _currentUserId!,
+            position.latitude,
+            position.longitude,
+          );
+          // 위치를 저장만 하고 return 하므로, 아래 코드가 실행되지 않음
+          return;
+        }
+        // 아래 코드는 절대 실행되지 않으므로, 중복 마커 생성 원인 아님
       } catch (e) {
         debugPrint('오늘+위치데이터없음: 현재 위치 가져오기 실패: $e');
         _resetMapToDefaultView();
       }
       return;
     }
-    // 위치 데이터가 없을 때
     if (_mapState.locationData == null ||
         _mapState.locationData!.locations.isEmpty) {
-      _handleNoLocationData();
       debugPrint("No location data. Resetting map to default view.");
       return;
     }
     final locations = _mapState.locationData!.locations;
-    if (locations.length == 1) {
-      _handleSingleLocation(locations.first);
+    // 중복 마커 방지: locations가 1개 이상일 때만 마커 생성
+    if (locations.length >= 1) {
+      // 최신 위치만 사용하여 마커 1개만 표시
+      _handleSingleLocation(locations.last);
     } else if (locations.length > 1) {
       _handleMultipleLocations(locations);
     }
@@ -324,107 +237,6 @@ class LocationInfoState extends State<LocationInfo>
     }
   }
 
-  Future<void> _addCurrentLocationMarker() async {
-    try {
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      if (!mounted) return;
-      final currentLatLng = LatLng(position.latitude, position.longitude);
-      final currentMarker = Marker(
-        markerId: 'current_location',
-        latLng: currentLatLng,
-        width: 36,
-        height: 36,
-      );
-      if (!mounted) return;
-      setState(() {
-        _mapState.markers.removeWhere((m) => m.markerId == 'current_location');
-        _mapState.markers.add(currentMarker);
-      });
-    } catch (e) {
-      debugPrint('현재 위치 가져오기 실패: $e');
-    }
-  }
-
-  /// 위치 데이터가 없을 때 지도, 마커, 경로 상태를 초기화한다.
-  void _handleNoLocationData() {
-    if (!mounted) return;
-    setState(() {
-      _mapState.markers = [];
-      _mapState.polylines = [];
-      _mapState.mapCenter = LocationMapState.defaultCenter;
-      _mapState.currentZoomLevel = LocationMapState.defaultZoomLevel;
-    });
-    if (mapController != null) {
-      mapController!.setCenter(LocationMapState.defaultCenter);
-      mapController!.setLevel(LocationMapState.defaultZoomLevel);
-    }
-  }
-
-  // 중복 위치/지도 로직 함수화
-  Future<LatLng> _getCurrentLocationLatLng() async {
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-    return LatLng(position.latitude, position.longitude);
-  }
-
-  LatLng _getMapCenter({required bool isToday}) {
-    if (isToday && _mapState.mapCenter != null) {
-      return _mapState.mapCenter!;
-    } else if (_mapState.locationData?.locations.isNotEmpty ?? false) {
-      final first = _mapState.locationData!.locations.first;
-      return LatLng(first.latitude, first.longitude);
-    } else {
-      return LocationMapState.defaultCenter;
-    }
-  }
-
-  // 위치 요청 중복 방지용 Future
-  Future<LatLng>? _currentLocationFuture;
-
-  void _updateMapView({required bool isToday}) {
-    if (isToday && (_mapState.locationData?.locations.isEmpty ?? true)) {
-      if (_mapState.mapCenter == null && !_mapState.waitingForCurrentLocation) {
-        _mapState.waitingForCurrentLocation = true;
-        _currentLocationFuture ??= _getCurrentLocationLatLng()
-            .then((latLng) {
-              if (mounted) {
-                setState(() {
-                  _mapState.mapCenter = latLng;
-                  _mapState.waitingForCurrentLocation = false;
-                });
-              }
-              _currentLocationFuture = null;
-              return latLng;
-            })
-            .catchError((e) {
-              debugPrint('현재 위치(center) 가져오기 실패: $e');
-              if (mounted) {
-                setState(() {
-                  _mapState.mapCenter = LocationMapState.defaultCenter;
-                  _mapState.waitingForCurrentLocation = false;
-                });
-              }
-              _currentLocationFuture = null;
-              return LocationMapState.defaultCenter;
-            });
-      }
-    } else {
-      final newCenter = _getMapCenter(isToday: isToday);
-      if (_mapState.mapCenter != newCenter) {
-        if (mounted) {
-          setState(() {
-            _mapState.mapCenter = newCenter;
-          });
-        } else {
-          _mapState.mapCenter = newCenter;
-        }
-      }
-    }
-  }
-
   // 오늘 날짜 판별 함수로 중복 제거
   bool _isToday() {
     final now = DateTime.now();
@@ -436,54 +248,53 @@ class LocationInfoState extends State<LocationInfo>
   @override
   bool get wantKeepAlive => true;
 
-  // 외부에서 호출할 수 있는 새로고침 메서드
-  Future<void> refreshData() async {
-    await _checkPermissionAndLoadData();
-  }
-
   @override
   void didUpdateWidget(covariant LocationInfo oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.date != oldWidget.date) {
-      _checkPermissionAndLoadData();
+      if (_currentUserId != null) {
+        final provider = Provider.of<LocationProvider>(context, listen: false);
+        provider.loadLocationData(_currentUserId!, widget.date);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // AutomaticKeepAliveClientMixin 요구사항
+    super.build(context);
+    final locationProvider = Provider.of<LocationProvider>(context);
     final isToday = _isToday();
-    if (_mapState.isLoading) {
-      return LoadingView(errorMessage: _mapState.errorMessage);
-    }
-    if (!_mapState.hasPermission) {
-      return PermissionView(
-        onRequestPermission: _requestLocationPermission,
-        onOpenSettings: _openLocationSettings,
+    final locations = locationProvider.locationData?.locations ?? [];
+    debugPrint(
+      '[LocationInfo] build: locations.length = \\${locations.length}',
+    );
+    if (locations.isNotEmpty) {
+      final first = locations.first;
+      debugPrint(
+        '[LocationInfo] First location: lat=\\${first.latitude}, lng=\\${first.longitude}, ts=\\${first.timestamp}',
       );
     }
-    if (!isToday && (_mapState.locationData?.locations.isEmpty ?? true)) {
+    if (!isToday && locations.isEmpty) {
       return const NoDataView();
     }
-    if (isToday && (_mapState.locationData?.locations.isEmpty ?? true)) {
-      if (_mapState.mapCenter == null) {
-        return const LoadingView();
-      }
+    if (isToday && locations.isEmpty) {
+      return const LoadingView();
     }
-    return _buildLocationMap(isToday: isToday);
+    // 기존 _buildLocationMap 대신 Provider 데이터 기반으로 동선 표시
+    return _buildLocationMapWithProvider(locationProvider, isToday);
   }
 
-  // 상태별 위젯 컴포넌트 분리
-  Widget _buildLocationMap({bool isToday = false}) {
-    // 오늘이고 위치 데이터가 없으면 현재 위치 마커만 보장
-    if (isToday &&
-        _mapState.isMapReady &&
-        (_mapState.locationData?.locations.isEmpty ?? true)) {
-      _addCurrentLocationMarker();
-    } else if (isToday && _mapState.isMapReady) {
-      _addCurrentLocationMarker(); // 오늘+동선 있으면 동선+현재위치 모두 표시
+  Widget _buildLocationMapWithProvider(
+    LocationProvider provider,
+    bool isToday,
+  ) {
+    if (_mapState.locationData != provider.locationData) {
+      _mapState.locationData = provider.locationData;
+      if (_mapState.isMapReady) {
+        _updateMapWithLocationData(isToday: isToday);
+      }
     }
-
+    // 기존 코드 유지
     return SizedBox(
       height: 300,
       child: Column(
@@ -499,10 +310,10 @@ class LocationInfoState extends State<LocationInfo>
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                if (_mapState.locationData != null &&
-                    _mapState.locationData!.locations.isNotEmpty)
+                if (provider.locationData != null &&
+                    provider.locationData!.locations.isNotEmpty)
                   Text(
-                    '${_mapState.locationData!.locations.length}개 위치',
+                    '${provider.locationData!.locations.length}개 위치',
                     style: Theme.of(
                       context,
                     ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
@@ -521,23 +332,30 @@ class LocationInfoState extends State<LocationInfo>
                 child: Stack(
                   children: [
                     KakaoMap(
+                      key: ValueKey(
+                        _mapState.mapCenter?.toString() ?? 'default',
+                      ),
                       onMapCreated: (KakaoMapController controller) {
                         if (mounted) {
                           setState(() {
                             mapController = controller;
                             _mapState.isMapReady = true;
                           });
-                          if (_mapState.locationData != null) {
-                            _updateMapWithLocationData(isToday: isToday);
-                          }
+                          _updateMapWithLocationData(isToday: isToday);
                         }
                       },
                       onMapTap: (LatLng position) {},
                       center:
-                          _mapState.mapCenter ?? LocationMapState.defaultCenter,
+                          (!_mapState.isMapReady
+                              ? _mapState.mapCenter ??
+                                  LocationMapState.defaultCenter
+                              : null),
                       markers: _mapState.markers,
                       polylines: _mapState.polylines,
                       onCameraIdle: (LatLng latLng, int zoomLevel) {
+                        debugPrint(
+                          '[LocationInfo] onCameraIdle: zoomLevel=$zoomLevel',
+                        );
                         if (mounted) {
                           int newZoomLevel = zoomLevel.clamp(
                             LocationMapState.minZoomLevel,
@@ -550,6 +368,32 @@ class LocationInfoState extends State<LocationInfo>
                           }
                         }
                       },
+                    ),
+                    Positioned(
+                      left: 16,
+                      top: 16,
+                      child: FutureBuilder<int>(
+                        future: mapController?.getLevel(),
+                        builder: (context, snapshot) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Zoom: [36m${snapshot.data ?? '-'}[0m',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                     // 줌 컨트롤 버튼들
                     Positioned(
@@ -722,21 +566,22 @@ class LocationInfoState extends State<LocationInfo>
   }
 
   /// 위치 데이터가 1개일 때 해당 위치에 마커를 표시하고, 지도를 중앙으로 이동시킨다.
-  void _handleSingleLocation(LocationModel location) {
+  void _handleSingleLocation(LocationModel location) async {
     final point = LatLng(location.latitude, location.longitude);
     final marker = Marker(
-      markerId: 'location_0',
+      markerId: 'current_location', // 항상 동일한 markerId 사용
       latLng: point,
       width: 36,
       height: 36,
     );
     setState(() {
-      _mapState.markers = [marker];
+      _mapState.markers = [marker]; // 항상 1개만
       _mapState.polylines = [];
       _mapState.mapCenter = point;
       _mapState.currentZoomLevel = LocationMapState.defaultZoomLevel;
     });
     if (mapController != null) {
+      debugPrint('[LocationInfo] setCenter to single location');
       mapController!.setCenter(point);
       mapController!.setLevel(LocationMapState.defaultZoomLevel);
     }
