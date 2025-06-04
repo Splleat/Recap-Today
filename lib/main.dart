@@ -49,6 +49,9 @@ void main() async {
   // Initialize Location Tracking Service
   LocationTrackingService.instance.initialize();
 
+  // Initialize Background Location Service
+  await LocationTrackingService.initializeBackgroundService();
+
   // [추가] 앱 라이프사이클 감지 및 종료 시 dispose 호출
   WidgetsBinding.instance.addObserver(MyAppLifecycleObserver());
 

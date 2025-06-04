@@ -68,6 +68,7 @@ class LocationInfoState extends State<LocationInfo>
   late LocationTrackingService _trackingService;
   String? _currentUserId;
   StreamSubscription<Position>? _locationLogSubscription;
+  bool _isBackgroundTrackingEnabled = false;
   // _autoZoomApplied 등 자동 줌 관련 코드 제거
 
   @override
@@ -81,6 +82,10 @@ class LocationInfoState extends State<LocationInfo>
       if (_currentUserId != null) {
         final provider = Provider.of<LocationProvider>(context, listen: false);
         provider.loadLocationData(_currentUserId!, widget.date);
+        // 백그라운드 추적 상태 확인
+        _isBackgroundTrackingEnabled =
+            await _trackingService.isBackgroundTrackingActive();
+        if (mounted) setState(() {});
       }
     });
   }
@@ -113,12 +118,20 @@ class LocationInfoState extends State<LocationInfo>
       final provider = Provider.of<LocationProvider>(context, listen: false);
       _locationLogSubscription = _trackingService.locationLogStream.listen((
         position,
-      ) {
-        // 위치 저장 이벤트 발생 시 동선 데이터 재로딩
-        if (mounted) {
+      ) async {
+        // 위치 저장 이벤트 발생 시 동선 데이터 재로딩 및 위치 저장
+        if (mounted && _currentUserId != null) {
+          await _locationService.addLocationLog(
+            _currentUserId!,
+            position.latitude,
+            position.longitude,
+          );
           provider.loadLocationData(_currentUserId!, widget.date);
         }
       });
+
+      // 권한이 있으면 자동으로 백그라운드 추적 시작
+      _startBackgroundTrackingIfPermitted();
     } else {
       _locationLogSubscription?.cancel();
       _locationLogSubscription = null;
@@ -173,7 +186,9 @@ class LocationInfoState extends State<LocationInfo>
       _clearMapDrawings();
       try {
         Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
         );
         if (!mounted) return;
         if (_currentUserId != null) {
@@ -284,6 +299,36 @@ class LocationInfoState extends State<LocationInfo>
         now.day == widget.date.day;
   }
 
+  Future<void> _startBackgroundTrackingIfPermitted() async {
+    if (_currentUserId == null || _isBackgroundTrackingEnabled) return;
+
+    try {
+      // 권한 확인
+      bool hasPermission =
+          await LocationTrackingService.instance.requestLocationPermissions();
+      if (!hasPermission) return;
+
+      bool hasBackgroundPermission =
+          await LocationTrackingService.instance
+              .hasBackgroundLocationPermission();
+      if (!hasBackgroundPermission) return;
+
+      // 권한이 있으면 자동으로 백그라운드 추적 시작
+      bool success = await _trackingService.startBackgroundTracking(
+        _currentUserId!,
+      );
+      if (success) {
+        _isBackgroundTrackingEnabled = true;
+        if (mounted) {
+          setState(() {});
+          debugPrint('백그라운드 위치 추적이 자동으로 시작되었습니다.');
+        }
+      }
+    } catch (e) {
+      debugPrint('자동 백그라운드 추적 시작 오류: $e');
+    }
+  }
+
   @override
   bool get wantKeepAlive => true;
 
@@ -349,6 +394,12 @@ class LocationInfoState extends State<LocationInfo>
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
+                Row(
+                  children: [
+                    if (isToday && _isBackgroundTrackingEnabled)
+                      Icon(Icons.gps_fixed, color: Colors.green, size: 20),
+                  ],
+                ),
                 if (isToday &&
                     provider.locationData != null &&
                     provider.locationData!.locations.isNotEmpty)
@@ -356,9 +407,12 @@ class LocationInfoState extends State<LocationInfo>
                     children: [
                       Text(
                         '${provider.locationData!.locations.length}개 위치',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black87,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       IconButton(
@@ -616,96 +670,6 @@ class LocationInfoState extends State<LocationInfo>
         ],
       ),
     );
-  }
-
-  /// 위치 데이터가 2개 이상일 때 모든 위치에 마커와 경로(폴리라인)를 표시한다.
-  void _handleMultipleLocations(List<LocationModel> locations) {
-    final points =
-        locations.map((loc) => LatLng(loc.latitude, loc.longitude)).toList();
-    final markers =
-        locations.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final loc = entry.value;
-          return Marker(
-            markerId: 'location_$idx',
-            latLng: LatLng(loc.latitude, loc.longitude),
-            width: 36,
-            height: 36,
-          );
-        }).toList();
-    final polyline = Polyline(
-      polylineId: 'daily_route',
-      points: points,
-      strokeColor: Colors.blue,
-      strokeWidth: 3,
-      strokeOpacity: 0.8,
-    );
-    setState(() {
-      _mapState.markers = markers;
-      _mapState.polylines = [polyline];
-      _mapState.mapCenter = points.first;
-      _mapState.currentZoomLevel = LocationMapState.defaultZoomLevel;
-    });
-    if (mapController != null) {
-      try {
-        mapController!.fitBounds(points);
-      } catch (e) {
-        debugPrint("지도 범위 설정 오류: $e");
-        mapController!.setCenter(points.first);
-        mapController!.setLevel(LocationMapState.fitBoundsFallbackZoom);
-      }
-    }
-  }
-
-  /// 위치 데이터가 1개일 때 해당 위치에 마커를 표시하고, 지도를 중앙으로 이동시킨다.
-  void _handleSingleLocation(LocationModel location) async {
-    final point = LatLng(location.latitude, location.longitude);
-    final marker = Marker(
-      markerId: 'current_location', // 항상 동일한 markerId 사용
-      latLng: point,
-      width: 36,
-      height: 36,
-    );
-    setState(() {
-      _mapState.markers = [marker]; // 항상 1개만
-      _mapState.polylines = [];
-      _mapState.mapCenter = point;
-      _mapState.currentZoomLevel = LocationMapState.defaultZoomLevel;
-    });
-    if (mapController != null) {
-      debugPrint('[LocationInfo] setCenter to single location');
-      mapController!.setCenter(point);
-      mapController!.setLevel(LocationMapState.defaultZoomLevel);
-    }
-  }
-
-  /// [테스트용] 내 위치 근처에 임의 위치를 저장하는 함수
-  Future<void> _addFakeNearbyLocation() async {
-    if (_currentUserId == null) return;
-    try {
-      // 현재 위치 가져오기
-      Position pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      // 약간 랜덤 오프셋(최대 0.0005도, 약 50m 이내)
-      final rand =
-          () =>
-              (0.0005 *
-                  (2 * (0.5 - (DateTime.now().microsecond % 1000) / 1000)));
-      final fakeLat = pos.latitude + rand();
-      final fakeLng = pos.longitude + rand();
-      await _locationService.addLocationLog(_currentUserId!, fakeLat, fakeLng);
-      if (mounted) {
-        final provider = Provider.of<LocationProvider>(context, listen: false);
-        await provider.loadLocationData(_currentUserId!, widget.date);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('임의 위치 추가 실패: $e')));
-      }
-    }
   }
 }
 
