@@ -118,7 +118,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     // EmotionSummaryGraph 추가
                     Card(child: EmotionSummaryGraph(date: DateTime.now())),
                     Card(child: AiFeedback()),
-                    const SizedBox(height: 35.0), // 빈 Card 대신 SizedBox 사용
+                    Card(
+                      child: SizedBox(
+                        height:
+                            MediaQuery.of(context).size.height *
+                            0.075, // minChildSize와 동일하게
+                      ),
+                    ),
                   ],
                 ),
               ),
