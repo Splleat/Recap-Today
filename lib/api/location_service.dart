@@ -6,7 +6,6 @@ import 'dart:developer' as developer;
 class LocationService {
   final AbstractDatabase _database;
   final Uuid _uuid = const Uuid();
-  final userId = 'userId';
 
   LocationService(this._database);
 

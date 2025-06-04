@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:recap_today/data/abstract_database.dart';
 import 'package:recap_today/model/freezed/app_usage_model.dart';
 import 'package:recap_today/service/app_usage_service.dart';
+import 'package:recap_today/provider/login_provider.dart';
 
 class AppUsage extends StatefulWidget {
   final DateTime? date; // Add date parameter
@@ -56,7 +57,7 @@ class _AppUsageState extends State<AppUsage> {
   }
 
   Future<void> _checkPermissionAndLoadData() async {
-    final userId = 'userId'; // Replace with actual user ID logic
+    String userId = Provider.of<LoginProvider>(context, listen: false).activeUserId;
     if (!mounted) return;
 
     setState(() {
@@ -120,7 +121,7 @@ class _AppUsageState extends State<AppUsage> {
   }
 
   Future<void> _refreshDataInBackground() async {
-    final userId = 'userId';
+    String userId = Provider.of<LoginProvider>(context, listen: false).activeUserId;
 
     if (!Platform.isAndroid || !_hasPermission || !mounted) return;
 
@@ -151,7 +152,7 @@ class _AppUsageState extends State<AppUsage> {
   }
 
   Future<void> _refreshData() async {
-    final userId = 'userId';
+    String userId = Provider.of<LoginProvider>(context, listen: false).activeUserId;
     if (!Platform.isAndroid || !_hasPermission || _isRefreshing) return;
 
     // If not for today, and service doesn't support refreshing past dates,

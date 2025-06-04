@@ -33,7 +33,6 @@ import 'router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   // Initialize Kakao Map with error handling
   try {
     kakao_map.AuthRepository.initialize(
@@ -85,21 +84,27 @@ void main() async {
         // 데이터베이스 Provider 추가
         Provider<AbstractDatabase>(create: (_) => database),
         Provider<SqfliteDatabase>(create: (_) => database),
+        ChangeNotifierProvider(
+          create: (context) => LoginProvider(authRepository),
+        ),
         // LocationService Provider 추가
         Provider<LocationService>(create: (_) => locationService),
         // EmotionRepository Provider 추가
-        ChangeNotifierProvider(
-          create: (context) => StepProvider()..initialize(),
+        ChangeNotifierProxyProvider<LoginProvider, StepProvider>(
+          create: (context) => StepProvider(userId: context.read<LoginProvider>().activeUserId),
+          update: (context, loginProvider, previous) =>
+            StepProvider(userId: loginProvider.activeUserId)..initialize(),
         ),
         ChangeNotifierProvider(
           create: (context) => WeatherProvider(WeatherService()),
         ),
         ChangeNotifierProvider(create: (context) => checklistProvider),
         ChangeNotifierProvider(create: (context) => ScheduleProvider()),
-        ChangeNotifierProvider(create: (context) => DiaryProvider()),
-        ChangeNotifierProvider(
-          create: (context) => LoginProvider(authRepository),
-        ),
+        ChangeNotifierProxyProvider<LoginProvider, DiaryProvider>(
+          create: (context) => DiaryProvider(userId: context.read<LoginProvider>().activeUserId),
+          update: (context, loginProvider, previous) =>
+            DiaryProvider(userId: loginProvider.activeUserId),
+        ), 
         ChangeNotifierProvider(
           // Add SignupProvider
           create: (context) => SignupProvider(authRepository),

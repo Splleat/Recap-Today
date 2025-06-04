@@ -6,12 +6,14 @@ import 'package:provider/provider.dart';
 import 'package:recap_today/model/freezed/diary_model.dart';
 import 'package:recap_today/provider/diary_provider.dart';
 import 'package:recap_today/utils/file_manager.dart';
+import 'package:recap_today/provider/login_provider.dart';
 
 class DiaryWidget extends StatefulWidget {
   final DiaryModel? diary; // 기존 파라미터
   final DateTime? date; // 특정 날짜를 받기 위한 파라미터 추가
+  final String? userId; // 사용자 ID 파라미터 추가
 
-  const DiaryWidget({Key? key, this.diary, this.date})
+  const DiaryWidget({Key? key, this.diary, this.date, this.userId})
     : super(key: key); // 생성자 수정
 
   @override
@@ -25,12 +27,14 @@ class _DiaryWidgetState extends State<DiaryWidget> {
   bool _isLoading = true;
   DiaryModel? _todayDiary; // _displayedDiary로 변경 고려
   late DateTime _targetDate; // 표시할 날짜
+  String? _userId; // 사용자 ID 저장
 
   @override
   void initState() {
     super.initState();
     _targetDate =
         widget.date ?? DateTime.now(); // widget.date가 있으면 사용, 없으면 오늘 날짜
+    _userId = widget.userId; // 전달된 사용자 ID가 있으면 사용
     _loadDiaryForDate();
   }
 
@@ -39,6 +43,12 @@ class _DiaryWidgetState extends State<DiaryWidget> {
     setState(() {
       _isLoading = true;
     });
+
+    // 사용자 ID가 없으면 LoginProvider에서 가져오기
+    if (_userId == null) {
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      _userId = loginProvider.activeUserId;
+    }
 
     final diaryProvider = Provider.of<DiaryProvider>(context, listen: false);
     // widget.diary가 있으면 직접 사용, 없으면 provider를 통해 targetDate의 일기를 가져옴
@@ -66,8 +76,9 @@ class _DiaryWidgetState extends State<DiaryWidget> {
   @override
   void didUpdateWidget(covariant DiaryWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.date != oldWidget.date) {
+    if (widget.date != oldWidget.date || widget.userId != oldWidget.userId) {
       _targetDate = widget.date ?? DateTime.now();
+      _userId = widget.userId;
       _loadDiaryForDate();
     }
   }
@@ -145,6 +156,12 @@ class _DiaryWidgetState extends State<DiaryWidget> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    // 사용자 ID가 없는 경우 다시 확인
+    if (_userId == null) {
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      _userId = loginProvider.activeUserId;
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -184,7 +201,7 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                   }
                   final diary = DiaryModel(
                     id: _todayDiary?.id, // _displayedDiary?.id
-                    userId: 'userId',
+                    userId: _userId!,
                     date: _targetDate.toIso8601String().substring(
                       0,
                       10,

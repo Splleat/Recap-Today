@@ -8,8 +8,12 @@ import 'package:recap_today/utils/file_manager.dart';
 class DiaryProvider with ChangeNotifier {
   List<DiaryModel> _diaries = [];
   final SqfliteDatabase _database = SqfliteDatabase();
-  String _userId = 'default_user'; // 기본 사용자 ID
+  String userId;
   bool _isLoading = false;
+
+  DiaryProvider({required this.userId}) {
+    loadDiaries(); // 초기 로드
+  }
 
   /// 일기 목록
   List<DiaryModel> get diaries => _diaries;
@@ -17,8 +21,8 @@ class DiaryProvider with ChangeNotifier {
 
   // 로그인 사용자 ID 설정
   void setUserId(String userId) {
-    if (_userId != userId) {
-      _userId = userId;
+    if (this.userId != userId) {
+      this.userId = userId;
       loadDiaries(); // 사용자 변경 시 일기 목록 다시 로드
     }
   }
@@ -29,7 +33,7 @@ class DiaryProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
       
-      _diaries = await _database.getAllDiaries(_userId);
+      _diaries = await _database.getAllDiaries(userId);
       
       _isLoading = false;
       notifyListeners();
@@ -43,26 +47,26 @@ class DiaryProvider with ChangeNotifier {
   /// 오늘의 일기 가져오기
   Future<DiaryModel?> getTodayDiary() async {
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    return await _database.getDiaryByDate(today, _userId);
+    return await _database.getDiaryByDate(today, userId);
   }
 
   /// 특정 날짜의 일기 가져오기
   Future<DiaryModel?> getDiaryForSpecificDate(DateTime date) async {
     final dateString = date.toIso8601String().substring(0, 10);
-    return await _database.getDiaryByDate(dateString, _userId);
+    return await _database.getDiaryByDate(dateString, userId);
   }
 
   /// 일기 저장 (삽입 또는 업데이트)
   Future<DiaryModel> saveDiary(DiaryModel diary) async {
     // userId 설정하여 일기 모델 업데이트
-    final diaryWithUserId = diary.copyWith(userId: _userId);
+    final diaryWithUserId = diary.copyWith(userId: userId);
     
     try {
       int diaryId;
       
       // 기존 일기가 있는지 확인
       final existingDiary = diary.id == null 
-          ? await _database.getDiaryByDate(diary.date, _userId)
+          ? await _database.getDiaryByDate(diary.date, userId)
           : null;
           
       if (existingDiary != null) {
@@ -81,11 +85,11 @@ class DiaryProvider with ChangeNotifier {
       
       // 기존 사진 정보 삭제
       if (diaryId != null) {
-        await _database.deleteAllPhotosForDiary(diaryId, _userId);
+        await _database.deleteAllPhotosForDiary(diaryId, userId);
 
         // 새 사진 정보 저장
         for (final path in diaryWithUserId.photoPaths) {
-          await _database.insertPhoto(diaryId, path, _userId);
+          await _database.insertPhoto(diaryId, path, userId);
         }
       }
 
@@ -126,7 +130,7 @@ class DiaryProvider with ChangeNotifier {
   }) async {
     return await _database.searchDiaries(
       query,
-      _userId,
+      userId,
       limit: limit,
       offset: offset,
     );
@@ -137,7 +141,7 @@ class DiaryProvider with ChangeNotifier {
     try {
       // 모든 일기의 사진 경로 수집
       List<String> allActivePhotoPathsInDB = [];
-      final allDiaries = await _database.getAllDiaries(_userId);
+      final allDiaries = await _database.getAllDiaries(userId);
       
       for (var diary in allDiaries) {
         allActivePhotoPathsInDB.addAll(diary.photoPaths);

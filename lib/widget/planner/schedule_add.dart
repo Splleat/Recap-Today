@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'package:recap_today/model/freezed/schedule_item.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
+import 'package:recap_today/provider/login_provider.dart'; // 추가
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 
@@ -174,9 +175,13 @@ class _ScheduleAddFormState extends State<ScheduleAddForm> {
         return;
       }
 
+      // LoginProvider에서 사용자 ID 가져오기
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      final userId = loginProvider.activeUserId;
+
       final scheduleData = ScheduleItem(
         id: _isEditMode ? widget.initialItem!.id : const Uuid().v4(),
-        userId: 'userId', // Replace with actual user ID
+        userId: userId, // LoginProvider에서 가져온 ID 사용
         text: _titleController.text,
         subText:
             _subTextController.text.isNotEmpty ? _subTextController.text : null,

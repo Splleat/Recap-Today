@@ -94,7 +94,7 @@ class AppUsageService {
 
             appUsageList.add(
               AppUsageModel(
-                userId: 'userId',
+                userId: userId, // 전달받은 사용자 ID 사용
                 date: dateStr,
                 packageName: packageName,
                 appName: appName,

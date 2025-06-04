@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:recap_today/model/freezed/emotion_model.dart';
 import 'package:recap_today/widget/home/hourly_emotion_logger.dart';
 import 'package:recap_today/data/sqflite_database.dart';
+import 'package:recap_today/provider/login_provider.dart';
 
 class EmotionSummaryGraph extends StatefulWidget {
   final DateTime date;
@@ -40,10 +41,12 @@ class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
   }
 
   Future<void> _loadEmotionData() async {
+    String userId = Provider.of<LoginProvider>(context, listen: false).activeUserId;
+    
     setState(() => _isLoading = true);
     try {
       final dateString = DateFormat('yyyy-MM-dd').format(widget.date);
-      final records = await _emotionRepository.getEmotionsByDate(dateString, 'userId');
+      final records = await _emotionRepository.getEmotionsByDate(dateString, userId);
       if (mounted) setState(() { _emotionRecords = records; _isLoading = false; });
     } catch (e) {
       if (mounted) {

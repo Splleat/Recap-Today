@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:recap_today/model/freezed/checklist_item.dart';
 import 'package:recap_today/provider/checklist_provider.dart';
+import 'package:recap_today/provider/login_provider.dart'; // 추가
+import 'package:provider/provider.dart'; // 추가
 import 'package:intl/intl.dart';
 
 void showAddItemDialog(BuildContext context, ChecklistProvider checklistProvider) {
@@ -10,6 +12,10 @@ void showAddItemDialog(BuildContext context, ChecklistProvider checklistProvider
   showDialog(
     context: context,
     builder: (BuildContext context) {
+      // LoginProvider에서 사용자 ID 가져오기
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      final userId = loginProvider.activeUserId;
+      
       return AlertDialog(
         title: const Text('할 일 추가'),
         content: Column(
@@ -67,7 +73,12 @@ void showAddItemDialog(BuildContext context, ChecklistProvider checklistProvider
             child: const Text('추가'),
             onPressed: () {
               if (textController.text.isNotEmpty) {
-                final newItem = ChecklistItem(id: UniqueKey().toString(), userId: 'userId', text: textController.text, dueDate: selectedDueDate);
+                final newItem = ChecklistItem(
+                  id: UniqueKey().toString(), 
+                  userId: userId, // LoginProvider에서 가져온 ID 사용
+                  text: textController.text, 
+                  dueDate: selectedDueDate
+                );
                 checklistProvider.addItem(newItem);
                 Navigator.of(context).pop();
               }

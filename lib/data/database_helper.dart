@@ -18,6 +18,9 @@ class DatabaseHelper implements AbstractDatabase {
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
+  // 로컬 사용자 ID
+  static const String LOCAL_USER_ID = 'local_user';
+
   // 테이블 이름 상수 정의
   static const String tableUsers = 'users';
   static const String tableChecklist = 'checklist_items';
@@ -907,5 +910,39 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
       where: 'is_synced = ?',
       whereArgs: [0],
     );
+  }
+
+  // 마이그레이션(로컬 데이터를 특정 사용자 ID로 마이그레이션) -> 로그인 후 처리
+  Future<bool> migrateLocalDataToUser(String userId) async {
+    final db = await database;
+
+    try {
+      await db.transaction((txn) async {
+        final tables = [
+          tableDiaries,
+          tablePhotos,
+          tableChecklist,
+          tableAppUsage,
+          tableSchedule,
+          tableEmotionRecords,
+          tableLocationLogs,
+          tableSteps,
+        ];
+
+        for (final table in tables) {
+          await txn.update(
+            table,
+            {'user_id': userId, 'is_synced': 0},
+            where: 'user_id = ?',
+            whereArgs: [LOCAL_USER_ID],
+          );
+        }
+      });
+
+      return true;
+    } catch (e) {
+      debugPrint('로컬 데이터 마이그레이션 중 오류 발생: $e');
+      return false;
+    }
   }
 }

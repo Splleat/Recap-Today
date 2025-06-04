@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:recap_today/data/database_helper.dart';
 
 import 'package:recap_today/repository/auth_repository.dart';
 import 'package:recap_today/model/user_model.dart';
@@ -17,6 +18,8 @@ class LoginProvider with ChangeNotifier {
   bool get isLoggedIn => _isLoggedIn;
   String? get errorMessage => _errorMessage;
   User? get currentUser => _currentUser;
+  String get activeUserId => _currentUser?.id ?? DatabaseHelper.LOCAL_USER_ID;
+
 
   final AuthRepository _authRepository;
 
@@ -72,6 +75,12 @@ class LoginProvider with ChangeNotifier {
       _currentUser = credential.user; // 사용자 정보 저장
       _isLoggedIn = true;
       _errorMessage = null;
+
+      if (_currentUser != null) {
+        await DatabaseHelper.instance.migrateLocalDataToUser(_currentUser!.id);
+        debugPrint('로컬 데이터 마이그레이션 성공: ${_currentUser!.id}');
+      }
+
       return true;
     } catch (e) {
       print('Login failed: $e');

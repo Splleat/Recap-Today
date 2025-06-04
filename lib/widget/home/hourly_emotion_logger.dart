@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:recap_today/data/sqflite_database.dart';
 import 'package:recap_today/model/freezed/emotion_model.dart';
+import 'package:recap_today/provider/login_provider.dart'; // 추가
 import 'package:intl/intl.dart'; // For date formatting
 
 // Define a mapping for emotions to numerical values, colors, and icons
@@ -100,9 +101,13 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
     });
     try {
       final String dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      // 로그인 프로바이더에서 사용자 ID 가져오기
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      final userId = loginProvider.activeUserId;
+      
       final records = await _emotionRepository.getEmotionsByDate(
         dateString,
-        'userId', // Add userId parameter
+        userId, // LoginProvider에서 가져온 ID 사용
       );
       final Map<int, EmotionRecord?> newHourlyEmotions = {};
       for (int i = 0; i < 24; i++) {
@@ -132,6 +137,10 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
   }
 
   Future<void> _showEmotionSelectionDialog(int hour) async {
+    // 로그인 프로바이더에서 사용자 ID 가져오기
+    final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+    final userId = loginProvider.activeUserId;
+    
     final currentRecord = _hourlyEmotions[hour];
     String? selectedEmotion = currentRecord?.emotionType;
     TextEditingController notesController = TextEditingController(
@@ -231,7 +240,7 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
       final String dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
       if (result['action'] == 'save') {
         final newRecord = EmotionRecord(
-          userId: 'userId',
+          userId: userId, // LoginProvider에서 가져온 ID 사용
           id: currentRecord?.id,
           date: dateString,
           hour: hour,
@@ -256,7 +265,7 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
         try {
           await _emotionRepository.deleteEmotionRecord(
             result['id']! as String,
-            'userId', // Add userId parameter
+            userId, // LoginProvider에서 가져온 ID 사용
           );
           _loadEmotionData();
         } catch (e) {
@@ -429,9 +438,13 @@ class _HourlyEmotionTimelineDrawerState
     });
     try {
       final String dateString = DateFormat('yyyy-MM-dd').format(widget.date);
+      // 로그인 프로바이더에서 사용자 ID 가져오기
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      final userId = loginProvider.activeUserId;
+      
       final records = await _emotionRepository.getEmotionsByDate(
         dateString,
-        'userId', // Add userId parameter
+        userId, // LoginProvider에서 가져온 ID 사용
       );
       final Map<int, EmotionRecord?> newHourlyEmotions = {};
       for (int i = 0; i < 24; i++) {
@@ -461,6 +474,10 @@ class _HourlyEmotionTimelineDrawerState
   }
 
   Future<void> _showEmotionSelectionDialog(int hour) async {
+    // 로그인 프로바이더에서 사용자 ID 가져오기
+    final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+    final userId = loginProvider.activeUserId;
+    
     final currentRecord = _hourlyEmotions[hour];
     String? selectedEmotion = currentRecord?.emotionType;
     TextEditingController notesController = TextEditingController(
@@ -561,7 +578,7 @@ class _HourlyEmotionTimelineDrawerState
       if (result['action'] == 'save') {
         final newRecord = EmotionRecord(
           id: currentRecord?.id,
-          userId: 'userId',
+          userId: userId, // LoginProvider에서 가져온 ID 사용
           date: dateString,
           hour: hour,
           emotionType: result['emotionType']!,
@@ -585,7 +602,7 @@ class _HourlyEmotionTimelineDrawerState
         try {
           await _emotionRepository.deleteEmotionRecord(
             result['id']! as String,
-            'userId', // Add userId parameter
+            userId, // LoginProvider에서 가져온 ID 사용
           );
           _loadEmotionData();
         } catch (e) {
