@@ -182,10 +182,8 @@ class LocationInfoState extends State<LocationInfo>
             position.latitude,
             position.longitude,
           );
-          // 위치를 저장만 하고 return 하므로, 아래 코드가 실행되지 않음
           return;
         }
-        // 아래 코드는 절대 실행되지 않으므로, 중복 마커 생성 원인 아님
       } catch (e) {
         debugPrint('오늘+위치데이터없음: 현재 위치 가져오기 실패: $e');
         _resetMapToDefaultView();
@@ -198,12 +196,53 @@ class LocationInfoState extends State<LocationInfo>
       return;
     }
     final locations = _mapState.locationData!.locations;
-    // 중복 마커 방지: locations가 1개 이상일 때만 마커 생성
-    if (locations.length >= 1) {
-      // 최신 위치만 사용하여 마커 1개만 표시
-      _handleSingleLocation(locations.last);
-    } else if (locations.length > 1) {
-      _handleMultipleLocations(locations);
+    // 항상 마지막 위치에만 마커 1개 표시
+    if (locations.isNotEmpty) {
+      final last = locations.last;
+      final marker = Marker(
+        markerId: 'current_location',
+        latLng: LatLng(last.latitude, last.longitude),
+        width: 36,
+        height: 36,
+      );
+      // 위치가 2개 이상이면 Polyline도 그림
+      List<Polyline> polylines = [];
+      if (locations.length > 1) {
+        final points =
+            locations
+                .map((loc) => LatLng(loc.latitude, loc.longitude))
+                .toList();
+        polylines = [
+          Polyline(
+            polylineId: 'daily_route',
+            points: points,
+            strokeColor: Colors.blue,
+            strokeWidth: 3,
+            strokeOpacity: 0.8,
+          ),
+        ];
+      }
+      setState(() {
+        _mapState.markers = [marker];
+        _mapState.polylines = polylines;
+        _mapState.mapCenter = LatLng(last.latitude, last.longitude);
+        _mapState.currentZoomLevel = LocationMapState.defaultZoomLevel;
+      });
+      if (mapController != null) {
+        mapController!.setCenter(LatLng(last.latitude, last.longitude));
+        mapController!.setLevel(LocationMapState.defaultZoomLevel);
+        if (locations.length > 1) {
+          try {
+            final points =
+                locations
+                    .map((loc) => LatLng(loc.latitude, loc.longitude))
+                    .toList();
+            mapController!.fitBounds(points);
+          } catch (e) {
+            debugPrint("지도 범위 설정 오류: $e");
+          }
+        }
+      }
     }
   }
 
@@ -310,13 +349,92 @@ class LocationInfoState extends State<LocationInfo>
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                 ),
-                if (provider.locationData != null &&
+                if (isToday &&
+                    provider.locationData != null &&
                     provider.locationData!.locations.isNotEmpty)
-                  Text(
-                    '${provider.locationData!.locations.length}개 위치',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
+                  Row(
+                    children: [
+                      Text(
+                        '${provider.locationData!.locations.length}개 위치',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: Colors.black87),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_forever,
+                          color: Colors.redAccent,
+                        ),
+                        tooltip: '오늘 위치 전체 삭제',
+                        onPressed: () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder:
+                                (ctx) => AlertDialog(
+                                  title: const Text('오늘 위치 전체 삭제'),
+                                  content: const Text(
+                                    '정말 오늘 저장된 모든 위치를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.of(ctx).pop(false),
+                                      child: const Text('취소'),
+                                    ),
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.of(ctx).pop(true),
+                                      child: const Text('삭제'),
+                                    ),
+                                  ],
+                                ),
+                          );
+                          if (confirmed == true && _currentUserId != null) {
+                            final locationService =
+                                Provider.of<LocationService>(
+                                  context,
+                                  listen: false,
+                                );
+                            final today = DateTime.now();
+                            await locationService.cleanupLocationData(
+                              _currentUserId!,
+                              DateTime(
+                                today.year,
+                                today.month,
+                                today.day,
+                                0,
+                                0,
+                                0,
+                              ),
+                              DateTime(
+                                today.year,
+                                today.month,
+                                today.day,
+                                23,
+                                59,
+                                59,
+                              ),
+                            );
+                            final provider = Provider.of<LocationProvider>(
+                              context,
+                              listen: false,
+                            );
+                            await provider.loadLocationData(
+                              _currentUserId!,
+                              today,
+                            );
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('오늘 위치가 모두 삭제되었습니다.'),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ],
                   ),
               ],
             ),
@@ -368,32 +486,6 @@ class LocationInfoState extends State<LocationInfo>
                           }
                         }
                       },
-                    ),
-                    Positioned(
-                      left: 16,
-                      top: 16,
-                      child: FutureBuilder<int>(
-                        future: mapController?.getLevel(),
-                        builder: (context, snapshot) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              'Zoom: [36m${snapshot.data ?? '-'}[0m',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
                     ),
                     // 줌 컨트롤 버튼들
                     Positioned(
@@ -584,6 +676,35 @@ class LocationInfoState extends State<LocationInfo>
       debugPrint('[LocationInfo] setCenter to single location');
       mapController!.setCenter(point);
       mapController!.setLevel(LocationMapState.defaultZoomLevel);
+    }
+  }
+
+  /// [테스트용] 내 위치 근처에 임의 위치를 저장하는 함수
+  Future<void> _addFakeNearbyLocation() async {
+    if (_currentUserId == null) return;
+    try {
+      // 현재 위치 가져오기
+      Position pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      // 약간 랜덤 오프셋(최대 0.0005도, 약 50m 이내)
+      final rand =
+          () =>
+              (0.0005 *
+                  (2 * (0.5 - (DateTime.now().microsecond % 1000) / 1000)));
+      final fakeLat = pos.latitude + rand();
+      final fakeLng = pos.longitude + rand();
+      await _locationService.addLocationLog(_currentUserId!, fakeLat, fakeLng);
+      if (mounted) {
+        final provider = Provider.of<LocationProvider>(context, listen: false);
+        await provider.loadLocationData(_currentUserId!, widget.date);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('임의 위치 추가 실패: $e')));
+      }
     }
   }
 }
