@@ -19,8 +19,11 @@ class AiFeedbackService {
         },
         body: jsonEncode({'prompt': prompt}),
       );
+      print('AI Feedback response: ${response.body}'); // 응답 로그 추가
       if (response.statusCode == 200) {
-        return jsonDecode(response.body)['feedbackText'];
+        final decoded = jsonDecode(response.body);
+        print('파싱된 feedbackText: \'${decoded['feedbackText']}\'');
+        return decoded['feedbackText'];
       } else if (response.statusCode == 429) {
         throw Exception('오늘은 이미 AI 피드백을 요청하셨습니다.');
       }
@@ -31,3 +34,20 @@ class AiFeedbackService {
     }
   }
 }
+
+// 사용 예시
+/*
+String? feedbackText;
+bool isLoading = false;
+
+void someFunction() async {
+  isLoading = true;
+  final service = AiFeedbackService();
+  final text = await service.requestAIFeedback('Some prompt', authToken: 'your_auth_token');
+  setState(() {
+    feedbackText = text;
+    isLoading = false;
+  });
+  print('setState 이후 feedbackText: $feedbackText');
+}
+*/

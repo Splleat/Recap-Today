@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:recap_today/provider/login_provider.dart';
 import 'package:recap_today/router.dart';
 import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/widget/summary/location_info.dart';
@@ -9,6 +11,7 @@ import 'package:recap_today/widget/summary/ai_feedback.dart';
 import 'package:recap_today/widget/summary/diary_widget.dart';
 import 'package:recap_today/widget/summary/emotion_summary_graph.dart'; // 추가
 import 'package:recap_today/utils/share_util.dart';
+import 'package:recap_today/service/ai_feedback_service.dart';
 
 class SummaryScreen extends StatefulWidget {
   const SummaryScreen({super.key});
@@ -20,18 +23,18 @@ class SummaryScreen extends StatefulWidget {
 class _SummaryScreenState extends State<SummaryScreen> {
   double initialChildSize = 0.5;
   final GlobalKey _captureKey = GlobalKey();
-  // LocationInfo? _locationInfoWidget;
-  // final GlobalKey<LocationInfoState> _locationInfoKey =
-  //     GlobalKey<LocationInfoState>();
+  LocationInfo? _locationInfoWidget;
+  final GlobalKey<LocationInfoState> _locationInfoKey =
+      GlobalKey<LocationInfoState>();
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _locationInfoWidget = LocationInfo(
-  //     key: _locationInfoKey,
-  //     date: DateTime.now(),
-  //   );
-  // }
+  @override
+  void initState() {
+    super.initState();
+    _locationInfoWidget = LocationInfo(
+      key: _locationInfoKey,
+      date: DateTime.now(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +106,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 key: _captureKey,
                 child: Column(
                   children: [
-                    // Card(child: _locationInfoWidget!),
+                    Card(child: _locationInfoWidget!),
                     Card(
                       child: Padding(
                         // 패딩 추가
@@ -115,14 +118,11 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     ), // 날씨 요약 위젯 추가
                     Card(child: AppUsage()),
                     Card(child: ChecklistAchievement()),
-                    // EmotionSummaryGraph 추가
                     Card(child: EmotionSummaryGraph(date: DateTime.now())),
-                    Card(child: AiFeedback()),
+                    Card(child: AiFeedbackWidget(service: AiFeedbackService())),
                     Card(
                       child: SizedBox(
-                        height:
-                            MediaQuery.of(context).size.height *
-                            0.075, // minChildSize와 동일하게
+                        height: MediaQuery.of(context).size.height * 0.075,
                       ),
                     ),
                   ],
