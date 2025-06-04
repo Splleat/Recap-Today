@@ -121,10 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                               await loginProvider.login();
                                           if (mounted) {
                                             if (success) {
-                                              await loginProvider
-                                                  .handlePostLoginMigration(
-                                                context,
-                                              );
+
                                               if (mounted) {
                                                 Navigator.pushNamedAndRemoveUntil(
                                                   context,

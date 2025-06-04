@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:recap_today/model/diary_model.dart';
+import 'package:recap_today/model/freezed/diary_model.dart';
 import 'package:recap_today/provider/diary_provider.dart';
 import 'package:recap_today/utils/file_manager.dart';
 
@@ -184,6 +184,7 @@ class _DiaryWidgetState extends State<DiaryWidget> {
                   }
                   final diary = DiaryModel(
                     id: _todayDiary?.id, // _displayedDiary?.id
+                    userId: 'userId',
                     date: _targetDate.toIso8601String().substring(
                       0,
                       10,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:recap_today/model/checklist_item.dart';
+import 'package:recap_today/model/freezed/checklist_item.dart';
 import 'package:recap_today/provider/checklist_provider.dart';
 import 'package:intl/intl.dart';
 
@@ -67,7 +67,7 @@ void showAddItemDialog(BuildContext context, ChecklistProvider checklistProvider
             child: const Text('추가'),
             onPressed: () {
               if (textController.text.isNotEmpty) {
-                final newItem = ChecklistItem(id: UniqueKey().toString(), text: textController.text, dueDate: selectedDueDate);
+                final newItem = ChecklistItem(id: UniqueKey().toString(), userId: 'userId', text: textController.text, dueDate: selectedDueDate);
                 checklistProvider.addItem(newItem);
                 Navigator.of(context).pop();
               }

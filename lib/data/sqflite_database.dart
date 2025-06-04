@@ -1,22 +1,29 @@
 // sqflite_database.dart
 import 'package:flutter/foundation.dart';
-import 'package:recap_today/model/diary_model.dart';
-import 'package:recap_today/model/checklist_item.dart';
-import 'package:recap_today/model/app_usage_model.dart';
-import 'package:recap_today/model/schedule_item.dart';
+import 'package:recap_today/model/freezed/diary_model.dart';
+import 'package:recap_today/model/freezed/checklist_item.dart';
+import 'package:recap_today/model/freezed/app_usage_model.dart';
+import 'package:recap_today/model/freezed/schedule_item.dart';
+import 'package:recap_today/model/freezed/emotion_model.dart';
+import 'package:recap_today/model/freezed/location_model.dart';
+import 'package:recap_today/model/freezed/step_model.dart';
 import 'package:recap_today/data/abstract_database.dart';
 import 'package:recap_today/data/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:recap_today/model/emotion_model.dart';
 
 // SQLite 데이터베이스 접근을 위한 구현 클래스
 // AbstractDatabase 인터페이스를 구현하여 애플리케이션과 데이터베이스 사이의 중간 계층 역할
-class SqfliteDatabase extends AbstractDatabase {
+class SqfliteDatabase implements AbstractDatabase {
   final DatabaseHelper _helper = DatabaseHelper.instance;
 
-  // database getter 구현
+  // 데이터베이스 기본 메서드
   @override
   Future<Database> get database => _helper.database;
+  
+  @override
+  Future close() async {
+    await _helper.close();
+  }
 
   // 일기 관련 메서드
   @override
@@ -26,6 +33,26 @@ class SqfliteDatabase extends AbstractDatabase {
     } catch (e) {
       debugPrint('일기 삽입 중 오류 발생: $e');
       rethrow;
+    }
+  }
+
+  @override
+  Future<DiaryModel?> getDiaryByDate(String date, String userId) async {
+    try {
+      return await _helper.getDiaryByDate(date, userId);
+    } catch (e) {
+      debugPrint('날짜별 일기 조회 중 오류 발생: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<List<DiaryModel>> getAllDiaries(String userId) async {
+    try {
+      return await _helper.getAllDiaries(userId);
+    } catch (e) {
+      debugPrint('전체 일기 목록 조회 중 오류 발생: $e');
+      return [];
     }
   }
 
@@ -40,47 +67,48 @@ class SqfliteDatabase extends AbstractDatabase {
   }
 
   @override
-  Future<List<DiaryModel>> getDiaries() async {
+  Future<int> deleteDiary(int id, String userId) async {
     try {
-      return await _helper.getDiaries();
+      return await _helper.deleteDiary(id, userId);
     } catch (e) {
-      debugPrint('일기 목록 조회 중 오류 발생: $e');
-      return []; // 오류 발생 시 빈 목록 반환
-    }
-  }
-
-  @override
-  Future<DiaryModel?> getDiaryForDate(String date) async {
-    try {
-      return await _helper.getDiaryForDate(date);
-    } catch (e) {
-      debugPrint('특정 날짜 일기 조회 중 오류 발생: $e');
-      return null; // 오류 발생 시 null 반환
+      debugPrint('일기 삭제 중 오류 발생: $e');
+      rethrow;
     }
   }
 
   @override
   Future<Map<String, dynamic>> searchDiaries(
-    String query, {
+    String query,
+    String userId, {
     int? limit,
     int? offset,
   }) async {
     try {
-      return await _helper.searchDiaries(query, limit: limit, offset: offset);
+      return await _helper.searchDiaries(query, userId, limit: limit, offset: offset);
     } catch (e) {
       debugPrint('일기 검색 중 오류 발생: $e');
-      return {'diaries': [], 'totalCount': 0};
+      return {};
     }
   }
 
-  // 체크리스트 관련 메서드 구현
+  // 체크리스트 관련 메서드
   @override
   Future<int> insertChecklistItem(ChecklistItem item) async {
     try {
       return await _helper.insertChecklistItem(item);
     } catch (e) {
-      debugPrint('체크리스트 항목 삽입 중 오류 발생: $e');
+      debugPrint('체크리스트 항목 추가 중 오류 발생: $e');
       rethrow;
+    }
+  }
+
+  @override
+  Future<List<ChecklistItem>> getAllChecklistItems(String userId) async {
+    try {
+      return await _helper.getAllChecklistItems(userId);
+    } catch (e) {
+      debugPrint('체크리스트 항목 전체 조회 중 오류 발생: $e');
+      return [];
     }
   }
 
@@ -95,114 +123,114 @@ class SqfliteDatabase extends AbstractDatabase {
   }
 
   @override
-  Future<List<ChecklistItem>> getChecklistItems() async {
+  Future<int> deleteChecklistItem(String id, String userId) async {
     try {
-      return await _helper.getChecklistItems();
-    } catch (e) {
-      debugPrint('체크리스트 항목 목록 조회 중 오류 발생: $e');
-      return []; // 오류 발생 시 빈 목록 반환
-    }
-  }
-
-  @override
-  Future<ChecklistItem?> getChecklistItemById(String id) async {
-    try {
-      return await _helper.getChecklistItemById(id);
-    } catch (e) {
-      debugPrint('체크리스트 항목 조회 중 오류 발생: $e');
-      return null; // 오류 발생 시 null 반환
-    }
-  }
-
-  @override
-  Future<int> deleteChecklistItem(String id) async {
-    try {
-      return await _helper.deleteChecklistItem(id);
+      return await _helper.deleteChecklistItem(id, userId);
     } catch (e) {
       debugPrint('체크리스트 항목 삭제 중 오류 발생: $e');
       rethrow;
     }
   }
-
+  
   @override
-  Future<int> deleteAllChecklistItems() async {
+  Future<List<ChecklistItem>> getChecklistItemsByCompletedDate(String date, String userId) async {
     try {
-      return await _helper.deleteAllChecklistItems();
+      return await _helper.getChecklistItemsByCompletedDate(date, userId);
     } catch (e) {
-      debugPrint('모든 체크리스트 항목 삭제 중 오류 발생: $e');
-      rethrow;
+      debugPrint('완료일 기준 체크리스트 항목 조회 중 오류 발생: $e');
+      return [];
     }
   }
 
   @override
-  Future<void> saveChecklistItems(List<ChecklistItem> items) async {
+  Future<List<ChecklistItem>> getIncompleteChecklistItems(String userId) async {
     try {
-      await _helper.saveChecklistItems(items);
+      return await _helper.getIncompleteChecklistItems(userId);
     } catch (e) {
-      debugPrint('체크리스트 항목 일괄 저장 중 오류 발생: $e');
-      rethrow;
+      debugPrint('미완료 체크리스트 항목 조회 중 오류 발생: $e');
+      return [];
     }
   }
 
-  // 앱 사용 기록 관련 메서드 구현
+  @override
+  Future<List<ChecklistItem>> getCompletedChecklistItems(String userId) async {
+    try {
+      return await _helper.getCompletedChecklistItems(userId);
+    } catch (e) {
+      debugPrint('완료된 체크리스트 항목 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  // 앱 사용량 관련 메서드
   @override
   Future<int> insertAppUsage(AppUsageModel appUsage) async {
     try {
       return await _helper.insertAppUsage(appUsage);
     } catch (e) {
-      debugPrint('앱 사용 기록 삽입 중 오류 발생: $e');
+      debugPrint('앱 사용 기록 추가 중 오류 발생: $e');
       rethrow;
     }
   }
 
   @override
-  Future<int> insertAppUsageBatch(List<AppUsageModel> appUsages) async {
+  Future<List<AppUsageModel>> getAppUsageByDate(String date, String userId) async {
     try {
-      return await _helper.insertAppUsageBatch(appUsages);
+      return await _helper.getAppUsageByDate(date, userId);
     } catch (e) {
-      debugPrint('앱 사용 기록 일괄 삽입 중 오류 발생: $e');
+      debugPrint('일자별 앱 사용 기록 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<int> deleteAppUsageByDate(String date, String userId) async {
+    try {
+      return await _helper.deleteAppUsageByDate(date, userId);
+    } catch (e) {
+      debugPrint('일자별 앱 사용 기록 삭제 중 오류 발생: $e');
       rethrow;
     }
   }
 
   @override
-  Future<List<AppUsageModel>> getAppUsageForDate(String date) async {
+  Future<int> insertAppUsageBatch(List<AppUsageModel> appUsages, String userId) async {
     try {
-      return await _helper.getAppUsageForDate(date);
+      return await _helper.insertAppUsageBatch(appUsages, userId);
     } catch (e) {
-      debugPrint('특정 날짜 앱 사용 기록 조회 중 오류 발생: $e');
-      return []; // 오류 발생 시 빈 목록 반환
-    }
-  }
-
-  @override
-  Future<AppUsageSummary?> getAppUsageSummaryForDate(String date) async {
-    try {
-      return await _helper.getAppUsageSummaryForDate(date);
-    } catch (e) {
-      debugPrint('특정 날짜 앱 사용 요약 정보 조회 중 오류 발생: $e');
-      return null; // 오류 발생 시 null 반환
-    }
-  }
-
-  @override
-  Future<int> deleteAppUsageForDate(String date) async {
-    try {
-      return await _helper.deleteAppUsageForDate(date);
-    } catch (e) {
-      debugPrint('특정 날짜 앱 사용 기록 삭제 중 오류 발생: $e');
+      debugPrint('앱 사용 기록 일괄 추가 중 오류 발생: $e');
       rethrow;
     }
   }
 
-  // 일정 관련 메서드 구현
+  // 일정 관련 메서드
   @override
   Future<int> insertScheduleItem(ScheduleItem item) async {
     try {
       return await _helper.insertScheduleItem(item);
     } catch (e) {
-      debugPrint('일정 삽입 중 오류 발생: $e');
+      debugPrint('일정 추가 중 오류 발생: $e');
       rethrow;
+    }
+  }
+
+  @override
+  Future<List<ScheduleItem>> getScheduleItemsByDate(String date, String userId) async {
+    try {
+      return await _helper.getScheduleItemsByDate(date, userId);
+    } catch (e) {
+      debugPrint('일자별 일정 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<List<ScheduleItem>> getAllScheduleItems(String userId) async {
+    try {
+      return await _helper.getAllScheduleItems(userId);
+    } catch (e) {
+      debugPrint('전체 일정 조회 중 오류 발생: $e');
+      return [];
     }
   }
 
@@ -217,160 +245,40 @@ class SqfliteDatabase extends AbstractDatabase {
   }
 
   @override
-  Future<List<ScheduleItem>> getScheduleItems() async {
+  Future<int> deleteScheduleItem(String id, String userId) async {  
     try {
-      return await _helper.getScheduleItems();
-    } catch (e) {
-      debugPrint('일정 목록 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  @override
-  Future<List<ScheduleItem>> getScheduleItemsForDate(DateTime date) async {
-    try {
-      return await _helper.getScheduleItemsForDate(date);
-    } catch (e) {
-      debugPrint('특정 날짜 일정 목록 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  @override
-  Future<List<ScheduleItem>> getRoutineScheduleItems() async {
-    try {
-      return await _helper.getRoutineScheduleItems();
-    } catch (e) {
-      debugPrint('루틴 일정 목록 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  @override
-  Future<ScheduleItem?> getScheduleItemById(String id) async {
-    try {
-      return await _helper.getScheduleItemById(id);
-    } catch (e) {
-      debugPrint('특정 ID 일정 조회 중 오류 발생: $e');
-      return null;
-    }
-  }
-
-  @override
-  Future<int> deleteScheduleItem(String id) async {
-    try {
-      return await _helper.deleteScheduleItem(id);
+      return await _helper.deleteScheduleItem(id, userId);
     } catch (e) {
       debugPrint('일정 삭제 중 오류 발생: $e');
       rethrow;
     }
   }
 
+  // 감정 기록 관련 메서드
   @override
-  Future<int> deleteAllScheduleItems() async {
+  Future<int> insertEmotionRecord(EmotionRecord emotion) async {
     try {
-      return await _helper.deleteAllScheduleItems();
+      return await _helper.insertEmotionRecord(emotion);
     } catch (e) {
-      debugPrint('모든 일정 삭제 중 오류 발생: $e');
+      debugPrint('감정 기록 추가 중 오류 발생: $e');
       rethrow;
     }
   }
 
   @override
-  Future<List<ScheduleItem>> getScheduleItemsForRange(
-    DateTime start,
-    DateTime end,
-  ) async {
+  Future<List<EmotionRecord>> getEmotionsByDate(String date, String userId) async {
     try {
-      return await _helper.getScheduleItemsForRange(start, end);
+      return await _helper.getEmotionsByDate(date, userId);
     } catch (e) {
-      debugPrint('기간별 일정 목록 조회 중 오류 발생: $e');
+      debugPrint('일자별 감정 기록 조회 중 오류 발생: $e');
       return [];
     }
   }
 
   @override
-  Future<List<DateTime>> getScheduleDatesForMonth(int year, int month) async {
+  Future<EmotionRecord?> getEmotionByDateAndHour(String date, int hour, String userId) async {
     try {
-      return await _helper.getScheduleDatesForMonth(year, month);
-    } catch (e) {
-      debugPrint('월별 일정 날짜 목록 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  @override
-  Future<bool> hasSchedule() async {
-    try {
-      return await _helper.hasSchedule();
-    } catch (e) {
-      debugPrint('일정 존재 여부 확인 중 오류 발생: $e');
-      return false;
-    }
-  }
-
-  @override
-  Future<int> deleteScheduleItemsInRange(DateTime start, DateTime end) async {
-    try {
-      return await _helper.deleteScheduleItemsInRange(start, end);
-    } catch (e) {
-      debugPrint('기간별 일정 삭제 중 오류 발생: $e');
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> saveScheduleItems(List<ScheduleItem> items) async {
-    try {
-      await _helper.saveScheduleItems(items);
-    } catch (e) {
-      debugPrint('일정 일괄 저장 중 오류 발생: $e');
-      rethrow;
-    }
-  }
-
-  // Emotion Timeline 관련 메서드 구현
-  @override
-  Future<int> addEmotionRecord(EmotionRecord record) async {
-    final db = await database;
-    await db.insert(
-      DatabaseHelper.tableEmotionRecords,
-      record.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-    return 1;
-  }
-
-  @override
-  Future<int> updateEmotionRecord(EmotionRecord record) async {
-    final db = await database;
-    try {
-      return await db.update(
-        DatabaseHelper.tableEmotionRecords, // DatabaseHelper의 상수 사용
-        record.toMap(),
-        where: 'id = ?',
-        whereArgs: [record.id],
-      );
-    } catch (e) {
-      debugPrint('감정 기록 업데이트 중 오류 발생: $e');
-      rethrow;
-    }
-  }
-
-  @override
-  Future<EmotionRecord?> getEmotionRecordForHour(String date, int hour) async {
-    final db = await database;
-    try {
-      final List<Map<String, dynamic>> maps = await db.query(
-        DatabaseHelper.tableEmotionRecords, // DatabaseHelper의 상수 사용
-        where: 'date = ? AND hour = ?',
-        whereArgs: [date, hour],
-        limit: 1,
-      );
-      if (maps.isNotEmpty) {
-        return EmotionRecord.fromMap(maps.first);
-      }
-      return null;
+      return await _helper.getEmotionByDateAndHour(date, hour, userId);
     } catch (e) {
       debugPrint('특정 시간 감정 기록 조회 중 오류 발생: $e');
       return null;
@@ -378,163 +286,126 @@ class SqfliteDatabase extends AbstractDatabase {
   }
 
   @override
-  Future<List<EmotionRecord>> getEmotionRecordsForDay(String date) async {
-    final db = await database;
+  Future<int> updateEmotionRecord(EmotionRecord emotion) async {
     try {
-      final List<Map<String, dynamic>> maps = await db.query(
-        DatabaseHelper.tableEmotionRecords, // DatabaseHelper의 상수 사용
-        where: 'date = ?',
-        whereArgs: [date],
-        orderBy: 'hour ASC', // 시간순으로 정렬
-      );
-      return maps.map((map) => EmotionRecord.fromMap(map)).toList();
+      return await _helper.updateEmotionRecord(emotion);
     } catch (e) {
-      debugPrint('하루 감정 기록 목록 조회 중 오류 발생: $e');
-      return [];
+      debugPrint('감정 기록 업데이트 중 오류 발생: $e');
+      rethrow;
     }
   }
 
   @override
-  Future<int> deleteEmotionRecord(String id) async {
-    final db = await database;
+  Future<int> deleteEmotionRecord(String id, String userId) async {
     try {
-      return await db.delete(
-        DatabaseHelper.tableEmotionRecords, // DatabaseHelper의 상수 사용
-        where: 'id = ?',
-        whereArgs: [id],
-      );
+      return await _helper.deleteEmotionRecord(id, userId);
     } catch (e) {
       debugPrint('감정 기록 삭제 중 오류 발생: $e');
       rethrow;
     }
   }
 
-  // 위치 로그 관련 메서드 구현
+  // 위치 로그 관련 메서드
   @override
-  Future<int> insertLocationLog(Map<String, dynamic> locationLog) async {
+  Future<int> insertLocationLog(LocationModel location) async {
     try {
-      return await _helper.insertLocationLog(locationLog);
+      return await _helper.insertLocationLog(location);
     } catch (e) {
-      debugPrint('위치 로그 삽입 중 오류 발생: $e');
+      debugPrint('위치 로그 추가 중 오류 발생: $e');
       rethrow;
     }
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(
-    String userId,
-    String date,
-  ) async {
+  Future<List<LocationModel>> getLocationLogsByDate(String date, String userId) async {
     try {
-      return await _helper.getLocationLogsForUserAndDate(userId, date);
+      return await _helper.getLocationLogsByDate(date, userId);
     } catch (e) {
-      debugPrint('특정 날짜 위치 로그 조회 중 오류 발생: $e');
+      debugPrint('일자별 위치 로그 조회 중 오류 발생: $e');
       return [];
     }
   }
 
+  // 걸음 수 관련 메서드
   @override
-  Future<List<Map<String, dynamic>>> getLocationLogsForUser(
-    String userId,
-  ) async {
+  Future<int> insertStepCount(StepModel step) async {
     try {
-      return await _helper.getLocationLogsForUser(userId);
+      return await _helper.insertStepCount(step);
     } catch (e) {
-      debugPrint('사용자 위치 로그 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  @override
-  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(
-    String userId,
-  ) async {
-    try {
-      return await _helper.getAllLocationLogsForUser(userId);
-    } catch (e) {
-      debugPrint('사용자 전체 위치 로그 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  @override
-  Future<int> deleteAllLocationLogsForUser(String userId) async {
-    try {
-      return await _helper.deleteAllLocationLogsForUser(userId);
-    } catch (e) {
-      debugPrint('사용자 위치 로그 전체 삭제 중 오류 발생: $e');
-      return 0;
-    }
-  }
-
-  @override
-  Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
-    String userId,
-    DateTime start,
-    DateTime end,
-  ) async {
-    try {
-      return await _helper.getLocationLogsForUserInRange(userId, start, end);
-    } catch (e) {
-      debugPrint('날짜 범위 위치 로그 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  @override
-  Future<int> deleteLocationLogsInRange(
-    String userId,
-    DateTime start,
-    DateTime end,
-  ) async {
-    try {
-      return await _helper.deleteLocationLogsInRange(userId, start, end);
-    } catch (e) {
-      debugPrint('위치 로그 삭제 중 오류 발생: $e');
-      return 0;
-    }
-  }
-
-  // 동기화 대기열 관련 메서드 구현
-  @override
-  Future<int> insertPendingSyncLocation(
-    Map<String, dynamic> locationLog,
-  ) async {
-    try {
-      return await _helper.insertPendingSyncLocation(locationLog);
-    } catch (e) {
-      debugPrint('동기화 대기열 추가 중 오류 발생: $e');
+      debugPrint('걸음 수 기록 추가 중 오류 발생: $e');
       rethrow;
     }
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getPendingSyncLocations() async {
+  Future<StepModel?> getStepsByDate(String date, String userId) async {
     try {
-      return await _helper.getPendingSyncLocations();
+      return await _helper.getStepsByDate(date, userId);
     } catch (e) {
-      debugPrint('동기화 대기열 조회 중 오류 발생: $e');
+      debugPrint('일자별 걸음 수 조회 중 오류 발생: $e');
+      return null;
+    }
+  }
+
+  // 사진 관련 메서드
+  @override
+  Future<int> insertPhoto(int diaryId, String path, String userId) async {
+    try {
+      return await _helper.insertPhoto(diaryId, path, userId);
+    } catch (e) {
+      debugPrint('사진 추가 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<String>> getPhotosByDiaryId(int diaryId) async {
+    try {
+      return await _helper.getPhotosByDiaryId(diaryId);
+    } catch (e) {
+      debugPrint('일기 사진 조회 중 오류 발생: $e');
       return [];
     }
   }
 
   @override
-  Future<int> removePendingSyncLocation(String locationId) async {
+  Future<int> deletePhoto(int id, String userId) async {
     try {
-      return await _helper.removePendingSyncLocation(locationId);
+      return await _helper.deletePhoto(id, userId);
     } catch (e) {
-      debugPrint('동기화 대기열 제거 중 오류 발생: $e');
-      return 0;
+      debugPrint('사진 삭제 중 오류 발생: $e');
+      rethrow;
     }
   }
 
   @override
-  Future<int> clearPendingSyncQueue() async {
+  Future<int> deleteAllPhotosForDiary(int diaryId, String userId) async {
     try {
-      return await _helper.clearPendingSyncQueue();
+      return await _helper.deleteAllPhotosForDiary(diaryId, userId);
     } catch (e) {
-      debugPrint('동기화 대기열 초기화 중 오류 발생: $e');
-      return 0;
+      debugPrint('일기 사진 전체 삭제 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  // 동기화 관련 메서드
+  @override
+  Future<int> updateSyncStatus(String table, dynamic id, bool isSynced) async {
+    try {
+      return await _helper.updateSyncStatus(table, id, isSynced);
+    } catch (e) {
+      debugPrint('동기화 상태 업데이트 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getUnsyncedItems(String table) async {
+    try {
+      return await _helper.getUnsyncedItems(table);
+    } catch (e) {
+      debugPrint('미동기화 항목 조회 중 오류 발생: $e');
+      return [];
     }
   }
 }

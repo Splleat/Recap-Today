@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:recap_today/model/schedule_item.dart';
+import 'package:recap_today/model/freezed/schedule_item.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:recap_today/widget/planner/timetable.dart';
 

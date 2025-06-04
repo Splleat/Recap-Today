@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:recap_today/model/emotion_model.dart';
-import 'package:recap_today/repository/abstract_emotion_repository.dart';
+import 'package:recap_today/data/sqflite_database.dart';
+import 'package:recap_today/model/freezed/emotion_model.dart';
 import 'package:intl/intl.dart'; // For date formatting
 
 // Define a mapping for emotions to numerical values, colors, and icons
@@ -39,7 +39,7 @@ class HourlyEmotionLogger extends StatefulWidget {
 }
 
 class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
-  late AbstractEmotionRepository _emotionRepository;
+  late SqfliteDatabase _emotionRepository;
   late DateTime _selectedDate;
   Map<int, EmotionRecord?> _hourlyEmotions = {};
   bool _isLoading = true;
@@ -49,7 +49,7 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
   @override
   void initState() {
     super.initState();
-    _emotionRepository = Provider.of<AbstractEmotionRepository>(
+    _emotionRepository = Provider.of<SqfliteDatabase>(
       context,
       listen: false,
     );
@@ -100,8 +100,9 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
     });
     try {
       final String dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
-      final records = await _emotionRepository.getEmotionRecordsForDay(
+      final records = await _emotionRepository.getEmotionsByDate(
         dateString,
+        'userId', // Add userId parameter
       );
       final Map<int, EmotionRecord?> newHourlyEmotions = {};
       for (int i = 0; i < 24; i++) {
@@ -230,6 +231,7 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
       final String dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
       if (result['action'] == 'save') {
         final newRecord = EmotionRecord(
+          userId: 'userId',
           id: currentRecord?.id,
           date: dateString,
           hour: hour,
@@ -240,7 +242,7 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
           if (currentRecord?.id != null) {
             await _emotionRepository.updateEmotionRecord(newRecord);
           } else {
-            await _emotionRepository.addEmotionRecord(newRecord);
+            await _emotionRepository.insertEmotionRecord(newRecord);
           }
           _loadEmotionData();
         } catch (e) {
@@ -252,7 +254,10 @@ class _HourlyEmotionLoggerState extends State<HourlyEmotionLogger> {
         }
       } else if (result['action'] == 'delete' && result['id'] != null) {
         try {
-          await _emotionRepository.deleteEmotionRecord(result['id']! as String);
+          await _emotionRepository.deleteEmotionRecord(
+            result['id']! as String,
+            'userId', // Add userId parameter
+          );
           _loadEmotionData();
         } catch (e) {
           if (mounted) {
@@ -391,7 +396,7 @@ class HourlyEmotionTimelineDrawer extends StatefulWidget {
 
 class _HourlyEmotionTimelineDrawerState
     extends State<HourlyEmotionTimelineDrawer> {
-  late AbstractEmotionRepository _emotionRepository;
+  late SqfliteDatabase _emotionRepository;
   Map<int, EmotionRecord?> _hourlyEmotions = {};
   bool _isLoading = true;
   final List<String> _emotionTypes = emotionDetailsConfig.keys.toList();
@@ -399,7 +404,7 @@ class _HourlyEmotionTimelineDrawerState
   @override
   void initState() {
     super.initState();
-    _emotionRepository = Provider.of<AbstractEmotionRepository>(
+    _emotionRepository = Provider.of<SqfliteDatabase>(
       context,
       listen: false,
     );
@@ -424,8 +429,9 @@ class _HourlyEmotionTimelineDrawerState
     });
     try {
       final String dateString = DateFormat('yyyy-MM-dd').format(widget.date);
-      final records = await _emotionRepository.getEmotionRecordsForDay(
+      final records = await _emotionRepository.getEmotionsByDate(
         dateString,
+        'userId', // Add userId parameter
       );
       final Map<int, EmotionRecord?> newHourlyEmotions = {};
       for (int i = 0; i < 24; i++) {
@@ -555,6 +561,7 @@ class _HourlyEmotionTimelineDrawerState
       if (result['action'] == 'save') {
         final newRecord = EmotionRecord(
           id: currentRecord?.id,
+          userId: 'userId',
           date: dateString,
           hour: hour,
           emotionType: result['emotionType']!,
@@ -564,7 +571,7 @@ class _HourlyEmotionTimelineDrawerState
           if (currentRecord?.id != null) {
             await _emotionRepository.updateEmotionRecord(newRecord);
           } else {
-            await _emotionRepository.addEmotionRecord(newRecord);
+            await _emotionRepository.insertEmotionRecord(newRecord);
           }
           _loadEmotionData();
         } catch (e) {
@@ -576,7 +583,10 @@ class _HourlyEmotionTimelineDrawerState
         }
       } else if (result['action'] == 'delete' && result['id'] != null) {
         try {
-          await _emotionRepository.deleteEmotionRecord(result['id']! as String);
+          await _emotionRepository.deleteEmotionRecord(
+            result['id']! as String,
+            'userId', // Add userId parameter
+          );
           _loadEmotionData();
         } catch (e) {
           if (mounted) {

@@ -1,6 +1,6 @@
 import 'dio_client.dart';
 import '../model/full_weather_model.dart';
-import 'package:recap_today/service/current_location_service.dart';
+import 'package:recap_today/service/current_location.dart';
 
 class WeatherService {
   Future<List<FullWeather>> fetchFullWeather() async {

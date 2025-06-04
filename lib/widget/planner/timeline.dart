@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:recap_today/model/schedule_item.dart';
+import 'package:recap_today/model/freezed/schedule_item.dart';
 import 'package:recap_today/utils/time_util.dart';
 import 'package:recap_today/widget/planner/timetable.dart';
 import 'package:table_calendar/table_calendar.dart';

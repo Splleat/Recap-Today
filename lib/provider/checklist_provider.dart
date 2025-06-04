@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:recap_today/model/checklist_item.dart';
+import 'package:recap_today/model/freezed/checklist_item.dart';
 import 'package:collection/collection.dart';
-import 'package:recap_today/data/database_helper.dart';
+import 'package:recap_today/data/sqflite_database.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:recap_today/provider/login_provider.dart';
 
 /// 체크리스트 항목을 관리하는 Provider 클래스
 /// 앱 전체에서 체크리스트 상태를 관리하고 데이터베이스와 동기화합니다.
 class ChecklistProvider extends ChangeNotifier {
   final List<ChecklistItem> _items = [];
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  final SqfliteDatabase _database = SqfliteDatabase();
   bool _isLoaded = false;
   bool _isBusy = false; // 데이터베이스 작업 중 상태를 추적하는 플래그
+  String _userId = 'default_user'; // 기본값 설정
 
   // 캐싱을 위한 변수들
   DateTime? _lastRefreshTime;
   List<ChecklistItem>? _cachedTodayCompletedItems;
   String _todayDateString = '';
+  Map<String, List<ChecklistItem>> _dateCache = {};
 
   // 생성자
   ChecklistProvider() {
@@ -23,15 +27,34 @@ class ChecklistProvider extends ChangeNotifier {
     _loadItems();
   }
 
+  // LoginProvider에서 userId 설정
+  void setUserId(String userId) {
+    if (_userId != userId) {
+      _userId = userId;
+      _isLoaded = false; // userId가 변경되면 데이터 다시 로드
+      _invalidateCache(); // 캐시 초기화
+      _loadItems(); // 새 userId로 아이템 로드
+    }
+  }
+
   // Getter 메서드들
-  List<ChecklistItem> get items => List.unmodifiable(_items); // 불변 리스트 반환으로 변경
+  List<ChecklistItem> get items => List.unmodifiable(_items); // 불변 리스트 반환
   bool get isLoading => !_isLoaded;
+  String get userId => _userId;
 
   /// 특정 날짜에 완료된 항목들을 반환하는 메서드
   List<ChecklistItem> getCompletedItemsForDate(DateTime date) {
+    // 캐시 키 생성
+    final dateString = DateFormat('yyyy-MM-dd').format(date);
+    
+    // 캐시에 해당 날짜 데이터가 있으면 반환
+    if (_dateCache.containsKey(dateString)) {
+      return _dateCache[dateString]!;
+    }
+    
     // 날짜만 비교하기 위해 시간, 분, 초를 0으로 설정
     final targetDay = DateTime(date.year, date.month, date.day);
-    return _items.where((item) {
+    final result = _items.where((item) {
       if (!item.isChecked || item.completedDate == null) {
         return false;
       }
@@ -42,6 +65,10 @@ class ChecklistProvider extends ChangeNotifier {
       );
       return completedDay.isAtSameMomentAs(targetDay);
     }).toList();
+    
+    // 결과를 캐시에 저장
+    _dateCache[dateString] = result;
+    return result;
   }
 
   // 오늘 날짜 문자열 업데이트
@@ -56,8 +83,8 @@ class ChecklistProvider extends ChangeNotifier {
     try {
       _isBusy = true;
       // 데이터베이스에서 체크리스트 아이템 불러오기
-      final List<ChecklistItem> loadedItems =
-          await _dbHelper.getChecklistItems();
+      final List<ChecklistItem> loadedItems = 
+          await _database.getAllChecklistItems(_userId);
 
       _items.clear();
       // 데이터베이스에서 불러온 아이템으로 목록 업데이트
@@ -77,23 +104,11 @@ class ChecklistProvider extends ChangeNotifier {
     }
   }
 
-  /// 모든 아이템을 데이터베이스에 일괄 저장 (배치 처리 사용)
-  Future<void> _saveAllItems() async {
-    if (_items.isEmpty) return;
-
-    try {
-      // 개선된 일괄 저장 메서드 사용
-      await _dbHelper.saveChecklistItems(List<ChecklistItem>.from(_items));
-      _invalidateCache();
-    } catch (e) {
-      debugPrint('체크리스트 아이템 일괄 저장 중 오류 발생: $e');
-    }
-  }
-
   /// 캐시 무효화 처리
   void _invalidateCache() {
     _cachedTodayCompletedItems = null;
     _lastRefreshTime = null;
+    _dateCache.clear();
     _updateTodayDateString();
   }
 
@@ -108,21 +123,19 @@ class ChecklistProvider extends ChangeNotifier {
   /// 새로운 아이템 추가
   Future<void> addItem(ChecklistItem item) async {
     if (_isBusy) return;
-
-    _items.add(item);
+    
+    // userId 설정 확인
+    final updatedItem = item.copyWith(userId: _userId);
+    
+    _items.add(updatedItem);
     _sortItems();
     _invalidateCache();
     notifyListeners();
 
     // 데이터베이스에 저장
-    try {
-      _isBusy = true;
-      await _dbHelper.insertChecklistItem(item);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 추가 중 오류 발생: $e');
-    } finally {
-      _isBusy = false;
-    }
+    _isBusy = true;
+    await _database.insertChecklistItem(updatedItem);
+    _isBusy = false;
   }
 
   /// 아이템 체크 상태 토글
@@ -130,111 +143,50 @@ class ChecklistProvider extends ChangeNotifier {
     final index = _findIndexById(id);
     if (index == -1 || _isBusy) return;
 
-    _items[index].isChecked = isChecked;
-
-    // 체크 상태 변경 시 completedDate 업데이트
-    if (isChecked) {
-      _items[index].completedDate = DateTime.now();
-    } else {
-      _items[index].completedDate = null;
-    }
-
+    final updatedItem = _items[index].copyWith(
+      isChecked: isChecked,
+      completedDate: isChecked ? DateTime.now() : null,
+    );
+    
+    _items[index] = updatedItem;
     _sortItems();
     _invalidateCache();
     notifyListeners();
 
     // 데이터베이스 업데이트
-    try {
-      _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 상태 업데이트 중 오류 발생: $e');
-      // 실패 시 상태 롤백
-      _items[index].isChecked = !isChecked;
-      _sortItems();
-      notifyListeners();
-    } finally {
-      _isBusy = false;
-    }
+    _isBusy = true;
+    await _database.updateChecklistItem(updatedItem);
+    _isBusy = false;
   }
 
-  /// 아이템 텍스트 업데이트
-  Future<void> updateItemText(String id, String newText) async {
-    if (newText.isEmpty || _isBusy) return; // 빈 텍스트 허용 안함
-
-    final index = _findIndexById(id);
-    if (index == -1) return;
-
-    final oldText = _items[index].text;
-    _items[index].text = newText;
-    _sortItems();
-    notifyListeners();
-
-    // 데이터베이스 업데이트
-    try {
-      _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 텍스트 업데이트 중 오류 발생: $e');
-      // 실패 시 상태 롤백
-      _items[index].text = oldText;
-      _sortItems();
-      notifyListeners();
-    } finally {
-      _isBusy = false;
-    }
-  }
-
-  /// 아이템 세부 내용 업데이트
-  Future<void> updateItemSubtext(String id, String newSubtext) async {
+  /// 아이템 업데이트 통합 메서드 (텍스트, 세부내용, 마감일 등)
+  Future<void> updateItem(String id, {String? text, String? subtext, DateTime? dueDate}) async {
     if (_isBusy) return;
+    if (text != null && text.isEmpty) return; // 빈 텍스트 허용 안함
 
     final index = _findIndexById(id);
     if (index == -1) return;
 
-    final oldSubtext = _items[index].subtext;
-    _items[index].subtext = newSubtext;
-    notifyListeners();
-
-    // 데이터베이스 업데이트
-    try {
-      _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 세부 내용 업데이트 중 오류 발생: $e');
-      // 실패 시 상태 롤백
-      _items[index].subtext = oldSubtext;
-      notifyListeners();
-    } finally {
-      _isBusy = false;
-    }
-  }
-
-  /// 아이템 마감일 업데이트
-  Future<void> updateItemDueDate(String id, DateTime? newDueDate) async {
-    if (_isBusy) return;
-
-    final index = _findIndexById(id);
-    if (index == -1) return;
-
-    final oldDueDate = _items[index].dueDate;
-    _items[index].dueDate = newDueDate;
-    _sortItems();
-    notifyListeners();
-
-    // 데이터베이스 업데이트
-    try {
-      _isBusy = true;
-      await _dbHelper.updateChecklistItem(_items[index]);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 마감일 업데이트 중 오류 발생: $e');
-      // 실패 시 상태 롤백
-      _items[index].dueDate = oldDueDate;
+    // freezed 모델의 copyWith 사용하여 필요한 필드만 업데이트
+    final updatedItem = _items[index].copyWith(
+      text: text ?? _items[index].text,
+      subtext: subtext ?? _items[index].subtext,
+      dueDate: dueDate != null ? dueDate : _items[index].dueDate,
+    );
+    
+    _items[index] = updatedItem;
+    
+    // 텍스트나 마감일이 변경된 경우에만 정렬
+    if (text != null || dueDate != null) {
       _sortItems();
-      notifyListeners();
-    } finally {
-      _isBusy = false;
     }
+    
+    notifyListeners();
+
+    // 데이터베이스 업데이트
+    _isBusy = true;
+    await _database.updateChecklistItem(updatedItem);
+    _isBusy = false;
   }
 
   /// 아이템 삭제
@@ -244,22 +196,14 @@ class ChecklistProvider extends ChangeNotifier {
     final index = _findIndexById(id);
     if (index == -1) return;
 
-    final deletedItem = _items[index];
     _items.removeAt(index);
+    _invalidateCache();
     notifyListeners();
 
     // 데이터베이스에서 삭제
-    try {
-      _isBusy = true;
-      await _dbHelper.deleteChecklistItem(id);
-    } catch (e) {
-      debugPrint('체크리스트 아이템 삭제 중 오류 발생: $e');
-      // 실패 시 상태 롤백
-      _items.insert(index, deletedItem);
-      notifyListeners();
-    } finally {
-      _isBusy = false;
-    }
+    _isBusy = true;
+    await _database.deleteChecklistItem(id, userId);
+    _isBusy = false;
   }
 
   /// 내부 정렬 함수
@@ -293,34 +237,7 @@ class ChecklistProvider extends ChangeNotifier {
     await _loadItems();
   }
 
-  /// 여러 항목 동시에 상태 변경 (일괄 처리)
-  Future<void> toggleMultipleItems(List<String> ids, bool isChecked) async {
-    if (ids.isEmpty || _isBusy) return;
-
-    // 메모리 내 상태 업데이트
-    for (final id in ids) {
-      final index = _findIndexById(id);
-      if (index != -1) {
-        _items[index].isChecked = isChecked;
-      }
-    }
-
-    _sortItems();
-    notifyListeners();
-
-    // 모든 변경사항 저장
-    try {
-      _isBusy = true;
-      await _saveAllItems();
-    } catch (e) {
-      debugPrint('여러 항목 상태 변경 중 오류 발생: $e');
-      await refreshItems(); // 오류 발생 시 데이터베이스에서 다시 로드
-    } finally {
-      _isBusy = false;
-    }
-  }
-
-  /// 완료된 항목들(체크 표시된 항목들)을 모두 제거하고 데이터베이스에는 저장
+  /// 완료된 항목들(체크 표시된 항목들)을 모두 제거
   Future<void> clearCompletedItems() async {
     if (_isBusy) return;
 
@@ -340,7 +257,9 @@ class ChecklistProvider extends ChangeNotifier {
     // 데이터베이스 업데이트
     try {
       _isBusy = true;
-      await _saveAllItems();
+      for (final item in completedItems) {
+        await _database.deleteChecklistItem(item.id, userId);
+      }
     } catch (e) {
       debugPrint('완료된 항목 제거 중 오류 발생: $e');
       // 오류 발생 시 제거된 항목 복원
@@ -353,13 +272,41 @@ class ChecklistProvider extends ChangeNotifier {
   }
 
   /// 특정 날짜에 완료된 항목들만 가져오기
-  List<ChecklistItem> getCompletedItemsByDate(DateTime date) {
-    final String dateString = DateFormat('yyyy-MM-dd').format(date);
+  Future<List<ChecklistItem>> getCompletedItemsByDate(String date) async {
+    try {
+      return await _database.getChecklistItemsByCompletedDate(date, _userId);
+    } catch (e) {
+      debugPrint('날짜별 완료된 항목 조회 중 오류 발생: $e');
+      
+      // 메모리에서 필터링
+      final targetDate = date;
+      return _items.where((item) {
+        if (!item.isChecked || item.completedDate == null) return false;
+        return DateFormat('yyyy-MM-dd').format(item.completedDate!) == targetDate;
+      }).toList();
+    }
+  }
 
-    return _items.where((item) {
-      if (item.completedDate == null) return false;
-      return DateFormat('yyyy-MM-dd').format(item.completedDate!) == dateString;
-    }).toList();
+  /// 미완료된 항목들만 가져오기
+  Future<List<ChecklistItem>> getIncompleteItems() async {
+    try {
+      return await _database.getIncompleteChecklistItems(_userId);
+    } catch (e) {
+      debugPrint('미완료 항목 조회 중 오류 발생: $e');
+      // 메모리에서 필터링
+      return _items.where((item) => !item.isChecked).toList();
+    }
+  }
+
+  /// 완료된 항목들만 가져오기
+  Future<List<ChecklistItem>> getCompletedItems() async {
+    try {
+      return await _database.getCompletedChecklistItems(_userId);
+    } catch (e) {
+      debugPrint('완료된 항목 조회 중 오류 발생: $e');
+      // 메모리에서 필터링
+      return _items.where((item) => item.isChecked).toList();
+    }
   }
 
   /// 오늘 완료된 항목들만 가져오기 (캐싱 최적화)
@@ -380,13 +327,16 @@ class ChecklistProvider extends ChangeNotifier {
       }
     }
 
-    // 오늘 완료된 항목 계산
-    _cachedTodayCompletedItems =
-        _items
-            .where((item) => item.isChecked && item.isCompletedToday)
-            .toList();
-    _lastRefreshTime = now;
+    // 오늘 날짜 문자열
+    final todayString = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
+    // 오늘 완료된 항목 계산
+    _cachedTodayCompletedItems = _items.where((item) {
+      if (!item.isChecked || item.completedDate == null) return false;
+      return DateFormat('yyyy-MM-dd').format(item.completedDate!) == todayString;
+    }).toList();
+    
+    _lastRefreshTime = now;
     return _cachedTodayCompletedItems!;
   }
 }

@@ -1,22 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 
 import 'package:recap_today/model/user_credential.dart';
 import 'package:recap_today/model/user_model.dart';
 import 'package:recap_today/repository/auth_repository.dart';
-import 'package:recap_today/api/location_service.dart';
 
 final class AuthRepositoryImpl implements AuthRepository {
   final Dio dio;
   final SharedPreferences sharedPreferences;
-  final LocationService? _locationService;
 
   late String? _token = sharedPreferences.getString('token');
 
-  AuthRepositoryImpl(this.dio, this.sharedPreferences, [this._locationService]);
+  AuthRepositoryImpl(this.dio, this.sharedPreferences);
 
   @override
   Future<UserCredential> login(String userId, String password) async {
@@ -30,45 +27,7 @@ final class AuthRepositoryImpl implements AuthRepository {
     // 로그인 성공 시 토큰 저장
     setToken(userCredential.accessToken);
 
-    // 로컬 사용자 데이터 마이그레이션 실행
-    if (_locationService != null) {
-      _migrateLocalDataInBackground(userId);
-    }
-
     return userCredential;
-  }
-
-  /// 백그라운드에서 로컬 사용자 데이터를 실제 사용자로 마이그레이션
-  Future<void> _migrateLocalDataInBackground(String realUserId) async {
-    try {
-      final locationService = _locationService;
-      if (locationService == null) return;
-
-      // 로컬 데이터 존재 여부 확인
-      final hasLocalData = await locationService.hasLocalUserData();
-      if (!hasLocalData) {
-        developer.log('마이그레이션할 로컬 데이터가 없습니다.', name: 'AuthRepository');
-        return;
-      }
-
-      developer.log(
-        '로그인 후 로컬 데이터 마이그레이션 시작: $realUserId',
-        name: 'AuthRepository',
-      );
-
-      // 백그라운드에서 마이그레이션 실행
-      final success = await locationService.migrateLocalUserDataToRealUser(
-        realUserId,
-      );
-
-      if (success) {
-        developer.log('로컬 데이터 마이그레이션 완료', name: 'AuthRepository');
-      } else {
-        developer.log('로컬 데이터 마이그레이션 실패', name: 'AuthRepository');
-      }
-    } catch (e) {
-      developer.log('마이그레이션 중 오류 발생: $e', name: 'AuthRepository');
-    }
   }
 
   @override

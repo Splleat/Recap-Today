@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Add Provider import
 import 'package:recap_today/provider/diary_provider.dart'; // Add DiaryProvider import
-import 'package:recap_today/model/diary_model.dart'; // Add DiaryModel import
+import 'package:recap_today/model/freezed/diary_model.dart'; // Add DiaryModel import
 import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/widget/calendar.dart';
 import 'package:recap_today/router.dart'; // Add this import

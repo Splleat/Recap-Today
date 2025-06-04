@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:recap_today/data/abstract_database.dart';
-import 'package:recap_today/model/app_usage_model.dart';
+import 'package:recap_today/model/freezed/app_usage_model.dart';
 import 'package:recap_today/service/app_usage_service.dart';
 
 class AppUsage extends StatefulWidget {
@@ -56,6 +56,7 @@ class _AppUsageState extends State<AppUsage> {
   }
 
   Future<void> _checkPermissionAndLoadData() async {
+    final userId = 'userId'; // Replace with actual user ID logic
     if (!mounted) return;
 
     setState(() {
@@ -70,7 +71,7 @@ class _AppUsageState extends State<AppUsage> {
         if (_hasPermission) {
           // 캐시된 데이터 먼저 로드
           final storedSummary = await _appUsageService
-              .getAppUsageSummaryForDate(_displayedDateString);
+              .getAppUsageSummaryForDate(_displayedDateString, userId);
 
           // UI 빠르게 업데이트
           if (storedSummary != null && mounted) {
@@ -119,6 +120,8 @@ class _AppUsageState extends State<AppUsage> {
   }
 
   Future<void> _refreshDataInBackground() async {
+    final userId = 'userId';
+
     if (!Platform.isAndroid || !_hasPermission || !mounted) return;
 
     // This method currently fetches for "today".
@@ -127,7 +130,7 @@ class _AppUsageState extends State<AppUsage> {
     if (!_isDateToday) return; // Guard if called inappropriately
 
     try {
-      final latest = await _appUsageService.getTodayAppUsage();
+      final latest = await _appUsageService.getTodayAppUsage(userId);
 
       if (mounted && latest != null) {
         setState(() {
@@ -148,6 +151,7 @@ class _AppUsageState extends State<AppUsage> {
   }
 
   Future<void> _refreshData() async {
+    final userId = 'userId';
     if (!Platform.isAndroid || !_hasPermission || _isRefreshing) return;
 
     // If not for today, and service doesn't support refreshing past dates,
@@ -170,7 +174,7 @@ class _AppUsageState extends State<AppUsage> {
     try {
       // This fetches for "today". If _isDateToday is false, this is incorrect.
       // This function should ideally call a service method that fetches for _displayedDate.
-      final latest = await _appUsageService.getTodayAppUsage();
+      final latest = await _appUsageService.getTodayAppUsage(userId);
 
       if (mounted) {
         setState(() {

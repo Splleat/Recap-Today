@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:recap_today/data/abstract_database.dart';
-import 'package:recap_today/model/app_usage_model.dart';
+import 'package:recap_today/model/freezed/app_usage_model.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// 직접 구현한 앱 사용 통계 서비스
@@ -48,7 +48,7 @@ class AppUsageService {
   }
 
   /// 오늘의 앱 사용 통계 가져오기
-  Future<AppUsageSummary?> getTodayAppUsage() async {
+  Future<AppUsageSummary?> getTodayAppUsage(String userId) async {
     // 안드로이드에서만 작동
     if (!Platform.isAndroid) return null;
 
@@ -94,6 +94,7 @@ class AppUsageService {
 
             appUsageList.add(
               AppUsageModel(
+                userId: 'userId',
                 date: dateStr,
                 packageName: packageName,
                 appName: appName,
@@ -116,12 +117,13 @@ class AppUsageService {
 
       // 데이터베이스에 저장
       if (topApps.isNotEmpty) {
-        await _database.deleteAppUsageForDate(dateStr);
-        await _database.insertAppUsageBatch(topApps);
+        await _database.deleteAppUsageByDate(dateStr, userId);
+        await _database.insertAppUsageBatch(topApps, userId);
       }
 
       // 요약 정보 반환
       return AppUsageSummary(
+        userId: userId,
         date: dateStr,
         totalUsageTimeInMillis: totalUsageTime,
         topApps: topApps.take(3).toList(),
@@ -133,8 +135,19 @@ class AppUsageService {
   }
 
   /// 특정 날짜의 앱 사용 요약 정보 조회
-  Future<AppUsageSummary?> getAppUsageSummaryForDate(String date) async {
-    return _database.getAppUsageSummaryForDate(date);
+  Future<AppUsageSummary?> getAppUsageSummaryForDate(String date, String userId) async {
+    final List<AppUsageModel> appUsageList = await _database.getAppUsageByDate(date, userId);
+    if (appUsageList.isEmpty) {
+      return null;
+    }
+    int totalUsageTime = appUsageList.fold(0, (sum, item) => sum + item.usageTimeInMillis);
+    final topApps = appUsageList.take(3).toList();
+    return AppUsageSummary(
+      userId: userId,
+      date: date,
+      totalUsageTimeInMillis: totalUsageTime,
+      topApps: topApps,
+    );
   }
 
   /// 사용 시간을 포맷팅하여 반환

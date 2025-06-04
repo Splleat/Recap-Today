@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
-import 'package:recap_today/model/schedule_item.dart';
+import 'package:recap_today/model/freezed/schedule_item.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
@@ -176,6 +176,7 @@ class _ScheduleAddFormState extends State<ScheduleAddForm> {
 
       final scheduleData = ScheduleItem(
         id: _isEditMode ? widget.initialItem!.id : const Uuid().v4(),
+        userId: 'userId', // Replace with actual user ID
         text: _titleController.text,
         subText:
             _subTextController.text.isNotEmpty ? _subTextController.text : null,

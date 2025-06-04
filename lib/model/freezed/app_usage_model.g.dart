@@ -14,6 +14,8 @@ _AppUsageModel _$AppUsageModelFromJson(Map<String, dynamic> json) =>
       appName: json['appName'] as String,
       usageTimeInMillis: (json['usageTimeInMillis'] as num).toInt(),
       appIconPath: json['appIconPath'] as String?,
+      userId: json['userId'] as String,
+      isSynced: json['isSynced'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$AppUsageModelToJson(_AppUsageModel instance) =>
@@ -24,6 +26,8 @@ Map<String, dynamic> _$AppUsageModelToJson(_AppUsageModel instance) =>
       'appName': instance.appName,
       'usageTimeInMillis': instance.usageTimeInMillis,
       'appIconPath': instance.appIconPath,
+      'userId': instance.userId,
+      'isSynced': instance.isSynced,
     };
 
 _AppUsageSummary _$AppUsageSummaryFromJson(Map<String, dynamic> json) =>
@@ -34,6 +38,8 @@ _AppUsageSummary _$AppUsageSummaryFromJson(Map<String, dynamic> json) =>
           (json['topApps'] as List<dynamic>)
               .map((e) => AppUsageModel.fromJson(e as Map<String, dynamic>))
               .toList(),
+      userId: json['userId'] as String,
+      isSynced: json['isSynced'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$AppUsageSummaryToJson(_AppUsageSummary instance) =>
@@ -41,4 +47,6 @@ Map<String, dynamic> _$AppUsageSummaryToJson(_AppUsageSummary instance) =>
       'date': instance.date,
       'totalUsageTimeInMillis': instance.totalUsageTimeInMillis,
       'topApps': instance.topApps,
+      'userId': instance.userId,
+      'isSynced': instance.isSynced,
     };

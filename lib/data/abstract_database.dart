@@ -1,98 +1,77 @@
 // abstract_database.dart
-import 'package:recap_today/model/diary_model.dart';
-import 'package:recap_today/model/checklist_item.dart';
-import 'package:recap_today/model/app_usage_model.dart';
-import 'package:recap_today/model/emotion_model.dart'; // EmotionRecord 모델 import 추가
-import 'package:recap_today/model/schedule_item.dart';
+import 'package:recap_today/model/freezed/diary_model.dart';
+import 'package:recap_today/model/freezed/checklist_item.dart';
+import 'package:recap_today/model/freezed/app_usage_model.dart';
+import 'package:recap_today/model/freezed/emotion_model.dart';
+import 'package:recap_today/model/freezed/schedule_item.dart';
+import 'package:recap_today/model/freezed/location_model.dart';
+import 'package:recap_today/model/freezed/step_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// 데이터베이스 접근을 위한 추상 인터페이스
 /// 다양한 데이터베이스 구현체를 일관적으로 사용할 수 있도록 정의합니다.
 abstract class AbstractDatabase {
-  // 데이터베이스 인스턴스 getter 추가
+  // 데이터베이스 인스턴스 및 기본 작업
   Future<Database> get database;
-
-  // 일기 관련 메서드
+  Future close();
+  
+  // 일기 관련 메소드
   Future<int> insertDiary(DiaryModel diary);
+  Future<DiaryModel?> getDiaryByDate(String date, String userId);
+  Future<List<DiaryModel>> getAllDiaries(String userId);
   Future<int> updateDiary(DiaryModel diary);
-  Future<List<DiaryModel>> getDiaries();
-  Future<DiaryModel?> getDiaryForDate(String date);
+  Future<int> deleteDiary(int id, String userId);
   Future<Map<String, dynamic>> searchDiaries(
-    String query, {
+    String query,
+    String userId, {
     int? limit,
     int? offset,
-  }); // New signature with limit and offset
-
-  // 체크리스트 관련 메서드
+  });
+  
+  // 체크리스트 관련 메소드
   Future<int> insertChecklistItem(ChecklistItem item);
+  Future<List<ChecklistItem>> getAllChecklistItems(String userId);
   Future<int> updateChecklistItem(ChecklistItem item);
-  Future<List<ChecklistItem>> getChecklistItems();
-  Future<ChecklistItem?> getChecklistItemById(String id);
-  Future<int> deleteChecklistItem(String id);
-  Future<int> deleteAllChecklistItems();
-  Future<void> saveChecklistItems(List<ChecklistItem> items);
-
-  // 앱 사용 기록 관련 메서드
+  Future<int> deleteChecklistItem(String id, String userId);
+  Future<List<ChecklistItem>> getChecklistItemsByCompletedDate(String date, String userId);
+  Future<List<ChecklistItem>> getIncompleteChecklistItems(String userId);
+  Future<List<ChecklistItem>> getCompletedChecklistItems(String userId);
+  
+  // 앱 사용량 관련 메소드
   Future<int> insertAppUsage(AppUsageModel appUsage);
-  Future<int> insertAppUsageBatch(List<AppUsageModel> appUsages);
-  Future<List<AppUsageModel>> getAppUsageForDate(String date);
-  Future<AppUsageSummary?> getAppUsageSummaryForDate(String date);
-  Future<int> deleteAppUsageForDate(String date);
+  Future<List<AppUsageModel>> getAppUsageByDate(String date, String userId);
+  Future<int> deleteAppUsageByDate(String date, String userId);
+  Future<int> insertAppUsageBatch(List<AppUsageModel> appUsages, String userId);
 
-  // 일정 관련 메서드
+  // 일정 관련 메소드
   Future<int> insertScheduleItem(ScheduleItem item);
+  Future<List<ScheduleItem>> getScheduleItemsByDate(String date, String userId);
+  Future<List<ScheduleItem>> getAllScheduleItems(String userId);
   Future<int> updateScheduleItem(ScheduleItem item);
-  Future<List<ScheduleItem>> getScheduleItems();
-  Future<List<ScheduleItem>> getScheduleItemsForDate(DateTime date);
-  Future<List<ScheduleItem>> getRoutineScheduleItems();
-  Future<ScheduleItem?> getScheduleItemById(String id);
-  Future<int> deleteScheduleItem(String id);
-  Future<int> deleteAllScheduleItems();
-
-  // 일정 관련 추가 메서드
-  Future<List<ScheduleItem>> getScheduleItemsForRange(
-    DateTime start,
-    DateTime end,
-  );
-  Future<List<DateTime>> getScheduleDatesForMonth(int year, int month);
-  Future<bool> hasSchedule();
-  Future<int> deleteScheduleItemsInRange(DateTime start, DateTime end);
-  Future<void> saveScheduleItems(List<ScheduleItem> items);
-
-  // 감정 기록 관련 메서드
-  Future<int> addEmotionRecord(EmotionRecord emotionRecord);
-  Future<int> updateEmotionRecord(EmotionRecord emotionRecord);
-  Future<EmotionRecord?> getEmotionRecordForHour(String date, int hour);
-  Future<List<EmotionRecord>> getEmotionRecordsForDay(String date);
-  Future<int> deleteEmotionRecord(String id);
-
-  // 위치 로그 관련 메서드
-  Future<int> insertLocationLog(Map<String, dynamic> locationLog);
-  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(
-    String userId,
-    String date,
-  );
-  Future<List<Map<String, dynamic>>> getLocationLogsForUser(String userId);
-  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(
-    String userId,
-  ); // 추가: 특정 사용자의 모든 위치 데이터
-  Future<int> deleteAllLocationLogsForUser(
-    String userId,
-  ); // 추가: 특정 사용자의 모든 위치 데이터 삭제
-  Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
-    String userId,
-    DateTime start,
-    DateTime end,
-  );
-  Future<int> deleteLocationLogsInRange(
-    String userId,
-    DateTime start,
-    DateTime end,
-  );
-
-  // 동기화 대기열 관련 메서드
-  Future<int> insertPendingSyncLocation(Map<String, dynamic> locationLog);
-  Future<List<Map<String, dynamic>>> getPendingSyncLocations();
-  Future<int> removePendingSyncLocation(String locationId);
-  Future<int> clearPendingSyncQueue();
+  Future<int> deleteScheduleItem(String id, String userId);
+  
+  // 감정 기록 관련 메소드
+  Future<int> insertEmotionRecord(EmotionRecord emotion);
+  Future<List<EmotionRecord>> getEmotionsByDate(String date, String userId);
+  Future<EmotionRecord?> getEmotionByDateAndHour(String date, int hour, String userId);
+  Future<int> updateEmotionRecord(EmotionRecord emotion);
+  Future<int> deleteEmotionRecord(String id, String userId);
+  
+  // 위치 로그 관련 메소드
+  Future<int> insertLocationLog(LocationModel location);
+  Future<List<LocationModel>> getLocationLogsByDate(String date, String userId);
+  
+  // 걸음 수 관련 메소드
+  Future<int> insertStepCount(StepModel step);
+  Future<StepModel?> getStepsByDate(String date, String userId);
+  
+  // 사진 관련 메소드
+  Future<int> insertPhoto(int diaryId, String path, String userId);
+  Future<List<String>> getPhotosByDiaryId(int diaryId);
+  Future<int> deletePhoto(int id, String userId);
+  Future<int> deleteAllPhotosForDiary(int diaryId, String userId);
+  
+  // 동기화 관련 메소드
+  Future<int> updateSyncStatus(String table, dynamic id, bool isSynced);
+  Future<List<Map<String, dynamic>>> getUnsyncedItems(String table);
 }

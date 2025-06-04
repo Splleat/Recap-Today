@@ -7,8 +7,8 @@ import 'package:recap_today/screens/signup_screen.dart';
 import 'package:recap_today/screens/user_profile_edit_screen.dart';
 import 'package:recap_today/provider/theme_provider.dart';
 import 'package:recap_today/settings/setting_card.dart';
-import 'package:recap_today/service/current_location_service.dart';
 import 'package:recap_today/provider/weather_provider.dart';
+import 'package:recap_today/service/current_location.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});

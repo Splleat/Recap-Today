@@ -5,10 +5,11 @@ import 'package:pedometer/pedometer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:health/health.dart';
-import 'package:recap_today/model/step_model.dart';
+import 'package:recap_today/model/freezed/step_model.dart';
 
 class StepProvider with ChangeNotifier {
-  StepModel todayStep = StepModel(date: DateTime.now(), stepCount: 0);
+  String userId = 'userId';
+  StepModel todayStep = StepModel(userId: 'userId', date: DateTime.now(), stepCount: 0);
   int _baseStepCount = 0;
   int _dailyGoal = 5000;
   DateTime _lastDate = DateTime.now();
@@ -18,6 +19,7 @@ class StepProvider with ChangeNotifier {
 
   Future<void> initialize() async {
     final status = await Permission.activityRecognition.status;
+    todayStep = StepModel(userId: userId, date: DateTime.now(), stepCount: 0);
     
     if (!status.isGranted) {
       final result = await Permission.activityRecognition.request();
@@ -49,7 +51,7 @@ class StepProvider with ChangeNotifier {
     }
 
     final steps = (event.steps - _baseStepCount).clamp(0, 100000);
-    todayStep = StepModel(date: now, stepCount: steps);
+    todayStep = StepModel(userId: userId, date: now, stepCount: steps);
     notifyListeners();
   }
 
@@ -70,7 +72,7 @@ class StepProvider with ChangeNotifier {
 
     final steps = await health.getTotalStepsInInterval(start, end);
     if (steps != null) {
-      todayStep = StepModel(date: date, stepCount: steps);
+      todayStep = StepModel(userId: userId, date: date, stepCount: steps);
       notifyListeners();
     } else {
       debugPrint('Google Fit 걸음 수 데이터 없음');

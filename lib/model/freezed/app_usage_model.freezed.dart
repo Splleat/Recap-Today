@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppUsageModel {
 
- int? get id; String get date; String get packageName; String get appName; int get usageTimeInMillis; String? get appIconPath;
+ int? get id; String get date; String get packageName; String get appName; int get usageTimeInMillis; String? get appIconPath; String get userId; bool get isSynced;
 /// Create a copy of AppUsageModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +29,16 @@ $AppUsageModelCopyWith<AppUsageModel> get copyWith => _$AppUsageModelCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUsageModel&&(identical(other.id, id) || other.id == id)&&(identical(other.date, date) || other.date == date)&&(identical(other.packageName, packageName) || other.packageName == packageName)&&(identical(other.appName, appName) || other.appName == appName)&&(identical(other.usageTimeInMillis, usageTimeInMillis) || other.usageTimeInMillis == usageTimeInMillis)&&(identical(other.appIconPath, appIconPath) || other.appIconPath == appIconPath));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUsageModel&&(identical(other.id, id) || other.id == id)&&(identical(other.date, date) || other.date == date)&&(identical(other.packageName, packageName) || other.packageName == packageName)&&(identical(other.appName, appName) || other.appName == appName)&&(identical(other.usageTimeInMillis, usageTimeInMillis) || other.usageTimeInMillis == usageTimeInMillis)&&(identical(other.appIconPath, appIconPath) || other.appIconPath == appIconPath)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,date,packageName,appName,usageTimeInMillis,appIconPath);
+int get hashCode => Object.hash(runtimeType,id,date,packageName,appName,usageTimeInMillis,appIconPath,userId,isSynced);
 
 @override
 String toString() {
-  return 'AppUsageModel(id: $id, date: $date, packageName: $packageName, appName: $appName, usageTimeInMillis: $usageTimeInMillis, appIconPath: $appIconPath)';
+  return 'AppUsageModel(id: $id, date: $date, packageName: $packageName, appName: $appName, usageTimeInMillis: $usageTimeInMillis, appIconPath: $appIconPath, userId: $userId, isSynced: $isSynced)';
 }
 
 
@@ -49,7 +49,7 @@ abstract mixin class $AppUsageModelCopyWith<$Res>  {
   factory $AppUsageModelCopyWith(AppUsageModel value, $Res Function(AppUsageModel) _then) = _$AppUsageModelCopyWithImpl;
 @useResult
 $Res call({
- int? id, String date, String packageName, String appName, int usageTimeInMillis, String? appIconPath
+ int? id, String date, String packageName, String appName, int usageTimeInMillis, String? appIconPath, String userId, bool isSynced
 });
 
 
@@ -66,7 +66,7 @@ class _$AppUsageModelCopyWithImpl<$Res>
 
 /// Create a copy of AppUsageModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? date = null,Object? packageName = null,Object? appName = null,Object? usageTimeInMillis = null,Object? appIconPath = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? date = null,Object? packageName = null,Object? appName = null,Object? usageTimeInMillis = null,Object? appIconPath = freezed,Object? userId = null,Object? isSynced = null,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
@@ -74,7 +74,9 @@ as String,packageName: null == packageName ? _self.packageName : packageName // 
 as String,appName: null == appName ? _self.appName : appName // ignore: cast_nullable_to_non_nullable
 as String,usageTimeInMillis: null == usageTimeInMillis ? _self.usageTimeInMillis : usageTimeInMillis // ignore: cast_nullable_to_non_nullable
 as int,appIconPath: freezed == appIconPath ? _self.appIconPath : appIconPath // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String,isSynced: null == isSynced ? _self.isSynced : isSynced // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -85,7 +87,7 @@ as String?,
 @JsonSerializable()
 
 class _AppUsageModel implements AppUsageModel {
-  const _AppUsageModel({this.id, required this.date, required this.packageName, required this.appName, required this.usageTimeInMillis, this.appIconPath});
+  const _AppUsageModel({this.id, required this.date, required this.packageName, required this.appName, required this.usageTimeInMillis, this.appIconPath, required this.userId, this.isSynced = false});
   factory _AppUsageModel.fromJson(Map<String, dynamic> json) => _$AppUsageModelFromJson(json);
 
 @override final  int? id;
@@ -94,6 +96,8 @@ class _AppUsageModel implements AppUsageModel {
 @override final  String appName;
 @override final  int usageTimeInMillis;
 @override final  String? appIconPath;
+@override final  String userId;
+@override@JsonKey() final  bool isSynced;
 
 /// Create a copy of AppUsageModel
 /// with the given fields replaced by the non-null parameter values.
@@ -108,16 +112,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUsageModel&&(identical(other.id, id) || other.id == id)&&(identical(other.date, date) || other.date == date)&&(identical(other.packageName, packageName) || other.packageName == packageName)&&(identical(other.appName, appName) || other.appName == appName)&&(identical(other.usageTimeInMillis, usageTimeInMillis) || other.usageTimeInMillis == usageTimeInMillis)&&(identical(other.appIconPath, appIconPath) || other.appIconPath == appIconPath));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUsageModel&&(identical(other.id, id) || other.id == id)&&(identical(other.date, date) || other.date == date)&&(identical(other.packageName, packageName) || other.packageName == packageName)&&(identical(other.appName, appName) || other.appName == appName)&&(identical(other.usageTimeInMillis, usageTimeInMillis) || other.usageTimeInMillis == usageTimeInMillis)&&(identical(other.appIconPath, appIconPath) || other.appIconPath == appIconPath)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,date,packageName,appName,usageTimeInMillis,appIconPath);
+int get hashCode => Object.hash(runtimeType,id,date,packageName,appName,usageTimeInMillis,appIconPath,userId,isSynced);
 
 @override
 String toString() {
-  return 'AppUsageModel(id: $id, date: $date, packageName: $packageName, appName: $appName, usageTimeInMillis: $usageTimeInMillis, appIconPath: $appIconPath)';
+  return 'AppUsageModel(id: $id, date: $date, packageName: $packageName, appName: $appName, usageTimeInMillis: $usageTimeInMillis, appIconPath: $appIconPath, userId: $userId, isSynced: $isSynced)';
 }
 
 
@@ -128,7 +132,7 @@ abstract mixin class _$AppUsageModelCopyWith<$Res> implements $AppUsageModelCopy
   factory _$AppUsageModelCopyWith(_AppUsageModel value, $Res Function(_AppUsageModel) _then) = __$AppUsageModelCopyWithImpl;
 @override @useResult
 $Res call({
- int? id, String date, String packageName, String appName, int usageTimeInMillis, String? appIconPath
+ int? id, String date, String packageName, String appName, int usageTimeInMillis, String? appIconPath, String userId, bool isSynced
 });
 
 
@@ -145,7 +149,7 @@ class __$AppUsageModelCopyWithImpl<$Res>
 
 /// Create a copy of AppUsageModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? date = null,Object? packageName = null,Object? appName = null,Object? usageTimeInMillis = null,Object? appIconPath = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? date = null,Object? packageName = null,Object? appName = null,Object? usageTimeInMillis = null,Object? appIconPath = freezed,Object? userId = null,Object? isSynced = null,}) {
   return _then(_AppUsageModel(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int?,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
@@ -153,7 +157,9 @@ as String,packageName: null == packageName ? _self.packageName : packageName // 
 as String,appName: null == appName ? _self.appName : appName // ignore: cast_nullable_to_non_nullable
 as String,usageTimeInMillis: null == usageTimeInMillis ? _self.usageTimeInMillis : usageTimeInMillis // ignore: cast_nullable_to_non_nullable
 as int,appIconPath: freezed == appIconPath ? _self.appIconPath : appIconPath // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String,isSynced: null == isSynced ? _self.isSynced : isSynced // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -164,7 +170,7 @@ as String?,
 /// @nodoc
 mixin _$AppUsageSummary {
 
- String get date; int get totalUsageTimeInMillis; List<AppUsageModel> get topApps;
+ String get date; int get totalUsageTimeInMillis; List<AppUsageModel> get topApps; String get userId; bool get isSynced;
 /// Create a copy of AppUsageSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -177,16 +183,16 @@ $AppUsageSummaryCopyWith<AppUsageSummary> get copyWith => _$AppUsageSummaryCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUsageSummary&&(identical(other.date, date) || other.date == date)&&(identical(other.totalUsageTimeInMillis, totalUsageTimeInMillis) || other.totalUsageTimeInMillis == totalUsageTimeInMillis)&&const DeepCollectionEquality().equals(other.topApps, topApps));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUsageSummary&&(identical(other.date, date) || other.date == date)&&(identical(other.totalUsageTimeInMillis, totalUsageTimeInMillis) || other.totalUsageTimeInMillis == totalUsageTimeInMillis)&&const DeepCollectionEquality().equals(other.topApps, topApps)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,date,totalUsageTimeInMillis,const DeepCollectionEquality().hash(topApps));
+int get hashCode => Object.hash(runtimeType,date,totalUsageTimeInMillis,const DeepCollectionEquality().hash(topApps),userId,isSynced);
 
 @override
 String toString() {
-  return 'AppUsageSummary(date: $date, totalUsageTimeInMillis: $totalUsageTimeInMillis, topApps: $topApps)';
+  return 'AppUsageSummary(date: $date, totalUsageTimeInMillis: $totalUsageTimeInMillis, topApps: $topApps, userId: $userId, isSynced: $isSynced)';
 }
 
 
@@ -197,7 +203,7 @@ abstract mixin class $AppUsageSummaryCopyWith<$Res>  {
   factory $AppUsageSummaryCopyWith(AppUsageSummary value, $Res Function(AppUsageSummary) _then) = _$AppUsageSummaryCopyWithImpl;
 @useResult
 $Res call({
- String date, int totalUsageTimeInMillis, List<AppUsageModel> topApps
+ String date, int totalUsageTimeInMillis, List<AppUsageModel> topApps, String userId, bool isSynced
 });
 
 
@@ -214,12 +220,14 @@ class _$AppUsageSummaryCopyWithImpl<$Res>
 
 /// Create a copy of AppUsageSummary
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? date = null,Object? totalUsageTimeInMillis = null,Object? topApps = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? date = null,Object? totalUsageTimeInMillis = null,Object? topApps = null,Object? userId = null,Object? isSynced = null,}) {
   return _then(_self.copyWith(
 date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as String,totalUsageTimeInMillis: null == totalUsageTimeInMillis ? _self.totalUsageTimeInMillis : totalUsageTimeInMillis // ignore: cast_nullable_to_non_nullable
 as int,topApps: null == topApps ? _self.topApps : topApps // ignore: cast_nullable_to_non_nullable
-as List<AppUsageModel>,
+as List<AppUsageModel>,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String,isSynced: null == isSynced ? _self.isSynced : isSynced // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -230,7 +238,7 @@ as List<AppUsageModel>,
 @JsonSerializable()
 
 class _AppUsageSummary implements AppUsageSummary {
-  const _AppUsageSummary({required this.date, required this.totalUsageTimeInMillis, required final  List<AppUsageModel> topApps}): _topApps = topApps;
+  const _AppUsageSummary({required this.date, required this.totalUsageTimeInMillis, required final  List<AppUsageModel> topApps, required this.userId, this.isSynced = false}): _topApps = topApps;
   factory _AppUsageSummary.fromJson(Map<String, dynamic> json) => _$AppUsageSummaryFromJson(json);
 
 @override final  String date;
@@ -242,6 +250,8 @@ class _AppUsageSummary implements AppUsageSummary {
   return EqualUnmodifiableListView(_topApps);
 }
 
+@override final  String userId;
+@override@JsonKey() final  bool isSynced;
 
 /// Create a copy of AppUsageSummary
 /// with the given fields replaced by the non-null parameter values.
@@ -256,16 +266,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUsageSummary&&(identical(other.date, date) || other.date == date)&&(identical(other.totalUsageTimeInMillis, totalUsageTimeInMillis) || other.totalUsageTimeInMillis == totalUsageTimeInMillis)&&const DeepCollectionEquality().equals(other._topApps, _topApps));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUsageSummary&&(identical(other.date, date) || other.date == date)&&(identical(other.totalUsageTimeInMillis, totalUsageTimeInMillis) || other.totalUsageTimeInMillis == totalUsageTimeInMillis)&&const DeepCollectionEquality().equals(other._topApps, _topApps)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.isSynced, isSynced) || other.isSynced == isSynced));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,date,totalUsageTimeInMillis,const DeepCollectionEquality().hash(_topApps));
+int get hashCode => Object.hash(runtimeType,date,totalUsageTimeInMillis,const DeepCollectionEquality().hash(_topApps),userId,isSynced);
 
 @override
 String toString() {
-  return 'AppUsageSummary(date: $date, totalUsageTimeInMillis: $totalUsageTimeInMillis, topApps: $topApps)';
+  return 'AppUsageSummary(date: $date, totalUsageTimeInMillis: $totalUsageTimeInMillis, topApps: $topApps, userId: $userId, isSynced: $isSynced)';
 }
 
 
@@ -276,7 +286,7 @@ abstract mixin class _$AppUsageSummaryCopyWith<$Res> implements $AppUsageSummary
   factory _$AppUsageSummaryCopyWith(_AppUsageSummary value, $Res Function(_AppUsageSummary) _then) = __$AppUsageSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- String date, int totalUsageTimeInMillis, List<AppUsageModel> topApps
+ String date, int totalUsageTimeInMillis, List<AppUsageModel> topApps, String userId, bool isSynced
 });
 
 
@@ -293,12 +303,14 @@ class __$AppUsageSummaryCopyWithImpl<$Res>
 
 /// Create a copy of AppUsageSummary
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? date = null,Object? totalUsageTimeInMillis = null,Object? topApps = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? date = null,Object? totalUsageTimeInMillis = null,Object? topApps = null,Object? userId = null,Object? isSynced = null,}) {
   return _then(_AppUsageSummary(
 date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as String,totalUsageTimeInMillis: null == totalUsageTimeInMillis ? _self.totalUsageTimeInMillis : totalUsageTimeInMillis // ignore: cast_nullable_to_non_nullable
 as int,topApps: null == topApps ? _self._topApps : topApps // ignore: cast_nullable_to_non_nullable
-as List<AppUsageModel>,
+as List<AppUsageModel>,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
+as String,isSynced: null == isSynced ? _self.isSynced : isSynced // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

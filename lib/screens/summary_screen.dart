@@ -20,18 +20,18 @@ class SummaryScreen extends StatefulWidget {
 class _SummaryScreenState extends State<SummaryScreen> {
   double initialChildSize = 0.5;
   final GlobalKey _captureKey = GlobalKey();
-  LocationInfo? _locationInfoWidget;
-  final GlobalKey<LocationInfoState> _locationInfoKey =
-      GlobalKey<LocationInfoState>();
+  // LocationInfo? _locationInfoWidget;
+  // final GlobalKey<LocationInfoState> _locationInfoKey =
+  //     GlobalKey<LocationInfoState>();
 
-  @override
-  void initState() {
-    super.initState();
-    _locationInfoWidget = LocationInfo(
-      key: _locationInfoKey,
-      date: DateTime.now(),
-    );
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   _locationInfoWidget = LocationInfo(
+  //     key: _locationInfoKey,
+  //     date: DateTime.now(),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +103,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 key: _captureKey,
                 child: Column(
                   children: [
-                    Card(child: _locationInfoWidget!),
+                    // Card(child: _locationInfoWidget!),
                     Card(
                       child: Padding(
                         // 패딩 추가

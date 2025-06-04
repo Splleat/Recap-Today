@@ -2,9 +2,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:recap_today/model/emotion_model.dart';
-import 'package:recap_today/repository/abstract_emotion_repository.dart';
+import 'package:recap_today/model/freezed/emotion_model.dart';
 import 'package:recap_today/widget/home/hourly_emotion_logger.dart';
+import 'package:recap_today/data/sqflite_database.dart';
 
 class EmotionSummaryGraph extends StatefulWidget {
   final DateTime date;
@@ -14,7 +14,7 @@ class EmotionSummaryGraph extends StatefulWidget {
 }
 
 class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
-  late AbstractEmotionRepository _emotionRepository;
+  late SqfliteDatabase _emotionRepository;
   List<EmotionRecord> _emotionRecords = [];
   bool _isLoading = true;
 
@@ -29,7 +29,7 @@ class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
   @override
   void initState() {
     super.initState();
-    _emotionRepository = Provider.of<AbstractEmotionRepository>(context, listen: false);
+    _emotionRepository = Provider.of<SqfliteDatabase>(context, listen: false);
     _loadEmotionData();
   }
 
@@ -43,7 +43,7 @@ class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
     setState(() => _isLoading = true);
     try {
       final dateString = DateFormat('yyyy-MM-dd').format(widget.date);
-      final records = await _emotionRepository.getEmotionRecordsForDay(dateString);
+      final records = await _emotionRepository.getEmotionsByDate(dateString, 'userId');
       if (mounted) setState(() { _emotionRecords = records; _isLoading = false; });
     } catch (e) {
       if (mounted) {

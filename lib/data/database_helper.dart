@@ -2,27 +2,32 @@
 import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'package:recap_today/model/diary_model.dart';
-import 'package:recap_today/model/photo_model.dart';
-import 'package:recap_today/model/checklist_item.dart';
-import 'package:recap_today/model/app_usage_model.dart';
-import 'package:recap_today/model/schedule_item.dart';
+import 'package:recap_today/model/freezed/diary_model.dart';
+import 'package:recap_today/model/freezed/checklist_item.dart';
+import 'package:recap_today/model/freezed/app_usage_model.dart';
+import 'package:recap_today/model/freezed/schedule_item.dart';
+import 'package:recap_today/model/freezed/emotion_model.dart';
+import 'package:recap_today/model/freezed/location_model.dart';
+import 'package:recap_today/model/freezed/step_model.dart';
+import 'package:recap_today/data/abstract_database.dart';
 
 /// SQLite 데이터베이스 관리를 위한 헬퍼 클래스
-/// 일기와 체크리스트 항목의 영구 저장소 역할
-class DatabaseHelper {
+/// 모델 데이터의 영구 저장소 역할
+class DatabaseHelper implements AbstractDatabase {
   // 싱글톤 패턴 구현
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
 
   // 테이블 이름 상수 정의
+  static const String tableUsers = 'users';
   static const String tableChecklist = 'checklist_items';
   static const String tableDiaries = 'diaries';
   static const String tablePhotos = 'photos';
   static const String tableAppUsage = 'app_usage';
   static const String tableSchedule = 'schedule_items';
-  static const String tableLocationLogs = 'location_logs'; // 위치 로그 테이블
+  static const String tableLocationLogs = 'location_logs';
   static const String tableEmotionRecords = 'emotion_records';
+  static const String tableSteps = 'steps';
 
   // 프라이빗 생성자
   DatabaseHelper._init();
@@ -30,7 +35,7 @@ class DatabaseHelper {
   /// 데이터베이스 인스턴스 가져오기 (지연 초기화)
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('diary.db');
+    _database = await _initDB('recap_today.db');
     return _database!;
   }
 
@@ -40,7 +45,7 @@ class DatabaseHelper {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 9,
+      version: 10, // Increment version for schema update
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onConfigure: _configureDB,
@@ -54,13 +59,17 @@ class DatabaseHelper {
 
   /// 데이터베이스 테이블 생성
   Future _createDB(Database db, int version) async {
-    // 일기 테이블 생성
+
+    // 일기 테이블 생성 (Freezed 모델 지원)
     await db.execute('''
       CREATE TABLE $tableDiaries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        date TEXT NOT NULL UNIQUE,
+        date TEXT NOT NULL,
         title TEXT NOT NULL,
-        content TEXT
+        content TEXT,
+        user_id TEXT NOT NULL,
+        is_synced INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(date, user_id)
       )
     ''');
 
@@ -70,97 +79,115 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         diary_id INTEGER NOT NULL,
         path TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        is_synced INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (diary_id) REFERENCES $tableDiaries (id) ON DELETE CASCADE
       )
     ''');
 
-    // 체크리스트 아이템 테이블 생성
+    // 체크리스트 아이템 테이블 생성 (Freezed 모델 지원)
     await db.execute('''
       CREATE TABLE $tableChecklist (
         id TEXT PRIMARY KEY,
         text TEXT NOT NULL,
         subtext TEXT,
-        isChecked INTEGER NOT NULL DEFAULT 0,
-        dueDate TEXT,
-        completedDate TEXT
+        is_checked INTEGER NOT NULL DEFAULT 0,
+        due_date TEXT,
+        completed_date TEXT,
+        user_id TEXT NOT NULL,
+        is_synced INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
-    // 앱 사용 기록 테이블 생성
+    // 앱 사용 기록 테이블 생성 (Freezed 모델 지원)
     await db.execute('''
       CREATE TABLE $tableAppUsage (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT NOT NULL,
         package_name TEXT NOT NULL,
         app_name TEXT NOT NULL,
-        usage_time INTEGER NOT NULL,
-        app_icon_path TEXT
+        usage_time_in_millis INTEGER NOT NULL,
+        app_icon_path TEXT,
+        user_id TEXT NOT NULL,
+        is_synced INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
-    // 일정 테이블 생성
+    // 일정 테이블 생성 (Freezed 모델 지원)
     await db.execute('''
       CREATE TABLE $tableSchedule (
         id TEXT PRIMARY KEY,
-        title TEXT NOT NULL,
-        startTime TEXT NOT NULL,
-        endTime TEXT NOT NULL,
-        date TEXT NOT NULL,
-        isCompleted INTEGER NOT NULL DEFAULT 0,
-        notificationId INTEGER
+        text TEXT NOT NULL,
+        sub_text TEXT,
+        day_of_week INTEGER,
+        selected_date TEXT,
+        is_routine INTEGER NOT NULL,
+        start_time_hour INTEGER NOT NULL,
+        start_time_minute INTEGER NOT NULL,
+        end_time_hour INTEGER NOT NULL,
+        end_time_minute INTEGER NOT NULL,
+        color_value INTEGER,
+        has_alarm INTEGER DEFAULT 0,
+        alarm_offset_in_minutes INTEGER,
+        user_id TEXT NOT NULL,
+        is_synced INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
-    // 감정 기록 테이블 생성 (ensure it's also correct in onCreate)
+    // 감정 기록 테이블 생성 (Freezed 모델 지원)
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS $tableEmotionRecords (
+      CREATE TABLE $tableEmotionRecords (
         id TEXT PRIMARY KEY,
         date TEXT NOT NULL,
         hour INTEGER NOT NULL,
-        emotionType TEXT NOT NULL,
+        emotion_type TEXT NOT NULL,
         notes TEXT,
-        UNIQUE (date, hour)
+        user_id TEXT NOT NULL,
+        is_synced INTEGER NOT NULL DEFAULT 0,
+        UNIQUE (date, hour, user_id)
       )
     ''');
 
-    // 위치 로그 테이블 생성
+    // 위치 로그 테이블 생성 (Freezed 모델 지원)
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS $tableLocationLogs (
+      CREATE TABLE $tableLocationLogs (
         id TEXT PRIMARY KEY,
-        userId TEXT NOT NULL,
-        latitude REAL NOT NULL,
-        longitude REAL NOT NULL,
-        timestamp TEXT NOT NULL
-      )
-    ''');
-
-    // 동기화 대기열 테이블 생성
-    await db.execute('''
-      CREATE TABLE IF NOT EXISTS pending_sync_locations (
-        id TEXT PRIMARY KEY,
-        userId TEXT NOT NULL,
+        user_id TEXT NOT NULL,
         latitude REAL NOT NULL,
         longitude REAL NOT NULL,
         timestamp TEXT NOT NULL,
-        created_at TEXT NOT NULL
+        is_synced INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+
+    // 걸음 수 테이블 생성
+    await db.execute('''
+      CREATE TABLE $tableSteps (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        step_count INTEGER NOT NULL,
+        user_id TEXT NOT NULL,
+        is_synced INTEGER NOT NULL DEFAULT 0,
+        UNIQUE (date, user_id)
       )
     ''');
   }
 
   /// 데이터베이스 업그레이드 (스키마 마이그레이션)
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    // 기존 버전 업그레이드 처리
     if (oldVersion < 2) {
       // 버전 2로 업그레이드: 체크리스트 테이블에 dueDate 필드 추가
       await db.execute('''
         ALTER TABLE $tableChecklist
-        ADD COLUMN dueDate TEXT
+        ADD COLUMN due_date TEXT
       ''');
     }
     if (oldVersion < 3) {
       // 버전 3으로 업그레이드: 체크리스트 테이블에 completedDate 필드 추가
       await db.execute('''
         ALTER TABLE $tableChecklist
-        ADD COLUMN completedDate TEXT
+        ADD COLUMN completed_date TEXT
       ''');
     }
     if (oldVersion < 4) {
@@ -234,101 +261,97 @@ class DatabaseHelper {
         )
       ''');
     }
+
+    // 버전 10 업그레이드: Freezed 모델을 위한 테이블 업데이트
+    if (oldVersion < 10) {
+      // 사용자 테이블 생성 (새로운 테이블)
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $tableUsers (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          is_synced INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+    }
   }
 
-  /// 일기 삽입
+  /// 데이터베이스 종료
+  Future close() async {
+    final db = await instance.database;
+    db.close();
+  }
+
+  // CRUD 메소드 - 일기 (Diary)
+  
+  /// 새 일기 추가
   Future<int> insertDiary(DiaryModel diary) async {
-    try {
-      final db = await instance.database;
-      return await db.insert(
-        tableDiaries,
-        diary.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } catch (e) {
-      debugPrint('Error inserting diary: $e');
-      rethrow;
-    }
+    final db = await database;
+    return await db.insert(
+      tableDiaries,
+      diary.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// 날짜별 일기 조회
+  Future<DiaryModel?> getDiaryByDate(String date, String userId) async {
+    final db = await database;
+    final maps = await db.query(
+      tableDiaries,
+      where: 'date = ? AND user_id = ?',
+      whereArgs: [date, userId],
+    );
+
+    if (maps.isEmpty) return null;
+    return DiaryModelX.fromMap(maps.first);
+  }
+
+  /// 모든 일기 조회
+  Future<List<DiaryModel>> getAllDiaries(String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableDiaries,
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'date DESC',
+    );
+
+    return result.map((json) => DiaryModelX.fromMap(json)).toList();
   }
 
   /// 일기 업데이트
   Future<int> updateDiary(DiaryModel diary) async {
-    try {
-      final db = await instance.database;
-      return await db.update(
-        tableDiaries,
-        diary.toMap(),
-        where: 'id = ?',
-        whereArgs: [diary.id],
-      );
-    } catch (e) {
-      debugPrint('Error updating diary: $e');
-      rethrow;
-    }
+    final db = await database;
+    return await db.update(
+      tableDiaries,
+      diary.toMap(),
+      where: 'id = ?',
+      whereArgs: [diary.id],
+    );
   }
 
-  /// 일기 목록 가져오기
-  Future<List<DiaryModel>> getDiaries() async {
-    final db = await instance.database;
-    final maps = await db.query('diaries', orderBy: 'date DESC');
-    final diaries = List.generate(
-      maps.length,
-      (i) => DiaryModel.fromMap(maps[i]),
+  /// 일기 삭제
+  Future<int> deleteDiary(int id, String userId) async {
+    final db = await database;
+    return await db.delete(
+      tableDiaries,
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
     );
-
-    // 각 일기에 대한 사진 경로 로드
-    for (var i = 0; i < diaries.length; i++) {
-      if (diaries[i].id != null) {
-        final photos = await getPhotosForDiary(diaries[i].id!);
-        final paths = photos.map((photo) => photo.path).toList();
-        diaries[i] = DiaryModel(
-          id: diaries[i].id,
-          date: diaries[i].date,
-          title: diaries[i].title,
-          content: diaries[i].content,
-          photoPaths: paths,
-        );
-      }
-    }
-
-    return diaries;
-  }
-
-  /// 특정 날짜의 일기 가져오기
-  Future<DiaryModel?> getDiaryForDate(String date) async {
-    final db = await instance.database;
-    final maps = await db.query(
-      'diaries',
-      where: 'date = ?',
-      whereArgs: [date],
-    );
-    if (maps.isNotEmpty) {
-      final diary = DiaryModel.fromMap(maps.first);
-      if (diary.id != null) {
-        final photos = await getPhotosForDiary(diary.id!);
-        final paths = photos.map((photo) => photo.path).toList();
-        return DiaryModel(
-          id: diary.id,
-          date: diary.date,
-          title: diary.title,
-          content: diary.content,
-          photoPaths: paths,
-        );
-      }
-      return diary;
-    }
-    return null;
   }
 
   /// 일기 검색 (제목 또는 내용 포함, 날짜 최신순 정렬)
   Future<Map<String, dynamic>> searchDiaries(
-    String query, {
+    String query,
+    String userId, {
     int? limit,
     int? offset,
   }) async {
-    final db = await instance.database;
-    String whereClause = 'title LIKE ? OR content LIKE ?';
-    List<dynamic> whereArgs = ['%$query%', '%$query%'];
+    final db = await database;
+    
+    // Include userId in where clause for proper filtering
+    String whereClause = '(title LIKE ? OR content LIKE ?) AND user_id = ?';
+    List<dynamic> whereArgs = ['%$query%', '%$query%', userId];
 
     // Get total count for pagination
     final countResult = await db.rawQuery(
@@ -337,195 +360,168 @@ class DatabaseHelper {
     );
     final totalCount = Sqflite.firstIntValue(countResult) ?? 0;
 
-    String orderBy = 'date DESC';
-
     final maps = await db.query(
       tableDiaries,
       where: whereClause,
       whereArgs: whereArgs,
-      orderBy: orderBy,
+      orderBy: 'date DESC',
       limit: limit,
       offset: offset,
     );
 
-    final diaries = List.generate(
-      maps.length,
-      (i) => DiaryModel.fromMap(maps[i]),
-    );
-
-    // 각 일기에 대한 사진 경로 로드
-    for (var i = 0; i < diaries.length; i++) {
-      if (diaries[i].id != null) {
-        final photos = await getPhotosForDiary(diaries[i].id!);
-        final paths = photos.map((photo) => photo.path).toList();
-        diaries[i] = DiaryModel(
-          id: diaries[i].id,
-          date: diaries[i].date,
-          title: diaries[i].title,
-          content: diaries[i].content,
-          photoPaths: paths,
-        );
+    // Convert to diary models
+    final diaries = maps.map((json) => DiaryModelX.fromMap(json)).toList();
+    
+    // Load photos more efficiently with a single JOIN query
+    for (var diary in diaries) {
+      if (diary.id != null) {
+        final photoPaths = await getPhotosByDiaryId(diary.id!);
+        // Use copyWith from Freezed model to add photo paths
+        diary = diary.copyWith(photoPaths: photoPaths);
       }
     }
-    return {'diaries': diaries, 'totalCount': totalCount};
+
+    return {
+      'diaries': diaries,
+      'totalCount': totalCount,
+    };
   }
 
-  /// 사진 삽입
-  Future<int> insertPhoto(Photo photo) async {
-    final db = await instance.database;
-    return await db.insert('photos', photo.toMap());
-  }
+/// CRUD 메소드 - 체크리스트 (Checklist)
 
-  /// 특정 일기의 사진 목록 가져오기
-  Future<List<Photo>> getPhotosForDiary(int diaryId) async {
-    final db = await instance.database;
-    final maps = await db.query(
-      'photos',
-      where: 'diary_id = ?',
-      whereArgs: [diaryId],
-    );
-    return List.generate(maps.length, (i) => Photo.fromMap(maps[i]));
-  }
-
-  /// 특정 일기의 모든 사진 삭제
-  Future<int> deletePhotosForDiary(int diaryId) async {
-    final db = await instance.database;
-    return await db.delete(
-      'photos',
-      where: 'diary_id = ?',
-      whereArgs: [diaryId],
+/// 새 체크리스트 아이템 추가
+Future<int> insertChecklistItem(ChecklistItem item) async {
+  final db = await database;
+  return await db.insert(
+    tableChecklist,
+    item.toMap(),
+    conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  /// 체크리스트 아이템 일괄 저장 (트랜잭션 사용)
-  Future<void> saveChecklistItems(List<ChecklistItem> items) async {
-    final db = await instance.database;
+  /// 모든 체크리스트 아이템 조회
+  Future<List<ChecklistItem>> getAllChecklistItems(String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableChecklist,
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
 
-    try {
-      await db.transaction((txn) async {
-        // 전체 삭제 후 다시 저장
-        await txn.delete(tableChecklist);
-
-        // 배치 삽입으로 변경
-        Batch batch = txn.batch();
-        for (final item in items) {
-          batch.insert(
-            tableChecklist,
-            item.toMap(),
-            conflictAlgorithm: ConflictAlgorithm.replace,
-          );
-        }
-        await batch.commit(noResult: true);
-      });
-    } catch (e) {
-      debugPrint('Error saving checklist items in batch: $e');
-      rethrow;
-    }
-  }
-
-  /// 체크리스트 아이템 삽입
-  Future<int> insertChecklistItem(ChecklistItem item) async {
-    try {
-      final db = await instance.database;
-      return await db.insert(
-        tableChecklist,
-        item.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } catch (e) {
-      debugPrint('Error inserting checklist item: $e');
-      rethrow;
-    }
+    return result.map((json) => ChecklistItemX.fromMap(json)).toList();
   }
 
   /// 체크리스트 아이템 업데이트
   Future<int> updateChecklistItem(ChecklistItem item) async {
-    try {
-      final db = await instance.database;
-      return await db.update(
-        tableChecklist,
-        item.toMap(),
-        where: 'id = ?',
-        whereArgs: [item.id],
-      );
-    } catch (e) {
-      debugPrint('Error updating checklist item: $e');
-      rethrow;
-    }
-  }
-
-  /// 모든 체크리스트 아이템 가져오기
-  Future<List<ChecklistItem>> getChecklistItems() async {
-    try {
-      final db = await instance.database;
-      final maps = await db.query(tableChecklist);
-      return List.generate(maps.length, (i) => ChecklistItem.fromMap(maps[i]));
-    } catch (e) {
-      debugPrint('Error getting checklist items: $e');
-      return [];
-    }
-  }
-
-  /// 특정 ID의 체크리스트 아이템 가져오기
-  Future<ChecklistItem?> getChecklistItemById(String id) async {
-    try {
-      final db = await instance.database;
-      final maps = await db.query(
-        tableChecklist,
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-      if (maps.isNotEmpty) {
-        return ChecklistItem.fromMap(maps.first);
-      }
-      return null;
-    } catch (e) {
-      debugPrint('Error getting checklist item by id: $e');
-      return null;
-    }
+    final db = await database;
+    return await db.update(
+      tableChecklist,
+      item.toMap(),
+      where: 'id = ?',
+      whereArgs: [item.id],
+    );
   }
 
   /// 체크리스트 아이템 삭제
-  Future<int> deleteChecklistItem(String id) async {
-    try {
-      final db = await instance.database;
-      return await db.delete(tableChecklist, where: 'id = ?', whereArgs: [id]);
-    } catch (e) {
-      debugPrint('Error deleting checklist item: $e');
-      rethrow;
+  Future<int> deleteChecklistItem(String id, String userId) async {
+    final db = await database;
+    return await db.delete(
+      tableChecklist,
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+  }
+  
+  /// 여러 체크리스트 아이템을 일괄 저장 (배치 처리)
+  Future<void> saveChecklistItems(List<ChecklistItem> items) async {
+    if (items.isEmpty) return;
+    
+    final db = await database;
+    final batch = db.batch();
+    
+    for (var item in items) {
+      batch.insert(
+        tableChecklist,
+        item.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
     }
+    
+    await batch.commit(noResult: true);
+  }
+  
+  /// 특정 날짜에 완료된 체크리스트 아이템 조회
+  Future<List<ChecklistItem>> getChecklistItemsByCompletedDate(String date, String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableChecklist,
+      where: 'completed_date LIKE ? AND user_id = ?',
+      whereArgs: ['$date%', userId], // date로 시작하는 날짜 (yyyy-MM-dd 형식)
+    );
+
+    return result.map((json) => ChecklistItemX.fromMap(json)).toList();
   }
 
-  /// 모든 체크리스트 아이템 삭제
-  Future<int> deleteAllChecklistItems() async {
-    try {
-      final db = await instance.database;
-      return await db.delete(tableChecklist);
-    } catch (e) {
-      debugPrint('Error deleting all checklist items: $e');
-      rethrow;
-    }
+  /// 완료되지 않은 모든 체크리스트 아이템 조회
+  Future<List<ChecklistItem>> getIncompleteChecklistItems(String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableChecklist,
+      where: 'is_checked = ? AND user_id = ?',
+      whereArgs: [0, userId],
+    );
+
+    return result.map((json) => ChecklistItemX.fromMap(json)).toList();
   }
 
-  /// 앱 사용기록 삽입
+  /// 완료된 모든 체크리스트 아이템 조회
+  Future<List<ChecklistItem>> getCompletedChecklistItems(String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableChecklist,
+      where: 'is_checked = ? AND user_id = ?',
+      whereArgs: [1, userId],
+    );
+
+    return result.map((json) => ChecklistItemX.fromMap(json)).toList();
+  }
+
+  // CRUD 메소드 - 앱 사용량 (AppUsage)
+  
+  /// 앱 사용 기록 추가
   Future<int> insertAppUsage(AppUsageModel appUsage) async {
-    try {
-      final db = await instance.database;
-      return await db.insert(tableAppUsage, {
-        'date': appUsage.date,
-        'package_name': appUsage.packageName,
-        'app_name': appUsage.appName,
-        'usage_time': appUsage.usageTimeInMillis,
-        'app_icon_path': appUsage.appIconPath,
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
-    } catch (e) {
-      debugPrint('앱 사용 기록 삽입 중 오류: $e');
-      return -1; // 오류 발생 시 -1 반환
-    }
+    final db = await database;
+    return await db.insert(
+      tableAppUsage,
+      appUsage.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// 특정 날짜의 앱 사용 기록 조회
+  Future<List<AppUsageModel>> getAppUsageByDate(String date, String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableAppUsage,
+      where: 'date = ? AND user_id = ?',
+      whereArgs: [date, userId],
+    );
+
+    return result.map((json) => AppUsageModelX.fromMap(json)).toList();
+  }
+
+  /// 앱 사용 기록 삭제 (일자별)
+  Future<int> deleteAppUsageByDate(String date, String userId) async {
+    final db = await database;
+    return await db.delete(
+      tableAppUsage,
+      where: 'date = ? AND user_id = ?',
+      whereArgs: [date, userId],
+    );
   }
 
   /// 앱 사용기록 일괄 삽입 (트랜잭션 사용)
-  Future<int> insertAppUsageBatch(List<AppUsageModel> appUsages) async {
+  Future<int> insertAppUsageBatch(List<AppUsageModel> appUsages, String userId) async {
     if (appUsages.isEmpty) return 0;
 
     final db = await instance.database;
@@ -542,6 +538,7 @@ class DatabaseHelper {
             'app_name': appUsage.appName,
             'usage_time': appUsage.usageTimeInMillis,
             'app_icon_path': appUsage.appIconPath,
+            'user_id': userId,
           }, conflictAlgorithm: ConflictAlgorithm.replace);
         }
 
@@ -556,573 +553,237 @@ class DatabaseHelper {
     }
   }
 
-  /// 특정 날짜의 앱 사용기록 가져오기
-  Future<List<AppUsageModel>> getAppUsageForDate(String date) async {
-    try {
-      final db = await instance.database;
-      final maps = await db.query(
-        tableAppUsage,
-        where: 'date = ?',
-        whereArgs: [date],
-        orderBy: 'usage_time DESC',
-        limit: 50, // 최대 50개만 로드하여 메모리 사용 최적화
-      );
-
-      return List.generate(maps.length, (i) {
-        return AppUsageModel(
-          id: maps[i]['id'] as int?,
-          date: maps[i]['date'] as String,
-          packageName: maps[i]['package_name'] as String,
-          appName: maps[i]['app_name'] as String,
-          usageTimeInMillis: maps[i]['usage_time'] as int,
-          appIconPath: maps[i]['app_icon_path'] as String?,
-        );
-      });
-    } catch (e) {
-      debugPrint('특정 날짜 앱 사용 기록 조회 중 오류: $e');
-      return [];
-    }
-  }
-
-  /// 특정 날짜의 앱 사용 요약 정보 가져오기
-  Future<AppUsageSummary?> getAppUsageSummaryForDate(String date) async {
-    try {
-      final db = await instance.database;
-
-      // 1. 총 사용 시간 조회 (최적화)
-      final totalUsageResult = await db.rawQuery(
-        'SELECT SUM(usage_time) as total FROM $tableAppUsage WHERE date = ?',
-        [date],
-      );
-      final totalUsageTime =
-          totalUsageResult.isNotEmpty && totalUsageResult[0]['total'] != null
-              ? (totalUsageResult[0]['total'] as int)
-              : 0;
-
-      if (totalUsageTime <= 0) {
-        return null; // 사용 기록이 없는 경우
-      }
-
-      // 2. 상위 3개 앱 조회 (최적화)
-      final topAppsResult = await db.query(
-        tableAppUsage,
-        where: 'date = ?',
-        whereArgs: [date],
-        orderBy: 'usage_time DESC',
-        limit: 3, // 상위 3개만 필요
-      );
-
-      if (topAppsResult.isEmpty) {
-        return null;
-      }
-
-      final topApps =
-          topAppsResult
-              .map(
-                (map) => AppUsageModel(
-                  id: map['id'] as int?,
-                  date: map['date'] as String,
-                  packageName: map['package_name'] as String,
-                  appName: map['app_name'] as String,
-                  usageTimeInMillis: map['usage_time'] as int,
-                  appIconPath: map['app_icon_path'] as String?,
-                ),
-              )
-              .toList();
-
-      return AppUsageSummary(
-        date: date,
-        totalUsageTimeInMillis: totalUsageTime,
-        topApps: topApps,
-      );
-    } catch (e) {
-      debugPrint('앱 사용 요약 정보 조회 중 오류: $e');
-      return null;
-    }
-  }
-
-  /// 특정 날짜의 앱 사용기록 삭제
-  Future<int> deleteAppUsageForDate(String date) async {
-    try {
-      final db = await instance.database;
-      return await db.delete(
-        tableAppUsage,
-        where: 'date = ?',
-        whereArgs: [date],
-      );
-    } catch (e) {
-      debugPrint('앱 사용 기록 삭제 중 오류: $e');
-      return 0; // 오류 발생 시 0 반환
-    }
-  }
-
-  /// 일정 삽입
+  // CRUD 메소드 - 일정 (Schedule)
+  
+  /// 일정 추가
   Future<int> insertScheduleItem(ScheduleItem item) async {
-    try {
-      final db = await instance.database;
-      return await db.insert(
-        tableSchedule,
-        item.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } catch (e) {
-      debugPrint('일정 삽입 중 오류 발생: $e');
-      rethrow;
-    }
+    final db = await database;
+    return await db.insert(
+      tableSchedule,
+      item.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// 특정 날짜의 일정 조회
+  Future<List<ScheduleItem>> getScheduleItemsByDate(String date, String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableSchedule,
+      where: 'selected_date = ? AND user_id = ?',
+      whereArgs: [date, userId],
+    );
+
+    return result.map((json) => ScheduleItemX.fromMap(json)).toList();
+  }
+
+  /// 모든 일정 조회
+  Future<List<ScheduleItem>> getAllScheduleItems(String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableSchedule,
+      where: 'user_id = ?',
+      whereArgs: [userId],
+    );
+
+    return result.map((json) => ScheduleItemX.fromMap(json)).toList();
   }
 
   /// 일정 업데이트
   Future<int> updateScheduleItem(ScheduleItem item) async {
-    try {
-      final db = await instance.database;
-      return await db.update(
-        tableSchedule,
-        item.toMap(),
-        where: 'id = ?',
-        whereArgs: [item.id],
-      );
-    } catch (e) {
-      debugPrint('일정 업데이트 중 오류 발생: $e');
-      rethrow;
-    }
-  }
-
-  /// 모든 일정 조회
-  Future<List<ScheduleItem>> getScheduleItems() async {
-    try {
-      final db = await instance.database;
-      final result = await db.query(tableSchedule);
-      return result.map((map) => ScheduleItem.fromMap(map)).toList();
-    } catch (e) {
-      debugPrint('일정 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  /// 특정 날짜의 일정 조회
-  Future<List<ScheduleItem>> getScheduleItemsForDate(DateTime date) async {
-    try {
-      final db = await instance.database;
-      final dateString = date.toIso8601String().substring(
-        0,
-        10,
-      ); // YYYY-MM-DD 형식
-      final dayOfWeek =
-          date.weekday == 7 ? 0 : date.weekday; // SQLite에서는 일요일이 0
-
-      // 한 번의 쿼리로 특정 날짜의 일회성 일정과 해당 요일의 반복 일정을 함께 조회
-      final result = await db.rawQuery(
-        '''
-        SELECT * FROM $tableSchedule 
-        WHERE (selectedDate LIKE ? AND isRoutine = 0)
-           OR (dayOfWeek = ? AND isRoutine = 1)
-        ORDER BY startTimeHour, startTimeMinute
-      ''',
-        ['$dateString%', dayOfWeek],
-      );
-
-      return result.map((map) => ScheduleItem.fromMap(map)).toList();
-    } catch (e) {
-      debugPrint('특정 날짜 일정 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  /// 특정 기간의 일정 조회 (캘린더 뷰용)
-  Future<List<ScheduleItem>> getScheduleItemsForRange(
-    DateTime start,
-    DateTime end,
-  ) async {
-    try {
-      final db = await instance.database;
-      final startStr = start.toIso8601String().substring(0, 10);
-      final endStr = end.toIso8601String().substring(0, 10);
-
-      // 1. 해당 기간 내의 일회성 일정 조회
-      final nonRoutineResult = await db.query(
-        tableSchedule,
-        where: 'selectedDate >= ? AND selectedDate <= ? AND isRoutine = 0',
-        whereArgs: [startStr, endStr],
-      );
-
-      // 2. 모든 반복 일정 조회 (날짜 범위 내 요일에 해당하는 일정은 UI에서 필터링)
-      final routineResult = await db.query(
-        tableSchedule,
-        where: 'isRoutine = 1',
-      );
-
-      // 두 결과 병합
-      final List<ScheduleItem> items = [];
-      items.addAll(nonRoutineResult.map((map) => ScheduleItem.fromMap(map)));
-      items.addAll(routineResult.map((map) => ScheduleItem.fromMap(map)));
-
-      return items;
-    } catch (e) {
-      debugPrint('기간 내 일정 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  /// 특정 월의 일정이 있는 날짜 목록 조회 (캘린더 마커용)
-  Future<List<DateTime>> getScheduleDatesForMonth(int year, int month) async {
-    try {
-      final db = await instance.database;
-
-      // 월 시작일과 종료일 계산
-      final startDate = DateTime(year, month, 1);
-      final endDate = DateTime(year, month + 1, 0); // 다음 달의 0일 = 현재 달의 마지막 날
-
-      final startStr = startDate.toIso8601String().substring(0, 10);
-      final endStr = endDate.toIso8601String().substring(0, 10);
-
-      // 해당 월에 일정이 있는 날짜만 조회
-      final result = await db.rawQuery(
-        '''
-        SELECT DISTINCT substr(selectedDate, 1, 10) as date 
-        FROM $tableSchedule 
-        WHERE selectedDate >= ? AND selectedDate <= ? AND isRoutine = 0
-      ''',
-        [startStr, endStr],
-      );
-
-      // 결과를 DateTime 리스트로 변환
-      final List<DateTime> dates = [];
-      for (final row in result) {
-        if (row['date'] != null) {
-          try {
-            dates.add(DateTime.parse(row['date'] as String));
-          } catch (e) {
-            debugPrint('날짜 변환 오류: $e');
-          }
-        }
-      }
-
-      return dates;
-    } catch (e) {
-      debugPrint('월간 일정 날짜 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  /// 일정이 존재하는지 확인
-  Future<bool> hasSchedule() async {
-    try {
-      final db = await instance.database;
-      final result = await db.rawQuery(
-        'SELECT COUNT(*) as count FROM $tableSchedule',
-      );
-
-      final count = Sqflite.firstIntValue(result) ?? 0;
-      return count > 0;
-    } catch (e) {
-      debugPrint('일정 존재 여부 확인 중 오류 발생: $e');
-      return false;
-    }
-  }
-
-  /// 특정 기간 내 모든 일정 삭제
-  Future<int> deleteScheduleItemsInRange(DateTime start, DateTime end) async {
-    try {
-      final db = await instance.database;
-      final startStr = start.toIso8601String().substring(0, 10);
-      final endStr = end.toIso8601String().substring(0, 10);
-
-      return await db.delete(
-        tableSchedule,
-        where: 'selectedDate >= ? AND selectedDate <= ? AND isRoutine = 0',
-        whereArgs: [startStr, endStr],
-      );
-    } catch (e) {
-      debugPrint('기간 내 일정 삭제 중 오류 발생: $e');
-      rethrow;
-    }
-  }
-
-  /// 일정 데이터 일괄 저장 (트랜잭션 사용)
-  Future<void> saveScheduleItems(List<ScheduleItem> items) async {
-    try {
-      final db = await instance.database;
-
-      await db.transaction((txn) async {
-        // 전체 삭제 대신 개별 저장 또는 업데이트
-        Batch batch = txn.batch();
-
-        for (final item in items) {
-          // 각 항목 삽입 또는 업데이트 (REPLACE 전략)
-          batch.insert(
-            tableSchedule,
-            item.toMap(),
-            conflictAlgorithm: ConflictAlgorithm.replace,
-          );
-        }
-
-        await batch.commit(noResult: true);
-      });
-    } catch (e) {
-      debugPrint('일정 일괄 저장 중 오류 발생: $e');
-      rethrow;
-    }
-  }
-
-  /// 반복 일정만 조회
-  Future<List<ScheduleItem>> getRoutineScheduleItems() async {
-    try {
-      final db = await instance.database;
-      final result = await db.query(
-        tableSchedule,
-        where: 'isRoutine = ?',
-        whereArgs: [1], // 1은 루틴 일정
-      );
-      return result.map((map) => ScheduleItem.fromMap(map)).toList();
-    } catch (e) {
-      debugPrint('반복 일정 조회 중 오류 발생: $e');
-      return [];
-    }
-  }
-
-  /// 특정 ID의 일정 조회
-  Future<ScheduleItem?> getScheduleItemById(String id) async {
-    try {
-      final db = await instance.database;
-      final result = await db.query(
-        tableSchedule,
-        where: 'id = ?',
-        whereArgs: [id],
-      );
-
-      if (result.isNotEmpty) {
-        return ScheduleItem.fromMap(result.first);
-      }
-      return null;
-    } catch (e) {
-      debugPrint('특정 ID 일정 조회 중 오류 발생: $e');
-      return null;
-    }
+    final db = await database;
+    return await db.update(
+      tableSchedule,
+      item.toMap(),
+      where: 'id = ?',
+      whereArgs: [item.id],
+    );
   }
 
   /// 일정 삭제
-  Future<int> deleteScheduleItem(String id) async {
-    try {
-      final db = await instance.database;
-      return await db.delete(tableSchedule, where: 'id = ?', whereArgs: [id]);
-    } catch (e) {
-      debugPrint('일정 삭제 중 오류 발생: $e');
-      rethrow;
-    }
+  Future<int> deleteScheduleItem(String id, String userId) async {
+    final db = await database;
+    return await db.delete(
+      tableSchedule,
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+  }
+  
+  // CRUD 메소드 - 감정 기록 (Emotion)
+  
+  /// 감정 기록 추가
+  Future<int> insertEmotionRecord(EmotionRecord emotion) async {
+    final db = await database;
+    return await db.insert(
+      tableEmotionRecords,
+      emotion.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  /// 모든 일정 삭제
-  Future<int> deleteAllScheduleItems() async {
-    try {
-      final db = await instance.database;
-      return await db.delete(tableSchedule);
-    } catch (e) {
-      debugPrint('모든 일정 삭제 중 오류 발생: $e');
-      rethrow;
-    }
+  /// 특정 날짜의 감정 기록 조회
+  Future<List<EmotionRecord>> getEmotionsByDate(String date, String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableEmotionRecords,
+      where: 'date = ? AND user_id = ?',
+      whereArgs: [date, userId],
+    );
+
+    return result.map((json) => EmotionRecordX.fromMap(json)).toList();
   }
 
-  // 위치 로그 관련 메서드들
+  /// 특정 시간의 감정 기록 조회
+  Future<EmotionRecord?> getEmotionByDateAndHour(String date, int hour, String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableEmotionRecords,
+      where: 'date = ? AND hour = ? AND user_id = ?',
+      whereArgs: [date, hour, userId],
+    );
 
-  /// 위치 데이터 삽입
-  Future<int> insertLocationLog(Map<String, dynamic> locationLog) async {
-    try {
-      final db = await instance.database;
-      return await db.insert(
-        tableLocationLogs,
-        locationLog,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    } catch (e) {
-      debugPrint('위치 로그 삽입 중 오류 발생: $e');
-      rethrow;
-    }
+    if (result.isEmpty) return null;
+    return EmotionRecordX.fromMap(result.first);
   }
 
-  /// 특정 사용자의 특정 날짜 위치 데이터 조회
-  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(
-    String userId,
-    String date,
-  ) async {
-    try {
-      final db = await instance.database;
-
-      // 해당 날짜의 시작과 끝 시간 계산
-      final startOfDay = '${date}T00:00:00';
-      final endOfDay = '${date}T23:59:59';
-
-      final result = await db.query(
-        tableLocationLogs,
-        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
-        whereArgs: [userId, startOfDay, endOfDay],
-        orderBy: 'timestamp ASC',
-      );
-
-      return result;
-    } catch (e) {
-      debugPrint('특정 날짜 위치 로그 조회 중 오류 발생: $e');
-      return [];
-    }
+  /// 감정 기록 업데이트
+  Future<int> updateEmotionRecord(EmotionRecord emotion) async {
+    final db = await database;
+    return await db.update(
+      tableEmotionRecords,
+      emotion.toMap(),
+      where: 'id = ?',
+      whereArgs: [emotion.id],
+    );
   }
 
-  /// 특정 사용자의 모든 위치 데이터 조회
-  Future<List<Map<String, dynamic>>> getLocationLogsForUser(
-    String userId,
-  ) async {
-    try {
-      final db = await instance.database;
-      final result = await db.query(
-        tableLocationLogs,
-        where: 'userId = ?',
-        whereArgs: [userId],
-        orderBy: 'timestamp DESC',
-        limit: 100, // 최근 100개만 조회
-      );
-
-      return result;
-    } catch (e) {
-      debugPrint('사용자 위치 로그 조회 중 오류 발생: $e');
-      return [];
-    }
+  Future<int> deleteEmotionRecord(String id, String userId) async {
+    final db = await database;
+    return await db.delete(
+      tableEmotionRecords,
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
   }
 
-  /// 특정 사용자의 모든 위치 데이터 조회 (제한 없음)
-  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(
-    String userId,
-  ) async {
-    try {
-      final db = await instance.database;
-      final result = await db.query(
-        tableLocationLogs,
-        where: 'userId = ?',
-        whereArgs: [userId],
-        orderBy: 'timestamp ASC',
-      );
-
-      return result;
-    } catch (e) {
-      debugPrint('사용자 전체 위치 로그 조회 중 오류 발생: $e');
-      return [];
-    }
+  // CRUD 메소드 - 위치 로그 (Location)
+  
+  /// 위치 로그 추가
+  Future<int> insertLocationLog(LocationModel location) async {
+    final db = await database;
+    return await db.insert(
+      tableLocationLogs,
+      location.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  /// 특정 사용자의 모든 위치 데이터 삭제
-  Future<int> deleteAllLocationLogsForUser(String userId) async {
-    try {
-      final db = await instance.database;
-      return await db.delete(
-        tableLocationLogs,
-        where: 'userId = ?',
-        whereArgs: [userId],
-      );
-    } catch (e) {
-      debugPrint('사용자 위치 로그 전체 삭제 중 오류 발생: $e');
-      return 0;
-    }
+  /// 특정 날짜의 위치 로그 조회
+  Future<List<LocationModel>> getLocationLogsByDate(String date, String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableLocationLogs,
+      where: "timestamp LIKE ? AND user_id = ?",
+      whereArgs: ['$date%', userId],
+    );
+
+    return result.map((json) => LocationModelX.fromMap(json)).toList();
   }
 
-  /// 특정 사용자의 날짜 범위 위치 데이터 조회
-  Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
-    String userId,
-    DateTime start,
-    DateTime end,
-  ) async {
-    try {
-      final db = await instance.database;
-      final startTime = start.toIso8601String();
-      final endTime = end.toIso8601String();
-
-      final result = await db.query(
-        tableLocationLogs,
-        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
-        whereArgs: [userId, startTime, endTime],
-        orderBy: 'timestamp ASC',
-      );
-
-      return result;
-    } catch (e) {
-      debugPrint('날짜 범위 위치 로그 조회 중 오류 발생: $e');
-      return [];
-    }
+  // CRUD 메소드 - 걸음 수 (Steps)
+  
+  /// 걸음 수 기록 추가
+  Future<int> insertStepCount(StepModel step) async {
+    final db = await database;
+    return await db.insert(
+      tableSteps,
+      step.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  /// 특정 사용자의 날짜 범위 위치 데이터 삭제
-  Future<int> deleteLocationLogsInRange(
-    String userId,
-    DateTime start,
-    DateTime end,
-  ) async {
-    try {
-      final db = await instance.database;
-      final startTime = start.toIso8601String();
-      final endTime = end.toIso8601String();
+  /// 특정 날짜의 걸음 수 조회
+  Future<StepModel?> getStepsByDate(String date, String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableSteps,
+      where: 'date = ? AND user_id = ?',
+      whereArgs: [date, userId],
+    );
 
-      return await db.delete(
-        tableLocationLogs,
-        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
-        whereArgs: [userId, startTime, endTime],
-      );
-    } catch (e) {
-      debugPrint('날짜 범위 위치 로그 삭제 중 오류 발생: $e');
-      return 0;
-    }
+    if (result.isEmpty) return null;
+    return StepModelX.fromMap(result.first);
   }
 
-  /// 동기화 대기열에 위치 데이터 추가
-  Future<int> insertPendingSyncLocation(
-    Map<String, dynamic> locationLog,
-  ) async {
-    try {
-      final db = await instance.database;
-      return await db.insert('pending_sync_locations', {
-        ...locationLog,
-        'created_at': DateTime.now().toIso8601String(),
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
-    } catch (e) {
-      debugPrint('동기화 대기열 추가 중 오류 발생: $e');
-      rethrow;
-    }
+  // 사진 관련 메소드
+  
+  /// 일기에 사진 추가
+  Future<int> insertPhoto(int diaryId, String path, String userId) async {
+    final db = await database;
+    return await db.insert(
+      tablePhotos,
+      {
+        'diary_id': diaryId,
+        'path': path,
+        'user_id': userId,
+        'is_synced': 0,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
-  /// 동기화 대기 중인 위치 데이터 조회
-  Future<List<Map<String, dynamic>>> getPendingSyncLocations() async {
-    try {
-      final db = await instance.database;
-      final result = await db.query(
-        'pending_sync_locations',
-        orderBy: 'created_at ASC',
-      );
+  /// 일기의 사진들 조회
+  Future<List<String>> getPhotosByDiaryId(int diaryId) async {
+    final db = await database;
+    final result = await db.query(
+      tablePhotos,
+      columns: ['path'],
+      where: 'diary_id = ?',
+      whereArgs: [diaryId],
+    );
 
-      return result;
-    } catch (e) {
-      debugPrint('동기화 대기열 조회 중 오류 발생: $e');
-      return [];
-    }
+    return result.map((map) => map['path'] as String).toList();
   }
 
-  /// 동기화 대기열에서 위치 데이터 제거
-  Future<int> removePendingSyncLocation(String locationId) async {
-    try {
-      final db = await instance.database;
-      return await db.delete(
-        'pending_sync_locations',
-        where: 'id = ?',
-        whereArgs: [locationId],
-      );
-    } catch (e) {
-      debugPrint('동기화 대기열 제거 중 오류 발생: $e');
-      return 0;
-    }
+  /// 사진 삭제
+  Future<int> deletePhoto(int id, String userId) async {
+    final db = await database;
+    return await db.delete(
+      tablePhotos,
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
   }
 
-  /// 동기화 대기열 초기화
-  Future<int> clearPendingSyncQueue() async {
-    try {
-      final db = await instance.database;
-      return await db.delete('pending_sync_locations');
-    } catch (e) {
-      debugPrint('동기화 대기열 초기화 중 오류 발생: $e');
-      return 0;
-    }
+  /// 일기에 연결된 모든 사진 삭제
+  Future<int> deleteAllPhotosForDiary(int diaryId, String userId) async {
+    final db = await database;
+    return await db.delete(
+      tablePhotos,
+      where: 'diary_id = ? AND user_id = ?',
+      whereArgs: [diaryId, userId],
+    );
+  }
+  
+  /// 동기화 상태 업데이트 (모든 데이터 유형에 공통)
+  Future<int> updateSyncStatus(String table, dynamic id, bool isSynced) async {
+    final db = await database;
+    return await db.update(
+      table,
+      {'is_synced': isSynced ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+  
+  /// 동기화되지 않은 항목 조회
+  Future<List<Map<String, dynamic>>> getUnsyncedItems(String table) async {
+    final db = await database;
+    return await db.query(
+      table,
+      where: 'is_synced = ?',
+      whereArgs: [0],
+    );
   }
 }
