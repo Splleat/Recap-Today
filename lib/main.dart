@@ -129,13 +129,30 @@ void main() async {
     ),
   );
 
-  // 앱 시작 후 위치 추적 자동 시작 (local_user 기준)
+  // 앱 시작 후 위치 추적 자동 시작
   Future.microtask(() async {
     try {
-      const userId = 'local_user';
+      // LoginProvider 인스턴스 가져오기
+      final loginProvider = Provider.of<LoginProvider>(
+        WidgetsBinding.instance.rootElement!,
+        listen: false,
+      );
+      
+      // 현재 로그인된 사용자 ID 또는 로컬 사용자 ID 사용
+      final userId = loginProvider.isLoggedIn 
+          ? loginProvider.activeUserId 
+          : 'local_user';
+          
+      debugPrint('위치 추적 시작: 사용자 ID = $userId');
       await LocationTrackingService.instance.startTracking(userId);
     } catch (e) {
       debugPrint('위치 추적 자동 시작 중 오류 발생: $e');
+      // 오류 발생 시 기본값으로 fallback
+      try {
+        await LocationTrackingService.instance.startTracking('local_user');
+      } catch (e2) {
+        debugPrint('fallback 위치 추적 시작 실패: $e2');
+      }
     }
   });
 
