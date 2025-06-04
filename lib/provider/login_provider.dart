@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:recap_today/repository/auth_repository.dart';
-import 'package:recap_today/service/migration_service.dart';
 import 'package:recap_today/model/user_model.dart';
 
 class LoginProvider with ChangeNotifier {
@@ -93,23 +92,6 @@ class LoginProvider with ChangeNotifier {
     } finally {
       setLoading(false);
       notifyListeners();
-    }
-  }
-
-  /// 로그인 후 데이터 마이그레이션 처리 (UI와 함께)
-  Future<void> handlePostLoginMigration(BuildContext context) async {
-    if (!_isLoggedIn) {
-      print('로그인되지 않은 상태에서 마이그레이션 시도');
-      return;
-    }
-
-    try {
-      await MigrationService.handlePostLoginMigration(
-        context: context,
-        realUserId: userId,
-      );
-    } catch (e) {
-      print('마이그레이션 처리 중 오류: $e');
     }
   }
 

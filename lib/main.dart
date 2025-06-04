@@ -60,7 +60,6 @@ void main() async {
   final AuthRepository authRepository = AuthRepositoryImpl(
     dio,
     sharedPreferences,
-    locationService,
   );
 
   dio.interceptors.add(
