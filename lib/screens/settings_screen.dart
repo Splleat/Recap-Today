@@ -7,8 +7,8 @@ import 'package:recap_today/screens/signup_screen.dart';
 import 'package:recap_today/screens/user_profile_edit_screen.dart';
 import 'package:recap_today/provider/theme_provider.dart';
 import 'package:recap_today/settings/setting_card.dart';
+import 'package:recap_today/service/location_tracking_service.dart';
 import 'package:recap_today/provider/weather_provider.dart';
-import 'package:recap_today/service/current_location.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -52,7 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text("계정 설정"),
-                SettingsCard (
+                SettingsCard(
                   children: [
                     if (!loginProvider.isLoggedIn) ...[
                       // 로그인 섹션
@@ -136,14 +136,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       // 사용자 정보 수정 버튼
                       ListTile(
-                        leading: const Icon(Icons.edit, color: Colors.blueAccent),
+                        leading: const Icon(
+                          Icons.edit,
+                          color: Colors.blueAccent,
+                        ),
                         title: const Text('프로필 수정'),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const UserProfileEditScreen(),
+                              builder:
+                                  (context) => const UserProfileEditScreen(),
                             ),
                           );
                         },
@@ -173,16 +177,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         if (mode != null) {
                           themeProvider.setTheme(mode);
                         }
-                      },        
-                    ),                   
-                  ]
+                      },
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 Text('날씨 설정'),
                 SettingsCard(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.location_on, color: Colors.blueAccent),
+                      leading: const Icon(
+                        Icons.location_on,
+                        color: Colors.blueAccent,
+                      ),
                       title: const Text('현재 위치 확인'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () async {
@@ -190,12 +197,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         showDialog(
                           context: context,
                           barrierDismissible: false,
-                          builder: (context) => const Center(child: CircularProgressIndicator()),
+                          builder:
+                              (context) => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
                         );
 
                         try {
-                          final position = await getCurrentLocation();
-                          final address = await getCurrentAddress(position.latitude, position.longitude);
+                          final position =
+                              await LocationTrackingService.instance
+                                  .getCurrentLocation();
+                          final address = await LocationTrackingService.instance
+                              .getCurrentAddress(
+                                position.latitude,
+                                position.longitude,
+                              );
 
                           // 2. 로딩 다이얼로그 닫기
                           Navigator.of(context).pop();
@@ -222,22 +238,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Navigator.of(context).pop();
                           showDialog(
                             context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('오류'),
-                              content: Text('위치 정보를 가져오지 못했습니다.\n$e'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('확인'),
+                            builder:
+                                (context) => AlertDialog(
+                                  title: const Text('오류'),
+                                  content: Text('위치 정보를 가져오지 못했습니다.\n$e'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.of(context).pop(),
+                                      child: const Text('확인'),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
                           );
                         }
                       },
                     ),
                     ListTile(
-                      leading: const Icon(Icons.refresh, color: Colors.greenAccent),
+                      leading: const Icon(
+                        Icons.refresh,
+                        color: Colors.greenAccent,
+                      ),
                       title: const Text('날씨 새로고침'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () async {
@@ -245,11 +266,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         showDialog(
                           context: context,
                           barrierDismissible: false,
-                          builder: (context) => const Center(child: CircularProgressIndicator()),
+                          builder:
+                              (context) => const Center(
+                                child: CircularProgressIndicator(),
+                              ),
                         );
 
                         try {
-                          await weatherProvider.fetchWeather(DateTime.now(), force: true);
+                          await weatherProvider.fetchWeather(
+                            DateTime.now(),
+                            force: true,
+                          );
 
                           // 2. 로딩 다이얼로그 닫기
                           Navigator.of(context).pop();
@@ -262,19 +289,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Navigator.of(context).pop();
                           showDialog(
                             context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('오류'),
-                              content: Text('날씨 정보를 새로고침하지 못했습니다.\n$e'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  child: const Text('확인'),
+                            builder:
+                                (context) => AlertDialog(
+                                  title: const Text('오류'),
+                                  content: Text('날씨 정보를 새로고침하지 못했습니다.\n$e'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.of(context).pop(),
+                                      child: const Text('확인'),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
                           );
                         }
-                      }
+                      },
                     ),
                   ],
                 ),
@@ -283,19 +312,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SettingsCard(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.cloud_upload, color: Colors.blueAccent),
+                      leading: const Icon(
+                        Icons.cloud_upload,
+                        color: Colors.blueAccent,
+                      ),
                       title: const Text('데이터 백업'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {}
+                      onTap: () {},
                     ),
                     ListTile(
-                      leading: const Icon(Icons.delete, color: Colors.redAccent),
+                      leading: const Icon(
+                        Icons.delete,
+                        color: Colors.redAccent,
+                      ),
                       title: const Text('데이터 삭제'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {}
+                      onTap: () {},
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),

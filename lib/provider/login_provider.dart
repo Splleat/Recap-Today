@@ -127,4 +127,6 @@ class LoginProvider with ChangeNotifier {
       print('Failed to refresh user info: $e');
     }
   }
+
+  String? get authToken => _authRepository.getToken();
 }

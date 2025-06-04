@@ -36,6 +36,7 @@ abstract class AbstractDatabase {
   Future<List<ChecklistItem>> getChecklistItemsByCompletedDate(String date, String userId);
   Future<List<ChecklistItem>> getIncompleteChecklistItems(String userId);
   Future<List<ChecklistItem>> getCompletedChecklistItems(String userId);
+  Future<void> saveChecklistItems(List<ChecklistItem> items);
   
   // 앱 사용량 관련 메소드
   Future<int> insertAppUsage(AppUsageModel appUsage);
@@ -58,8 +59,13 @@ abstract class AbstractDatabase {
   Future<int> deleteEmotionRecord(String id, String userId);
   
   // 위치 로그 관련 메소드
-  Future<int> insertLocationLog(LocationModel location);
-  Future<List<LocationModel>> getLocationLogsByDate(String date, String userId);
+  Future<int> insertLocationLog(Map<String, dynamic> locationLog);
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(String userId, String date);
+  Future<List<Map<String, dynamic>>> getLocationLogsForUser(String userId);
+  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(String userId);
+  Future<int> deleteAllLocationLogsForUser(String userId);
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(String userId, DateTime start, DateTime end);
+  Future<int> deleteLocationLogsInRange(String userId, DateTime start, DateTime end);
   
   // 걸음 수 관련 메소드
   Future<int> insertStepCount(StepModel step);

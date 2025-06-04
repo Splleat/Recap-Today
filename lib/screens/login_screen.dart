@@ -56,9 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     '생산적인 하루를 계획하세요',
                     textAlign: TextAlign.center,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge?.copyWith(),
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(),
                   ),
                   const SizedBox(height: 60),
                   // Login form
@@ -112,54 +110,56 @@ class _LoginScreenState extends State<LoginScreen> {
                               width: double.infinity,
                               height: 50,
                               child: ElevatedButton(
-                                onPressed: loginProvider.isLoading
-                                    ? null
-                                    : () async {
-                                        if (_formKey.currentState!.validate()) {
-                                          _formKey.currentState!.save();
-                                          final success =
-                                              await loginProvider.login();
-                                          if (mounted) {
-                                            if (success) {
-
-                                              if (mounted) {
+                                onPressed:
+                                    loginProvider.isLoading
+                                        ? null
+                                        : () async {
+                                          if (_formKey.currentState!
+                                              .validate()) {
+                                            _formKey.currentState!.save();
+                                            final success =
+                                                await loginProvider.login();
+                                            if (mounted) {
+                                              if (success) {
                                                 Navigator.pushNamedAndRemoveUntil(
                                                   context,
                                                   '/settings',
                                                   (route) => false,
                                                 );
+                                              } else {
+                                                final errorMessage =
+                                                    loginProvider
+                                                        .errorMessage ??
+                                                    '로그인에 실패했습니다. 다시 시도해주세요.';
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(errorMessage),
+                                                    backgroundColor: Colors.red,
+                                                  ),
+                                                );
                                               }
-                                            } else {
-                                              final errorMessage =
-                                                  loginProvider.errorMessage ??
-                                                  '로그인에 실패했습니다. 다시 시도해주세요.';
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(errorMessage),
-                                                  backgroundColor: Colors.red,
-                                                ),
-                                              );
                                             }
                                           }
-                                        }
-                                      },
+                                        },
                                 style: ElevatedButton.styleFrom(
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                 ),
-                                child: loginProvider.isLoading
-                                    ? const CircularProgressIndicator(
-                                        color: Colors.white,
-                                      )
-                                    : const Text(
-                                        '로그인',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                                child:
+                                    loginProvider.isLoading
+                                        ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                        : const Text(
+                                          '로그인',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-                                      ),
                               ),
                             ),
                             const SizedBox(height: 16),

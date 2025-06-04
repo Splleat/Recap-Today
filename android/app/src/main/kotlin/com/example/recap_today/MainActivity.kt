@@ -1,6 +1,8 @@
 package com.tangsuyukisbumeok.recap_today
 
 import android.app.AppOpsManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -27,6 +29,9 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // 알림 채널 생성 (Android 8.0+)
+        createNotificationChannel()
+        
         // WebView 디버깅 활성화 (디버그 빌드에서만)
         try {
             val appInfo = applicationInfo
@@ -35,6 +40,28 @@ class MainActivity : FlutterActivity() {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to enable WebView debugging", e)
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            
+            // flutter_background_service가 사용하는 채널 ID와 동일하게 설정
+            val channelId = "recap_today_location"
+            val channelName = "위치 추적 서비스"
+            val channelDescription = "백그라운드에서 위치를 추적합니다"
+            val importance = NotificationManager.IMPORTANCE_LOW
+            
+            val channel = NotificationChannel(channelId, channelName, importance).apply {
+                description = channelDescription
+                // 사용자가 알림음이나 진동을 원하지 않을 경우
+                enableVibration(false)
+                setSound(null, null)
+            }
+            
+            notificationManager.createNotificationChannel(channel)
+            Log.d(TAG, "Notification channel created: $channelId")
         }
     }
 

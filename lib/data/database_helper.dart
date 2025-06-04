@@ -669,26 +669,148 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
 
   // CRUD 메소드 - 위치 로그 (Location)
   
-  /// 위치 로그 추가
-  Future<int> insertLocationLog(LocationModel location) async {
-    final db = await database;
-    return await db.insert(
-      tableLocationLogs,
-      location.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+  /// 위치 데이터 삽입
+  Future<int> insertLocationLog(Map<String, dynamic> locationLog) async {
+    try {
+      final db = await instance.database;
+      return await db.insert(
+        tableLocationLogs,
+        locationLog,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      debugPrint('위치 로그 삽입 중 오류 발생: $e');
+      rethrow;
+    }
   }
 
-  /// 특정 날짜의 위치 로그 조회
-  Future<List<LocationModel>> getLocationLogsByDate(String date, String userId) async {
-    final db = await database;
-    final result = await db.query(
-      tableLocationLogs,
-      where: "timestamp LIKE ? AND user_id = ?",
-      whereArgs: ['$date%', userId],
-    );
+  /// 특정 사용자의 특정 날짜 위치 데이터 조회
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(
+    String userId,
+    String date,
+  ) async {
+    try {
+      final db = await instance.database;
 
-    return result.map((json) => LocationModelX.fromMap(json)).toList();
+      // 해당 날짜의 시작과 끝 시간 계산
+      final startOfDay = '${date}T00:00:00';
+      final endOfDay = '${date}T23:59:59';
+
+      final result = await db.query(
+        tableLocationLogs,
+        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
+        whereArgs: [userId, startOfDay, endOfDay],
+        orderBy: 'timestamp ASC',
+      );
+
+      return result;
+    } catch (e) {
+      debugPrint('특정 날짜 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 특정 사용자의 모든 위치 데이터 조회
+  Future<List<Map<String, dynamic>>> getLocationLogsForUser(
+    String userId,
+  ) async {
+    try {
+      final db = await instance.database;
+      final result = await db.query(
+        tableLocationLogs,
+        where: 'userId = ?',
+        whereArgs: [userId],
+        orderBy: 'timestamp DESC',
+        limit: 100, // 최근 100개만 조회
+      );
+
+      return result;
+    } catch (e) {
+      debugPrint('사용자 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 특정 사용자의 모든 위치 데이터 조회 (제한 없음)
+  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(
+    String userId,
+  ) async {
+    try {
+      final db = await instance.database;
+      final result = await db.query(
+        tableLocationLogs,
+        where: 'userId = ?',
+        whereArgs: [userId],
+        orderBy: 'timestamp ASC',
+      );
+
+      return result;
+    } catch (e) {
+      debugPrint('사용자 전체 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 특정 사용자의 모든 위치 데이터 삭제
+  Future<int> deleteAllLocationLogsForUser(String userId) async {
+    try {
+      final db = await instance.database;
+      return await db.delete(
+        tableLocationLogs,
+        where: 'userId = ?',
+        whereArgs: [userId],
+      );
+    } catch (e) {
+      debugPrint('사용자 위치 로그 전체 삭제 중 오류 발생: $e');
+      return 0;
+    }
+  }
+
+  /// 특정 사용자의 날짜 범위 위치 데이터 조회
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final db = await instance.database;
+      final startTime = start.toIso8601String();
+      final endTime = end.toIso8601String();
+
+      final result = await db.query(
+        tableLocationLogs,
+        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
+        whereArgs: [userId, startTime, endTime],
+        orderBy: 'timestamp ASC',
+      );
+
+      return result;
+    } catch (e) {
+      debugPrint('날짜 범위 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  /// 특정 사용자의 날짜 범위 위치 데이터 삭제
+  Future<int> deleteLocationLogsInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  ) async {
+    try {
+      final db = await instance.database;
+      final startTime = start.toIso8601String();
+      final endTime = end.toIso8601String();
+
+      return await db.delete(
+        tableLocationLogs,
+        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
+        whereArgs: [userId, startTime, endTime],
+      );
+    } catch (e) {
+      debugPrint('날짜 범위 위치 로그 삭제 중 오류 발생: $e');
+      return 0;
+    }
   }
 
   // CRUD 메소드 - 걸음 수 (Steps)

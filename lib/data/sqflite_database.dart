@@ -87,7 +87,7 @@ class SqfliteDatabase implements AbstractDatabase {
       return await _helper.searchDiaries(query, userId, limit: limit, offset: offset);
     } catch (e) {
       debugPrint('일기 검색 중 오류 발생: $e');
-      return {};
+      return {'diaries': [], 'totalCount': 0};
     }
   }
 
@@ -159,6 +159,16 @@ class SqfliteDatabase implements AbstractDatabase {
     } catch (e) {
       debugPrint('완료된 체크리스트 항목 조회 중 오류 발생: $e');
       return [];
+    }
+  }
+  
+  @override
+  Future<void> saveChecklistItems(List<ChecklistItem> items) async {
+    try {
+      return await _helper.saveChecklistItems(items);
+    } catch (e) {
+      debugPrint('체크리스트 항목 일괄 저장 중 오류 발생: $e');
+      rethrow;
     }
   }
 
@@ -307,9 +317,9 @@ class SqfliteDatabase implements AbstractDatabase {
 
   // 위치 로그 관련 메서드
   @override
-  Future<int> insertLocationLog(LocationModel location) async {
+  Future<int> insertLocationLog(Map<String, dynamic> locationLog) async {
     try {
-      return await _helper.insertLocationLog(location);
+      return await _helper.insertLocationLog(locationLog);
     } catch (e) {
       debugPrint('위치 로그 추가 중 오류 발생: $e');
       rethrow;
@@ -317,12 +327,66 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   @override
-  Future<List<LocationModel>> getLocationLogsByDate(String date, String userId) async {
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(String userId, String date) async {
     try {
-      return await _helper.getLocationLogsByDate(date, userId);
+      return await _helper.getLocationLogsForUserAndDate(userId, date);
     } catch (e) {
       debugPrint('일자별 위치 로그 조회 중 오류 발생: $e');
       return [];
+    }
+  }
+  
+  @override
+  Future<List<Map<String, dynamic>>> getLocationLogsForUser(String userId) async {
+    try {
+      return await _helper.getLocationLogsForUser(userId);
+    } catch (e) {
+      debugPrint('사용자 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+  
+  @override
+  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(String userId) async {
+    try {
+      return await _helper.getAllLocationLogsForUser(userId);
+    } catch (e) {
+      debugPrint('사용자 전체 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+  
+  @override
+  Future<int> deleteAllLocationLogsForUser(String userId) async {
+    try {
+      return await _helper.deleteAllLocationLogsForUser(userId);
+    } catch (e) {
+      debugPrint('사용자 위치 로그 전체 삭제 중 오류 발생: $e');
+      return 0;
+    }
+  }
+  
+  @override
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
+    String userId, 
+    DateTime start, 
+    DateTime end
+  ) async {
+    try {
+      return await _helper.getLocationLogsForUserInRange(userId, start, end);
+    } catch (e) {
+      debugPrint('날짜 범위 위치 로그 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+  
+  @override
+  Future<int> deleteLocationLogsInRange(String userId, DateTime start, DateTime end) async {
+    try {
+      return await _helper.deleteLocationLogsInRange(userId, start, end);
+    } catch (e) {
+      debugPrint('날짜 범위 위치 로그 삭제 중 오류 발생: $e');
+      return 0;
     }
   }
 
