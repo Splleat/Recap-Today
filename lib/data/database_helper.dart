@@ -701,7 +701,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
 
       final result = await db.query(
         tableLocationLogs,
-        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
+        where: 'user_id = ? AND timestamp >= ? AND timestamp <= ?',
         whereArgs: [userId, startOfDay, endOfDay],
         orderBy: 'timestamp ASC',
       );
@@ -721,7 +721,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
       final db = await instance.database;
       final result = await db.query(
         tableLocationLogs,
-        where: 'userId = ?',
+        where: 'user_id = ?',
         whereArgs: [userId],
         orderBy: 'timestamp DESC',
         limit: 100, // 최근 100개만 조회
@@ -742,7 +742,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
       final db = await instance.database;
       final result = await db.query(
         tableLocationLogs,
-        where: 'userId = ?',
+        where: 'user_id = ?',
         whereArgs: [userId],
         orderBy: 'timestamp ASC',
       );
@@ -760,7 +760,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
       final db = await instance.database;
       return await db.delete(
         tableLocationLogs,
-        where: 'userId = ?',
+        where: 'user_id = ?',
         whereArgs: [userId],
       );
     } catch (e) {
@@ -782,7 +782,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
 
       final result = await db.query(
         tableLocationLogs,
-        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
+        where: 'user_id = ? AND timestamp >= ? AND timestamp <= ?',
         whereArgs: [userId, startTime, endTime],
         orderBy: 'timestamp ASC',
       );
@@ -807,7 +807,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
 
       return await db.delete(
         tableLocationLogs,
-        where: 'userId = ? AND timestamp >= ? AND timestamp <= ?',
+        where: 'user_id = ? AND timestamp >= ? AND timestamp <= ?',
         whereArgs: [userId, startTime, endTime],
       );
     } catch (e) {
