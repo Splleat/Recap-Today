@@ -62,7 +62,6 @@ class DatabaseHelper implements AbstractDatabase {
 
   /// 데이터베이스 테이블 생성
   Future _createDB(Database db, int version) async {
-
     // 일기 테이블 생성 (Freezed 모델 지원)
     await db.execute('''
       CREATE TABLE $tableDiaries (
@@ -285,7 +284,7 @@ class DatabaseHelper implements AbstractDatabase {
   }
 
   // CRUD 메소드 - 일기 (Diary)
-  
+
   /// 새 일기 추가
   Future<int> insertDiary(DiaryModel diary) async {
     final db = await database;
@@ -351,7 +350,7 @@ class DatabaseHelper implements AbstractDatabase {
     int? offset,
   }) async {
     final db = await database;
-    
+
     // Include userId in where clause for proper filtering
     String whereClause = '(title LIKE ? OR content LIKE ?) AND user_id = ?';
     List<dynamic> whereArgs = ['%$query%', '%$query%', userId];
@@ -374,7 +373,7 @@ class DatabaseHelper implements AbstractDatabase {
 
     // Convert to diary models
     final diaries = maps.map((json) => DiaryModelX.fromMap(json)).toList();
-    
+
     // Load photos more efficiently with a single JOIN query
     for (var diary in diaries) {
       if (diary.id != null) {
@@ -384,21 +383,18 @@ class DatabaseHelper implements AbstractDatabase {
       }
     }
 
-    return {
-      'diaries': diaries,
-      'totalCount': totalCount,
-    };
+    return {'diaries': diaries, 'totalCount': totalCount};
   }
 
-/// CRUD 메소드 - 체크리스트 (Checklist)
+  /// CRUD 메소드 - 체크리스트 (Checklist)
 
-/// 새 체크리스트 아이템 추가
-Future<int> insertChecklistItem(ChecklistItem item) async {
-  final db = await database;
-  return await db.insert(
-    tableChecklist,
-    item.toMap(),
-    conflictAlgorithm: ConflictAlgorithm.replace,
+  /// 새 체크리스트 아이템 추가
+  Future<int> insertChecklistItem(ChecklistItem item) async {
+    final db = await database;
+    return await db.insert(
+      tableChecklist,
+      item.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
@@ -434,14 +430,14 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
       whereArgs: [id, userId],
     );
   }
-  
+
   /// 여러 체크리스트 아이템을 일괄 저장 (배치 처리)
   Future<void> saveChecklistItems(List<ChecklistItem> items) async {
     if (items.isEmpty) return;
-    
+
     final db = await database;
     final batch = db.batch();
-    
+
     for (var item in items) {
       batch.insert(
         tableChecklist,
@@ -449,12 +445,15 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
-  
+
   /// 특정 날짜에 완료된 체크리스트 아이템 조회
-  Future<List<ChecklistItem>> getChecklistItemsByCompletedDate(String date, String userId) async {
+  Future<List<ChecklistItem>> getChecklistItemsByCompletedDate(
+    String date,
+    String userId,
+  ) async {
     final db = await database;
     final result = await db.query(
       tableChecklist,
@@ -490,7 +489,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
   }
 
   // CRUD 메소드 - 앱 사용량 (AppUsage)
-  
+
   /// 앱 사용 기록 추가
   Future<int> insertAppUsage(AppUsageModel appUsage) async {
     final db = await database;
@@ -502,7 +501,10 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
   }
 
   /// 특정 날짜의 앱 사용 기록 조회
-  Future<List<AppUsageModel>> getAppUsageByDate(String date, String userId) async {
+  Future<List<AppUsageModel>> getAppUsageByDate(
+    String date,
+    String userId,
+  ) async {
     final db = await database;
     final result = await db.query(
       tableAppUsage,
@@ -524,7 +526,10 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
   }
 
   /// 앱 사용기록 일괄 삽입 (트랜잭션 사용)
-  Future<int> insertAppUsageBatch(List<AppUsageModel> appUsages, String userId) async {
+  Future<int> insertAppUsageBatch(
+    List<AppUsageModel> appUsages,
+    String userId,
+  ) async {
     if (appUsages.isEmpty) return 0;
 
     final db = await instance.database;
@@ -557,7 +562,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
   }
 
   // CRUD 메소드 - 일정 (Schedule)
-  
+
   /// 일정 추가
   Future<int> insertScheduleItem(ScheduleItem item) async {
     final db = await database;
@@ -569,7 +574,10 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
   }
 
   /// 특정 날짜의 일정 조회
-  Future<List<ScheduleItem>> getScheduleItemsByDate(String date, String userId) async {
+  Future<List<ScheduleItem>> getScheduleItemsByDate(
+    String date,
+    String userId,
+  ) async {
     final db = await database;
     final result = await db.query(
       tableSchedule,
@@ -612,9 +620,9 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
       whereArgs: [id, userId],
     );
   }
-  
+
   // CRUD 메소드 - 감정 기록 (Emotion)
-  
+
   /// 감정 기록 추가
   Future<int> insertEmotionRecord(EmotionRecord emotion) async {
     final db = await database;
@@ -626,7 +634,10 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
   }
 
   /// 특정 날짜의 감정 기록 조회
-  Future<List<EmotionRecord>> getEmotionsByDate(String date, String userId) async {
+  Future<List<EmotionRecord>> getEmotionsByDate(
+    String date,
+    String userId,
+  ) async {
     final db = await database;
     final result = await db.query(
       tableEmotionRecords,
@@ -638,7 +649,11 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
   }
 
   /// 특정 시간의 감정 기록 조회
-  Future<EmotionRecord?> getEmotionByDateAndHour(String date, int hour, String userId) async {
+  Future<EmotionRecord?> getEmotionByDateAndHour(
+    String date,
+    int hour,
+    String userId,
+  ) async {
     final db = await database;
     final result = await db.query(
       tableEmotionRecords,
@@ -671,7 +686,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
   }
 
   // CRUD 메소드 - 위치 로그 (Location)
-  
+
   /// 위치 데이터 삽입
   Future<int> insertLocationLog(Map<String, dynamic> locationLog) async {
     try {
@@ -817,7 +832,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
   }
 
   // CRUD 메소드 - 걸음 수 (Steps)
-  
+
   /// 걸음 수 기록 추가
   Future<int> insertStepCount(StepModel step) async {
     final db = await database;
@@ -842,20 +857,16 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
   }
 
   // 사진 관련 메소드
-  
+
   /// 일기에 사진 추가
   Future<int> insertPhoto(int diaryId, String path, String userId) async {
     final db = await database;
-    return await db.insert(
-      tablePhotos,
-      {
-        'diary_id': diaryId,
-        'path': path,
-        'user_id': userId,
-        'is_synced': 0,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    return await db.insert(tablePhotos, {
+      'diary_id': diaryId,
+      'path': path,
+      'user_id': userId,
+      'is_synced': 0,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   /// 일기의 사진들 조회
@@ -890,7 +901,7 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
       whereArgs: [diaryId, userId],
     );
   }
-  
+
   /// 동기화 상태 업데이트 (모든 데이터 유형에 공통)
   Future<int> updateSyncStatus(String table, dynamic id, bool isSynced) async {
     final db = await database;
@@ -901,15 +912,11 @@ Future<int> insertChecklistItem(ChecklistItem item) async {
       whereArgs: [id],
     );
   }
-  
+
   /// 동기화되지 않은 항목 조회
   Future<List<Map<String, dynamic>>> getUnsyncedItems(String table) async {
     final db = await database;
-    return await db.query(
-      table,
-      where: 'is_synced = ?',
-      whereArgs: [0],
-    );
+    return await db.query(table, where: 'is_synced = ?', whereArgs: [0]);
   }
 
   // 마이그레이션(로컬 데이터를 특정 사용자 ID로 마이그레이션) -> 로그인 후 처리
