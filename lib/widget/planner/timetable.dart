@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:recap_today/model/freezed/schedule_item.dart';
+import 'package:recap_today/provider/login_provider.dart';
 import 'package:recap_today/utils/time_util.dart';
 import 'package:recap_today/provider/schedule_provider.dart';
 import 'package:provider/provider.dart';
@@ -79,6 +80,9 @@ class TimetableScheduleBlock extends StatelessWidget {
   final ScheduleItem item;
 
   void _showOptionsDialog(BuildContext context, ScheduleItem item) {
+    final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+    String userId = loginProvider.activeUserId;
+
     showDialog<void>(
       context: context,
       builder: (context) {
@@ -122,10 +126,8 @@ class TimetableScheduleBlock extends StatelessWidget {
                       child: ScheduleAddForm(
                         isRoutineContext: item.isRoutine,
                         initialItem: item, // Pass the item to edit
-                        selectedDate:
-                            item.selectedDate, // Pass existing date for user schedules
-                        dayOfWeek:
-                            item.dayOfWeek, // Pass existing day for routine schedules
+                        selectedDate: item.selectedDate, // Pass existing date for user schedules
+                        dayOfWeek: item.dayOfWeek, // Pass existing day for routine schedules
                       ),
                     );
                   },
@@ -136,7 +138,10 @@ class TimetableScheduleBlock extends StatelessWidget {
               child: Text('삭제', style: TextStyle(color: Colors.red)),
               onPressed: () {
                 try {
-                  context.read<ScheduleProvider>().removeItem(item.id);
+                  context.read<ScheduleProvider>().removeItem(
+                    item.id,
+                    userId,
+                  );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('일정 삭제 중 오류가 발생했습니다: $e')),
@@ -153,6 +158,8 @@ class TimetableScheduleBlock extends StatelessWidget {
 
   const TimetableScheduleBlock({Key? key, required this.item})
     : super(key: key);
+    
+  @override // Added missing override annotation
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {

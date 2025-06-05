@@ -3,15 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:recap_today/data/sqflite_database.dart';
 import 'package:recap_today/model/freezed/diary_model.dart';
 import 'package:recap_today/utils/file_manager.dart';
+import 'package:recap_today/provider/login_provider.dart';
 
 /// 일기 상태 관리 클래스
 class DiaryProvider with ChangeNotifier {
   List<DiaryModel> _diaries = [];
   final SqfliteDatabase _database = SqfliteDatabase();
-  String userId;
   bool _isLoading = false;
 
-  DiaryProvider({required this.userId}) {
+  final LoginProvider _loginProvider;
+
+  DiaryProvider({required LoginProvider loginProvider}) 
+    : _loginProvider = loginProvider {
     loadDiaries(); // 초기 로드
   }
 
@@ -19,13 +22,7 @@ class DiaryProvider with ChangeNotifier {
   List<DiaryModel> get diaries => _diaries;
   bool get isLoading => _isLoading;
 
-  // 로그인 사용자 ID 설정
-  void setUserId(String userId) {
-    if (this.userId != userId) {
-      this.userId = userId;
-      loadDiaries(); // 사용자 변경 시 일기 목록 다시 로드
-    }
-  }
+  String get userId => _loginProvider.activeUserId ?? 'local_user';
 
   /// 일기 목록 가져오기
   Future<void> loadDiaries() async {
@@ -61,6 +58,14 @@ class DiaryProvider with ChangeNotifier {
     // userId 설정하여 일기 모델 업데이트
     final diaryWithUserId = diary.copyWith(userId: userId);
     
+    // 디버깅 정보 출력
+    debugPrint('ID: ${diary.id}');
+    debugPrint('날짜: ${diary.date}');
+    debugPrint('제목: ${diary.title}');
+    debugPrint('내용: ${diary.content}');
+    debugPrint('사용자 ID: ${diaryWithUserId.userId} (${_loginProvider.activeUserId ?? "로컬 사용자"})');
+    debugPrint('사진 경로 개수: ${diary.photoPaths.length}');
+    
     try {
       int diaryId;
       
@@ -70,17 +75,21 @@ class DiaryProvider with ChangeNotifier {
           : null;
           
       if (existingDiary != null) {
+        debugPrint('기존 일기 업데이트 (날짜로 찾음): ID=${existingDiary.id}');
         // 날짜에 해당하는 기존 일기 업데이트
         final updatedDiary = diaryWithUserId.copyWith(id: existingDiary.id);
         await _database.updateDiary(updatedDiary);
         diaryId = updatedDiary.id!;
       } else if (diary.id != null) {
+        debugPrint('기존 일기 업데이트 (ID로 찾음): ID=${diary.id}');
         // 기존 일기 업데이트
         await _database.updateDiary(diaryWithUserId);
         diaryId = diary.id!;
       } else {
+        debugPrint('새 일기 삽입');
         // 새 일기 삽입
         diaryId = await _database.insertDiary(diaryWithUserId);
+        debugPrint('새 일기 ID: $diaryId');
       }
       
       // 기존 사진 정보 삭제

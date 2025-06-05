@@ -12,6 +12,7 @@ import 'package:recap_today/widget/summary/diary_widget.dart';
 import 'package:recap_today/widget/summary/emotion_summary_graph.dart'; // 추가
 import 'package:recap_today/utils/share_util.dart';
 import 'package:recap_today/service/ai_feedback_service.dart';
+import 'package:recap_today/widget/summary/step_summary.dart'; // 걸음 수 요약 위젯 추가
 
 class SummaryScreen extends StatefulWidget {
   const SummaryScreen({super.key});
@@ -107,15 +108,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 child: Column(
                   children: [
                     Card(child: _locationInfoWidget!),
-                    Card(
-                      child: Padding(
-                        // 패딩 추가
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 80.0,
-                        ), // LocationInfo와 동일한 패딩 적용
-                        child: WeatherSummary(),
-                      ),
-                    ), // 날씨 요약 위젯 추가
+                    Card(child: StepSummary(date: DateTime.now())),
                     Card(child: AppUsage()),
                     Card(child: ChecklistAchievement()),
                     Card(child: EmotionSummaryGraph(date: DateTime.now())),

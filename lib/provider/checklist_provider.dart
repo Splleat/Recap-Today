@@ -13,7 +13,18 @@ class ChecklistProvider extends ChangeNotifier {
   final SqfliteDatabase _database = SqfliteDatabase();
   bool _isLoaded = false;
   bool _isBusy = false; // 데이터베이스 작업 중 상태를 추적하는 플래그
-  String _userId = 'default_user'; // 기본값 설정
+  
+  final LoginProvider _loginProvider;
+  
+  // 생성자에서 LoginProvider 주입받기
+  ChecklistProvider({required LoginProvider loginProvider}) 
+      : _loginProvider = loginProvider {
+    _updateTodayDateString();
+    _loadItems();
+  }
+  
+  // userId getter를 LoginProvider에서 가져오도록 수정
+  String get userId => _loginProvider.activeUserId;
 
   // 캐싱을 위한 변수들
   DateTime? _lastRefreshTime;
@@ -21,26 +32,9 @@ class ChecklistProvider extends ChangeNotifier {
   String _todayDateString = '';
   Map<String, List<ChecklistItem>> _dateCache = {};
 
-  // 생성자
-  ChecklistProvider() {
-    _updateTodayDateString();
-    _loadItems();
-  }
-
-  // LoginProvider에서 userId 설정
-  void setUserId(String userId) {
-    if (_userId != userId) {
-      _userId = userId;
-      _isLoaded = false; // userId가 변경되면 데이터 다시 로드
-      _invalidateCache(); // 캐시 초기화
-      _loadItems(); // 새 userId로 아이템 로드
-    }
-  }
-
   // Getter 메서드들
   List<ChecklistItem> get items => List.unmodifiable(_items); // 불변 리스트 반환
   bool get isLoading => !_isLoaded;
-  String get userId => _userId;
 
   /// 특정 날짜에 완료된 항목들을 반환하는 메서드
   List<ChecklistItem> getCompletedItemsForDate(DateTime date) {
@@ -84,7 +78,7 @@ class ChecklistProvider extends ChangeNotifier {
       _isBusy = true;
       // 데이터베이스에서 체크리스트 아이템 불러오기
       final List<ChecklistItem> loadedItems = 
-          await _database.getAllChecklistItems(_userId);
+          await _database.getAllChecklistItems(userId);
 
       _items.clear();
       // 데이터베이스에서 불러온 아이템으로 목록 업데이트
@@ -125,7 +119,16 @@ class ChecklistProvider extends ChangeNotifier {
     if (_isBusy) return;
     
     // userId 설정 확인
-    final updatedItem = item.copyWith(userId: _userId);
+    final updatedItem = item.copyWith(userId: userId);
+    
+    // 디버깅: 새로운 아이템의 값들을 출력
+    debugPrint('ID: ${updatedItem.id}');
+    debugPrint('텍스트: ${updatedItem.text}');
+    debugPrint('부가설명: ${updatedItem.subtext}');
+    debugPrint('체크 상태: ${updatedItem.isChecked}');
+    debugPrint('마감일: ${updatedItem.dueDate}');
+    debugPrint('완료일: ${updatedItem.completedDate}');
+    debugPrint('사용자 ID: ${updatedItem.userId} (${_loginProvider.activeUserId ?? "로컬 사용자"})');
     
     _items.add(updatedItem);
     _sortItems();
@@ -274,7 +277,7 @@ class ChecklistProvider extends ChangeNotifier {
   /// 특정 날짜에 완료된 항목들만 가져오기
   Future<List<ChecklistItem>> getCompletedItemsByDate(String date) async {
     try {
-      return await _database.getChecklistItemsByCompletedDate(date, _userId);
+      return await _database.getChecklistItemsByCompletedDate(date, userId);
     } catch (e) {
       debugPrint('날짜별 완료된 항목 조회 중 오류 발생: $e');
       
@@ -290,7 +293,7 @@ class ChecklistProvider extends ChangeNotifier {
   /// 미완료된 항목들만 가져오기
   Future<List<ChecklistItem>> getIncompleteItems() async {
     try {
-      return await _database.getIncompleteChecklistItems(_userId);
+      return await _database.getIncompleteChecklistItems(userId);
     } catch (e) {
       debugPrint('미완료 항목 조회 중 오류 발생: $e');
       // 메모리에서 필터링
@@ -301,7 +304,7 @@ class ChecklistProvider extends ChangeNotifier {
   /// 완료된 항목들만 가져오기
   Future<List<ChecklistItem>> getCompletedItems() async {
     try {
-      return await _database.getCompletedChecklistItems(_userId);
+      return await _database.getCompletedChecklistItems(userId);
     } catch (e) {
       debugPrint('완료된 항목 조회 중 오류 발생: $e');
       // 메모리에서 필터링

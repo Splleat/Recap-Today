@@ -17,6 +17,9 @@ abstract interface class AuthRepository {
   /// 현재 사용자 정보 조회
   Future<User?> getCurrentUser();
 
+  // 토큰 확인 디버깅 코드
+  void debugCheckToken();
+
   String? getToken();
 
   void setToken(String token);

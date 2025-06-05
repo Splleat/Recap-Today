@@ -11,9 +11,11 @@ final class AuthRepositoryImpl implements AuthRepository {
   final Dio dio;
   final SharedPreferences sharedPreferences;
 
-  late String? _token = sharedPreferences.getString('token');
+  String? _token; // 초기화를 생성자로 이동
 
-  AuthRepositoryImpl(this.dio, this.sharedPreferences);
+  AuthRepositoryImpl(this.dio, this.sharedPreferences) {
+    _token = sharedPreferences.getString('token'); // 생성자에서 토큰 초기화
+  }
 
   @override
   Future<UserCredential> login(String userId, String password) async {
@@ -26,6 +28,11 @@ final class AuthRepositoryImpl implements AuthRepository {
 
     // 로그인 성공 시 토큰 저장
     setToken(userCredential.accessToken);
+    
+    // 사용자 정보가 있으면 캐싱
+    if (userCredential.user != null) {
+      _cacheUserInfo(userCredential.user);
+    }
 
     return userCredential;
   }
@@ -127,13 +134,87 @@ final class AuthRepositoryImpl implements AuthRepository {
     if (_token == null) return null;
 
     try {
+      // 1. 서버에서 사용자 정보 요청
       final response = await dio.get(
         '/auth/me',
         options: Options(headers: {'Authorization': 'Bearer $_token'}),
       );
-      return User.fromJson(response.data);
+      
+      // 성공 시 사용자 정보 캐싱 및 반환
+      final user = User.fromJson(response.data);
+      _cacheUserInfo(user);  // 사용자 정보 캐싱
+      return user;
     } catch (e) {
       debugPrint('현재 사용자 정보 조회 실패: $e');
+      
+      // 2. 실패 시 캐시된 사용자 정보 확인
+      final cachedUser = _getCachedUserInfo();
+      if (cachedUser != null) {
+        debugPrint('캐시된 사용자 정보 사용');
+        return cachedUser;
+      }
+      
+      // 3. 캐시된 정보도 없으면 토큰에서 기본 정보 추출
+      return _extractUserFromToken();
+    }
+  }
+
+  // 사용자 정보 캐싱 메서드
+  void _cacheUserInfo(User user) {
+    try {
+      final userJson = json.encode(user.toJson());
+      sharedPreferences.setString('cached_user_info', userJson);
+      debugPrint('사용자 정보 캐시됨: ${user.name}');
+    } catch (e) {
+      debugPrint('사용자 정보 캐싱 실패: $e');
+    }
+  }
+
+  // 캐시된 사용자 정보 가져오기
+  User? _getCachedUserInfo() {
+    try {
+      final cachedJson = sharedPreferences.getString('cached_user_info');
+      if (cachedJson != null && cachedJson.isNotEmpty) {
+        return User.fromJson(json.decode(cachedJson));
+      }
+      return null;
+    } catch (e) {
+      debugPrint('캐시된 사용자 정보 파싱 실패: $e');
+      return null;
+    }
+  }
+
+  // 토큰에서 사용자 정보 추출
+  User? _extractUserFromToken() {
+    try {
+      final userId = getCurrentUserId();
+      if (userId != null) {
+        // JWT 토큰에서 이름 정보도 추출 가능하면 사용
+        String name = '사용자';
+        
+        // JWT 토큰을 분석하여 이름 정보 추출 시도
+        try {
+          final parts = _token!.split('.');
+          if (parts.length == 3) {
+            final payload = parts[1];
+            final normalized = payload.padRight((payload.length + 3) ~/ 4 * 4, '=');
+            final decoded = utf8.decode(base64Url.decode(normalized));
+            final Map<String, dynamic> data = json.decode(decoded);
+            
+            if (data.containsKey('name')) {
+              name = data['name'];
+            }
+          }
+        } catch (e) {
+          debugPrint('토큰에서 이름 추출 실패: $e');
+        }
+        
+        // 기본 사용자 객체 반환
+        return User(id: userId, name: name);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('토큰에서 사용자 정보 추출 실패: $e');
       return null;
     }
   }
@@ -178,5 +259,12 @@ final class AuthRepositoryImpl implements AuthRepository {
       debugPrint('사용자 프로필 업데이트 실패: $e');
       rethrow;
     }
+  }
+
+  @override
+  void debugCheckToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedToken = prefs.getString('token');
+    debugPrint('저장된 토큰: $savedToken');
   }
 }

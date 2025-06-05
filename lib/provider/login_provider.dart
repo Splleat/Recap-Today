@@ -28,19 +28,29 @@ class LoginProvider with ChangeNotifier {
   }
 
   Future<void> _checkLoginStatus() async {
+    debugPrint('로그인 상태 확인 시작');
     final token = _authRepository.getToken();
+    debugPrint('저장된 토큰: ${token != null ? '있음' : '없음'}');
+    
     if (token != null) {
-      // 토큰이 있으면 유효성 검증
-      final isValid = await _authRepository.validateToken();
-      _isLoggedIn = isValid;
-
-      // 토큰이 유효하면 사용자 정보 불러오기
-      if (isValid) {
+      try {
         _currentUser = await _authRepository.getCurrentUser();
+        if (_currentUser != null) {
+          debugPrint('사용자 정보 로드 성공: ${_currentUser!.name}');
+        } else {
+          debugPrint('사용자 정보가 null로 반환됨');
+        }
+        _isLoggedIn = true;
+      } catch (e) {
+        debugPrint('사용자 정보 로드 중 오류 발생: $e');
+        // 오류가 발생해도 토큰이 있으면 로그인 상태 유지
+        _isLoggedIn = true;
       }
     } else {
       _isLoggedIn = false;
     }
+    
+    debugPrint('로그인 상태 확인 완료: $_isLoggedIn');
     notifyListeners();
   }
 
@@ -80,6 +90,8 @@ class LoginProvider with ChangeNotifier {
         await DatabaseHelper.instance.migrateLocalDataToUser(_currentUser!.id);
         debugPrint('로컬 데이터 마이그레이션 성공: ${_currentUser!.id}');
       }
+
+      _authRepository.debugCheckToken();
 
       return true;
     } catch (e) {

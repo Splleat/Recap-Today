@@ -18,7 +18,6 @@ import 'package:recap_today/provider/user_profile_provider.dart'; // UserProfile
 import 'package:recap_today/repository/auth_repository.dart';
 import 'package:recap_today/repository/impl/auth_repository_impl.dart';
 import 'package:recap_today/screens/main_screen.dart';
-import 'package:recap_today/service/date_change_service.dart';
 import 'package:recap_today/theme/lightTheme.dart';
 import 'package:recap_today/theme/darkTheme.dart';
 import 'package:recap_today/provider/weather_provider.dart';
@@ -75,9 +74,6 @@ void main() async {
     ),
   );
 
-  // Provider 초기화
-  final checklistProvider = ChecklistProvider();
-
   runApp(
     MultiProvider(
       providers: [
@@ -89,29 +85,20 @@ void main() async {
         ),
         // LocationService Provider 추가
         Provider<LocationService>(create: (_) => locationService),
-        // EmotionRepository Provider 추가
-        ChangeNotifierProxyProvider<LoginProvider, StepProvider>(
-          create: (context) => StepProvider(userId: context.read<LoginProvider>().activeUserId),
-          update: (context, loginProvider, previous) =>
-            StepProvider(userId: loginProvider.activeUserId)..initialize(),
-        ),
+        ChangeNotifierProvider(create: (context) => StepProvider(loginProvider: context.read<LoginProvider>())..initialize()),
         ChangeNotifierProvider(
           create: (context) => WeatherProvider(WeatherService()),
         ),
-        ChangeNotifierProvider(create: (context) => checklistProvider),
-        ChangeNotifierProvider(create: (context) => ScheduleProvider()),
-        ChangeNotifierProxyProvider<LoginProvider, DiaryProvider>(
-          create: (context) => DiaryProvider(userId: context.read<LoginProvider>().activeUserId),
-          update: (context, loginProvider, previous) =>
-            DiaryProvider(userId: loginProvider.activeUserId),
-        ), 
+        ChangeNotifierProvider(create: (context) => ChecklistProvider(loginProvider: context.read<LoginProvider>())),
+        ChangeNotifierProvider(create: (context) => DiaryProvider(loginProvider: context.read<LoginProvider>())),
+        ChangeNotifierProvider(create: (context) => ScheduleProvider(loginProvider: context.read<LoginProvider>())),
         ChangeNotifierProvider(
           // Add SignupProvider
           create: (context) => SignupProvider(authRepository),
         ),
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProxyProvider<LoginProvider, UserProfileProvider>(
-          create: (context) => UserProfileProvider(authRepository),
+          create: (context) => UserProfileProvider(authRepository, context.read<LoginProvider>()),
           update:
               (context, loginProvider, previous) =>
                   UserProfileProvider(authRepository, loginProvider),
@@ -153,15 +140,6 @@ void main() async {
       } catch (e2) {
         debugPrint('fallback 위치 추적 시작 실패: $e2');
       }
-    }
-  });
-
-  // 앱 시작 후 날짜 변경 확인 (비동기적으로 실행하여 앱 시작 지연 방지)
-  Future.microtask(() async {
-    try {
-      await DateChangeService.checkForDateChange(checklistProvider);
-    } catch (e) {
-      debugPrint('날짜 변경 확인 중 오류 발생: $e');
     }
   });
 }
