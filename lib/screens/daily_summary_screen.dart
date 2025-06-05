@@ -31,13 +31,13 @@ class DailySummaryScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Card(
-                  //   margin: const EdgeInsets.symmetric(
-                  //     horizontal: 8.0,
-                  //     vertical: 8.0,
-                  //   ),
-                  //   child: LocationInfo(date: selectedDate),
-                  // ),
+                  Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 8.0,
+                    ),
+                    child: LocationInfo(date: selectedDate),
+                  ),
                   Card(
                     margin: const EdgeInsets.symmetric(
                       horizontal: 8.0,
