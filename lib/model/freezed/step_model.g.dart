@@ -7,7 +7,7 @@ part of 'step_model.dart';
 // **************************************************************************
 
 _StepModel _$StepModelFromJson(Map<String, dynamic> json) => _StepModel(
-  date: DateTime.parse(json['date'] as String),
+  date: json['date'] as String,
   stepCount: (json['stepCount'] as num).toInt(),
   userId: json['userId'] as String,
   isSynced: json['isSynced'] as bool? ?? false,
@@ -15,7 +15,7 @@ _StepModel _$StepModelFromJson(Map<String, dynamic> json) => _StepModel(
 
 Map<String, dynamic> _$StepModelToJson(_StepModel instance) =>
     <String, dynamic>{
-      'date': instance.date.toIso8601String(),
+      'date': instance.date,
       'stepCount': instance.stepCount,
       'userId': instance.userId,
       'isSynced': instance.isSynced,

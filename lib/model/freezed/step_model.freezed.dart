@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$StepModel {
 
- DateTime get date; int get stepCount; String get userId; bool get isSynced;
+ String get date; int get stepCount; String get userId; bool get isSynced;
 /// Create a copy of StepModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -49,7 +49,7 @@ abstract mixin class $StepModelCopyWith<$Res>  {
   factory $StepModelCopyWith(StepModel value, $Res Function(StepModel) _then) = _$StepModelCopyWithImpl;
 @useResult
 $Res call({
- DateTime date, int stepCount, String userId, bool isSynced
+ String date, int stepCount, String userId, bool isSynced
 });
 
 
@@ -69,7 +69,7 @@ class _$StepModelCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') @override $Res call({Object? date = null,Object? stepCount = null,Object? userId = null,Object? isSynced = null,}) {
   return _then(_self.copyWith(
 date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
-as DateTime,stepCount: null == stepCount ? _self.stepCount : stepCount // ignore: cast_nullable_to_non_nullable
+as String,stepCount: null == stepCount ? _self.stepCount : stepCount // ignore: cast_nullable_to_non_nullable
 as int,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,isSynced: null == isSynced ? _self.isSynced : isSynced // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -86,7 +86,7 @@ class _StepModel implements StepModel {
   const _StepModel({required this.date, required this.stepCount, required this.userId, this.isSynced = false});
   factory _StepModel.fromJson(Map<String, dynamic> json) => _$StepModelFromJson(json);
 
-@override final  DateTime date;
+@override final  String date;
 @override final  int stepCount;
 @override final  String userId;
 @override@JsonKey() final  bool isSynced;
@@ -124,7 +124,7 @@ abstract mixin class _$StepModelCopyWith<$Res> implements $StepModelCopyWith<$Re
   factory _$StepModelCopyWith(_StepModel value, $Res Function(_StepModel) _then) = __$StepModelCopyWithImpl;
 @override @useResult
 $Res call({
- DateTime date, int stepCount, String userId, bool isSynced
+ String date, int stepCount, String userId, bool isSynced
 });
 
 
@@ -144,7 +144,7 @@ class __$StepModelCopyWithImpl<$Res>
 @override @pragma('vm:prefer-inline') $Res call({Object? date = null,Object? stepCount = null,Object? userId = null,Object? isSynced = null,}) {
   return _then(_StepModel(
 date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
-as DateTime,stepCount: null == stepCount ? _self.stepCount : stepCount // ignore: cast_nullable_to_non_nullable
+as String,stepCount: null == stepCount ? _self.stepCount : stepCount // ignore: cast_nullable_to_non_nullable
 as int,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,isSynced: null == isSynced ? _self.isSynced : isSynced // ignore: cast_nullable_to_non_nullable
 as bool,

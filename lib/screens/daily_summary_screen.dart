@@ -5,6 +5,7 @@ import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/widget/summary/emotion_summary_graph.dart';
 import 'package:recap_today/widget/summary/diary_widget.dart';
 import 'package:recap_today/widget/summary/location_info.dart';
+import 'package:recap_today/widget/summary/step_summary.dart';
 
 class DailySummaryScreen extends StatelessWidget {
   final DateTime selectedDate;
@@ -37,6 +38,13 @@ class DailySummaryScreen extends StatelessWidget {
                       vertical: 8.0,
                     ),
                     child: LocationInfo(date: selectedDate),
+                  ),
+                  Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 8.0,
+                    ),
+                    child: StepSummaryWidget(date: selectedDate),
                   ),
                   Card(
                     margin: const EdgeInsets.symmetric(

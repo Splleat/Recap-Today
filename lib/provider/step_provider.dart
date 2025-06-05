@@ -6,8 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:health/health.dart';
 import 'package:recap_today/model/freezed/step_model.dart';
-import 'package:recap_today/data/database_helper.dart';  // 추가: DatabaseHelper import
-import 'package:recap_today/provider/login_provider.dart'; // 추가: LoginProvider import
+import 'package:recap_today/data/database_helper.dart';
+import 'package:recap_today/provider/login_provider.dart';
 
 class StepProvider with ChangeNotifier {
   late StepModel todayStep;
@@ -15,14 +15,16 @@ class StepProvider with ChangeNotifier {
   int _dailyGoal = 5000;
   DateTime _lastDate = DateTime.now();
   StreamSubscription<StepCount>? _subscription;
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;  // 추가: DatabaseHelper 인스턴스
-  bool _isDisposed = false; // 추가: Provider의 disposed 상태를 추적하는 플래그
-  final LoginProvider _loginProvider; // 추가: LoginProvider 인스턴스
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  bool _isDisposed = false;
+  final LoginProvider _loginProvider;
 
-  // 생성자에서 LoginProvider 주입받기
   StepProvider({required LoginProvider loginProvider}) 
       : _loginProvider = loginProvider {
-    todayStep = StepModel(userId: _loginProvider.activeUserId, date: DateTime.now(), stepCount: 0);
+    // todayStep 초기화 시 String 날짜 사용
+    final today = DateTime.now();
+    final formattedDate = _formatDate(today);
+    todayStep = StepModel(userId: _loginProvider.activeUserId, date: formattedDate, stepCount: 0);
   }
   
   // userId getter를 LoginProvider에서 가져오도록 수정
@@ -41,11 +43,15 @@ class StepProvider with ChangeNotifier {
   }
 
   void _resetStepData() {
-    todayStep = StepModel(userId: userId, date: DateTime.now(), stepCount: 0);
+    // String 날짜 사용
+    final formattedDate = _formatDate(DateTime.now());
+    todayStep = StepModel(userId: userId, date: formattedDate, stepCount: 0);
     _baseStepCount = 0;
   }
 
   Future<void> initialize() async {
+    debugPrint('🔄 StepProvider 초기화 시작');
+    
     final status = await Permission.activityRecognition.status;
     final today = DateTime.now();
     final todayFormatted = _formatDate(today);
@@ -55,7 +61,7 @@ class StepProvider with ChangeNotifier {
     if (storedSteps != null) {
       todayStep = storedSteps;
     } else {
-      todayStep = StepModel(userId: userId, date: today, stepCount: 0);
+      todayStep = StepModel(userId: userId, date: todayFormatted, stepCount: 0);
     }
     
     if (!status.isGranted) {
@@ -73,11 +79,20 @@ class StepProvider with ChangeNotifier {
     // 기존 구독이 있으면 취소
     await _subscription?.cancel();
     
+    debugPrint('🎧 Pedometer 이벤트 리스너 설정 중...');
     _subscription = Pedometer.stepCountStream.listen(
-      _onStepCount,
-      onError: (e) => debugPrint('걸음 수 오류: $e'),
-      cancelOnError: true,
+      (event) {
+        debugPrint('👣 Pedometer 이벤트 발생: ${event.steps} 걸음');
+        _onStepCount(event);
+      },
+      onError: (e) {
+        debugPrint('❌ Pedometer 오류: $e');
+        // 오류 발생 시 재시도 로직 추가 가능
+      },
+      cancelOnError: false, // 오류가 발생해도 구독 유지
     );
+    
+    debugPrint('✅ StepProvider 초기화 완료');
   }
 
   void _onStepCount(StepCount event) async {
@@ -85,6 +100,7 @@ class StepProvider with ChangeNotifier {
     
     final prefs = await SharedPreferences.getInstance();
     final now = DateTime.now();
+    final formattedDate = _formatDate(now);
 
     // 사용자별 저장소 키 사용
     final baseKey = '${userId}_stepBase';
@@ -98,12 +114,12 @@ class StepProvider with ChangeNotifier {
       _lastDate = now;
       await prefs.setInt(baseKey, _baseStepCount);
       await prefs.setString(dateKey, now.toIso8601String());
-      // 새 날짜에는 저장
-      await _saveStepsToDatabase(StepModel(userId: userId, date: now, stepCount: 0));
+      // 새 날짜에는 저장 - String 날짜 사용
+      await _saveStepsToDatabase(StepModel(userId: userId, date: formattedDate, stepCount: 0));
     }
 
     final steps = (event.steps - _baseStepCount).clamp(0, 100000);
-    todayStep = StepModel(userId: userId, date: now, stepCount: steps);
+    todayStep = StepModel(userId: userId, date: formattedDate, stepCount: steps);
     
     // 걸음 수 데이터 저장은 다음 경우에만 수행:
     // 1. 날짜가 변경된 경우 (위에서 처리)
@@ -119,55 +135,31 @@ class StepProvider with ChangeNotifier {
   // 걸음 수 데이터를 데이터베이스에 저장하는 메서드
   Future<void> _saveStepsToDatabase(StepModel steps) async {
     try {
+      debugPrint('💾 걸음 수 저장 시도: ${steps.stepCount}, 날짜: ${steps.date}');
       await _dbHelper.insertStepCount(steps);
+      debugPrint('✅ 걸음 수 저장 성공: ${steps.date} ${steps.stepCount}');
     } catch (e) {
-      debugPrint('걸음 수 데이터 저장 중 오류 발생: $e');
-    }
-  }
-
-  Future<void> fetchStepFromGoogleFit(DateTime date) async {
-    if (_isDisposed) return; // 추가: disposed 상태 확인
-    if (!Platform.isAndroid) return;
-
-    final health = Health();
-    final types = [HealthDataType.STEPS];
-
-    final start = DateTime(date.year, date.month, date.day);
-    final end = DateTime(date.year, date.month, date.day, 23, 59, 59);
-
-    final allowed = await health.requestAuthorization(types);
-    if (!allowed) {
-      debugPrint('Google Fit 권한 거부됨');
-      return;
-    }
-
-    final steps = await health.getTotalStepsInInterval(start, end);
-    if (steps != null) {
-      final stepModel = StepModel(userId: userId, date: date, stepCount: steps);
-      todayStep = stepModel;
-      
-      // Google Fit에서 가져온 걸음 수도 데이터베이스에 저장
-      await _saveStepsToDatabase(stepModel);
-      
-      notifyListeners();
-    } else {
-      // 데이터베이스에서 해당 날짜의 걸음 수 데이터를 로드
-      final dateFormatted = _formatDate(date);
-      final storedSteps = await _dbHelper.getStepsByDate(dateFormatted, userId);
-      
-      if (storedSteps != null) {
-        todayStep = storedSteps;
-        notifyListeners();
-      } else {
-        debugPrint('Google Fit 걸음 수 데이터 없음');
-      }
+      debugPrint('❌ 걸음 수 데이터 저장 중 오류 발생: $e');
     }
   }
 
   // 특정 날짜의 걸음 수 데이터 로드
   Future<StepModel?> loadStepsForDate(DateTime date) async {
     final dateFormatted = _formatDate(date);
-    return await _dbHelper.getStepsByDate(dateFormatted, userId);
+    debugPrint('🔍 걸음 수 데이터베이스 로드 시도: $dateFormatted, 사용자: $userId');
+    
+    // 데이터베이스 호출 전에 현재 todayStep 상태 확인
+    debugPrint('📱 현재 메모리의 todayStep: ${todayStep.stepCount}');
+    
+    final result = await _dbHelper.getStepsByDate(dateFormatted, userId);
+    
+    if (result != null) {
+      debugPrint('📊 데이터베이스에서 로드된 걸음 수: ${result.date} ${result.stepCount}');
+    } else {
+      debugPrint('📭 데이터베이스에 해당 날짜의 걸음 수 없음');
+    }
+    
+    return result;
   }
 
   // 날짜를 yyyy-MM-dd 형식의 문자열로 변환

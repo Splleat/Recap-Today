@@ -108,7 +108,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 child: Column(
                   children: [
                     Card(child: _locationInfoWidget!),
-                    Card(child: StepSummary(date: DateTime.now())),
+                    Card(child: StepSummaryWidget(date: DateTime.now())),
                     Card(child: AppUsage()),
                     Card(child: ChecklistAchievement()),
                     Card(child: EmotionSummaryGraph(date: DateTime.now())),

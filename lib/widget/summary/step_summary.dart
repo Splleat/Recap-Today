@@ -1,221 +1,194 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
 import 'package:recap_today/model/freezed/step_model.dart';
 import 'package:recap_today/provider/step_provider.dart';
-import 'package:intl/intl.dart';
 
-class StepSummary extends StatefulWidget {
+class StepSummaryWidget extends StatelessWidget {
   final DateTime date;
 
-  const StepSummary({
-    Key? key,
+  const StepSummaryWidget({
+    super.key,
     required this.date,
-  }) : super(key: key);
-
-  @override
-  State<StepSummary> createState() => _StepSummaryState();
-}
-
-class _StepSummaryState extends State<StepSummary> {
-  late Future<StepModel?> _stepDataFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadStepData();
-  }
-
-  @override
-  void didUpdateWidget(StepSummary oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.date != widget.date) {
-      _loadStepData();
-    }
-  }
-
-  void _loadStepData() {
-    final stepProvider = Provider.of<StepProvider>(context, listen: false);
-    _stepDataFuture = stepProvider.loadStepsForDate(widget.date);
-  }
+  });
 
   @override
   Widget build(BuildContext context) {
-    final stepProvider = Provider.of<StepProvider>(context);
-    final isToday = _isToday(widget.date);
+    final stepProvider = context.watch<StepProvider>();
+    final dailyGoal = stepProvider.dailyGoal;
+    final dateFormatted = DateFormat('yyyy년 MM월 dd일').format(date);
     
+    // 날짜 디버깅
+    final now = DateTime.now();
+    final isToday = date.year == now.year && date.month == now.month && date.day == now.day;
+    
+    // 오늘 날짜인 경우 현재 메모리 내 걸음 수와 데이터베이스의 값 비교
+    if (isToday) {
+      debugPrint('📊 오늘 날짜 요청: $dateFormatted');
+      debugPrint('📊 현재 메모리의 todayStep: ${stepProvider.todayStep?.stepCount ?? "NULL"}');
+    }
+    
+    // 기존 코드 유지
     return FutureBuilder<StepModel?>(
-      future: _stepDataFuture,
+      future: stepProvider.loadStepsForDate(date),
       builder: (context, snapshot) {
+        // 로딩 중
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const _LoadingView();
-        }
-
-        // Today's data comes from provider directly
-        if (isToday) {
-          return _StepDataView(
-            stepData: stepProvider.todayStep,
-            dailyGoal: stepProvider.dailyGoal,
+          return _buildDateHeader(context, dateFormatted, 
+            child: const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: CircularProgressIndicator(),
+              ),
+            ),
           );
         }
-
+        
+        // 에러 발생
         if (snapshot.hasError) {
-          return const _ErrorView();
+          return _buildDateHeader(context, dateFormatted,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  "데이터 로딩 중 오류가 발생했습니다.",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
+            ),
+          );
         }
-
+        
+        // 데이터가 없는 경우
         final stepData = snapshot.data;
         if (stepData == null) {
-          return _EmptyView(date: widget.date);
-        }
-
-        return _StepDataView(
-          stepData: stepData,
-          dailyGoal: stepProvider.dailyGoal,
-        );
-      },
-    );
-  }
-
-  bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year && date.month == now.month && date.day == now.day;
-  }
-}
-
-class _LoadingView extends StatelessWidget {
-  const _LoadingView({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Card(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorView extends StatelessWidget {
-  const _ErrorView({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return const Card(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Center(
-          child: Text('데이터를 불러오는 중 오류가 발생했습니다'),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyView extends StatelessWidget {
-  final DateTime date;
-  
-  const _EmptyView({Key? key, required this.date}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text('걸음 수', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(DateFormat('yyyy-MM-dd').format(date)),
-            const Text('기록된 걸음 수 없음'),
-            if (_canShowSyncButton())
-              ElevatedButton(
-                onPressed: () {
-                  final stepProvider = Provider.of<StepProvider>(
-                    context, 
-                    listen: false
-                  );
-                  stepProvider.fetchStepFromGoogleFit(date);
-                },
-                child: const Text('Google Fit에서 가져오기'),
+          return _buildDateHeader(context, dateFormatted,
+            child: const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  "기록된 걸음이 없습니다.",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  bool _canShowSyncButton() {
-    return true; // 간소화를 위해 항상 표시
-  }
-}
-
-class _StepDataView extends StatelessWidget {
-  final StepModel stepData;
-  final int dailyGoal;
-  
-  const _StepDataView({
-    Key? key, 
-    required this.stepData, 
-    required this.dailyGoal,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final double percentComplete = (stepData.stepCount / dailyGoal).clamp(0.0, 1.0);
-    
-    return Card(
-      // 카드가 가로로 꽉 차도록 margin 제거 또는 최소화
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          // 전체 너비 사용
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('걸음 수', 
-              style: TextStyle(fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
-            // 가로 중앙 정렬을 유지하면서 너비 최대화
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          );
+        }
+        
+        // 데이터가 있는 경우 - 이제 stepCount에 접근 가능
+        final step = stepData.stepCount;
+        final percent = step / dailyGoal;
+        final formattedSteps = NumberFormat('#,###').format(step);
+        final formattedGoal = NumberFormat('#,###').format(dailyGoal);
+        final formattedDistance = (step * 0.7 / 1000).toStringAsFixed(1);
+        
+        return _buildDateHeader(
+          context, 
+          dateFormatted,
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Stack(
-                  alignment: Alignment.center,
+                // 걸음 수
+                Column(
                   children: [
-                    SizedBox(
-                      height: 100,
-                      width: 100,
-                      child: CircularProgressIndicator(
-                        value: percentComplete,
-                        backgroundColor: Colors.grey[200],
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          percentComplete >= 1.0 ? Colors.green : Colors.blue,
-                        ),
-                        // 두껍게 표시
-                        strokeWidth: 10,
-                      ),
-                    ),
                     Text(
-                      '${stepData.stepCount}\n/${dailyGoal}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      formattedSteps,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
+                    Row(
+                      children: [
+                        const Text('/'),
+                        Text(
+                          formattedGoal,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    )
                   ],
+                ),
+                const Spacer(),
+            
+                // 이동 거리
+                Column(
+                  children: [
+                    const Text(
+                      '이동거리',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Text('$formattedDistance Km'),
+                  ],
+                ),
+                const Spacer(),
+            
+                // 원형 진행바
+                CircularPercentIndicator(
+                  radius: 40.0,
+                  lineWidth: 8.0,
+                  percent: percent.clamp(0.0, 1.0),
+                  animation: true,
+                  animationDuration: 500,
+                  circularStrokeCap: CircularStrokeCap.round,
+                  progressColor: _getProgressColor(percent),
+                  backgroundColor: Colors.grey.shade300,
+                  center: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.directions_walk, size: 24),
+                      Text(
+                        '${(percent * 100).toStringAsFixed(0)}%',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${(percentComplete * 100).toInt()}% 달성',
-              textAlign: TextAlign.center,
+          ),
+        );
+      }
+    );
+  }
+  
+  // 날짜 헤더와 자식 위젯을 포함하는 공통 컨테이너
+  Widget _buildDateHeader(BuildContext context, String dateFormatted, {required Widget child}) {
+    return Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 날짜 표시
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(
+              dateFormatted,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
             ),
-          ],
-        ),
+          ),
+          child,
+        ],
       ),
     );
+  }
+
+  // 진행률에 따라 색상 변경
+  Color _getProgressColor(double percent) {
+    if (percent >= 1.0) return Colors.green;
+    if (percent >= 0.7) return Colors.blue;
+    if (percent >= 0.4) return Colors.orange;
+    return Colors.red;
   }
 }
