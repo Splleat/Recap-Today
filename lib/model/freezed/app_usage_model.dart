@@ -41,7 +41,7 @@ extension AppUsageModelX on AppUsageModel {
       'date': date,
       'package_name': packageName,
       'app_name': appName,
-      'usage_time_in_millis': usageTimeInMillis,
+      'usage_time': usageTimeInMillis,
       'app_icon_path': appIconPath,
       'user_id': userId,
       'is_synced': isSynced ? 1 : 0,
@@ -54,7 +54,7 @@ extension AppUsageModelX on AppUsageModel {
       date: map['date'] as String,
       packageName: map['package_name'] as String,
       appName: map['app_name'] as String,
-      usageTimeInMillis: map['usage_time_in_millis'] as int,
+      usageTimeInMillis: map['usage_time'] as int,
       appIconPath: map['app_icon_path'] as String?,
       userId: map['user_id'] as String,
       isSynced: (map['is_synced'] as int?) == 1,
@@ -66,7 +66,7 @@ extension AppUsageSummaryX on AppUsageSummary {
   Map<String, dynamic> toMap() {
     return {
       'date': date,
-      'total_usage_time_in_millis': totalUsageTimeInMillis,
+      'total_usage_time': totalUsageTimeInMillis,
       'user_id': userId,
       'is_synced': isSynced ? 1 : 0,
       // Top apps would need to be stored separately
@@ -76,7 +76,7 @@ extension AppUsageSummaryX on AppUsageSummary {
   static AppUsageSummary fromMap(Map<String, dynamic> map, List<AppUsageModel> topApps) {
     return AppUsageSummary(
       date: map['date'] as String,
-      totalUsageTimeInMillis: map['total_usage_time_in_millis'] as int,
+      totalUsageTimeInMillis: map['total_usage_time'] as int,
       topApps: topApps,
       userId: map['user_id'] as String,
       isSynced: (map['is_synced'] as int?) == 1,

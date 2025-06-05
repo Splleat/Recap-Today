@@ -108,7 +108,7 @@ class DatabaseHelper implements AbstractDatabase {
         date TEXT NOT NULL,
         package_name TEXT NOT NULL,
         app_name TEXT NOT NULL,
-        usage_time_in_millis INTEGER NOT NULL,
+        usage_time INTEGER NOT NULL,
         app_icon_path TEXT,
         user_id TEXT NOT NULL,
         is_synced INTEGER NOT NULL DEFAULT 0
