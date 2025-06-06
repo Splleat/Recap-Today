@@ -166,7 +166,10 @@ class TimetableScheduleBlock extends StatelessWidget {
         _showOptionsDialog(context, item);
       },
       child: Container(
-        decoration: BoxDecoration(color: item.color),
+        decoration: BoxDecoration(
+          color: item.color,
+          borderRadius: BorderRadius.circular(8.0),
+        ),
         alignment: Alignment.center,
         child: Text(item.text, textAlign: TextAlign.start),
       ),

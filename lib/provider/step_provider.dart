@@ -115,7 +115,7 @@ class StepProvider with ChangeNotifier {
       await prefs.setInt(baseKey, _baseStepCount);
       await prefs.setString(dateKey, now.toIso8601String());
       // 새 날짜에는 저장 - String 날짜 사용
-      await _saveStepsToDatabase(StepModel(userId: userId, date: formattedDate, stepCount: 0));
+      await saveStepsToDatabase(StepModel(userId: userId, date: formattedDate, stepCount: 0));
     }
 
     final steps = (event.steps - _baseStepCount).clamp(0, 100000);
@@ -126,14 +126,14 @@ class StepProvider with ChangeNotifier {
     // 2. 매 33번째 걸음마다
     // 3. dispose() 메서드에서 앱 종료 시
     if (steps % 33 == 0) {
-      await _saveStepsToDatabase(todayStep);
+      await saveStepsToDatabase(todayStep);
     }
     
     notifyListeners();
   }
 
   // 걸음 수 데이터를 데이터베이스에 저장하는 메서드
-  Future<void> _saveStepsToDatabase(StepModel steps) async {
+  Future<void> saveStepsToDatabase(StepModel steps) async {
     try {
       debugPrint('💾 걸음 수 저장 시도: ${steps.stepCount}, 날짜: ${steps.date}');
       await _dbHelper.insertStepCount(steps);
@@ -213,7 +213,7 @@ class StepProvider with ChangeNotifier {
     
     // 앱 종료 또는 provider 종료 시 마지막 걸음 수 저장
     if (todayStep.stepCount > 0) {
-      _saveStepsToDatabase(todayStep);
+      saveStepsToDatabase(todayStep);
     }
     _subscription?.cancel();
     super.dispose();

@@ -22,6 +22,10 @@ class ScheduleProvider extends ChangeNotifier {
   Future<void> _loadItems() async {
     try {
       final dbItems = await _dbHelper.getAllScheduleItems(userId);
+      debugPrint('로드된 일정 개수: ${dbItems.length}');
+      for (var item in dbItems) {
+        debugPrint('로드된 일정: ${item.id}, ${item.text}, ${item.selectedDate}');
+      }
       _items.clear();
       _items.addAll(dbItems);
       notifyListeners();
@@ -40,6 +44,7 @@ class ScheduleProvider extends ChangeNotifier {
       debugPrint('ID: ${item.id}');
       debugPrint('제목: ${item.text}');
       debugPrint('설명: ${item.subText}');
+      debugPrint('날짜: ${item.selectedDate}');
       debugPrint('요일: ${item.dayOfWeek}');
       debugPrint('루틴여부: ${item.isRoutine}');
       debugPrint('사용자 ID: ${item.userId ?? "로컬 사용자"}');
@@ -47,6 +52,7 @@ class ScheduleProvider extends ChangeNotifier {
 
       await _dbHelper.insertScheduleItem(item);
       _items.add(item);
+      debugPrint('일정 추가 완료');
       notifyListeners();
     } catch (e) {
       debugPrint('Failed to add schedule item: $e');

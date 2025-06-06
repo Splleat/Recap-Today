@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:recap_today/data/abstract_database.dart';
 import 'package:recap_today/model/freezed/app_usage_model.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:installed_apps/app_info.dart';
+import 'package:installed_apps/installed_apps.dart';
 
 /// 직접 구현한 앱 사용 통계 서비스
 /// 안드로이드 기기에서만 작동
@@ -13,6 +15,7 @@ class AppUsageService {
   final AbstractDatabase _database;
   static const String _dateFormat = 'yyyy-MM-dd';
   static const MethodChannel _channel = MethodChannel('app_usage_channel');
+  static final Map<String, Widget> _appIconCache = {};
 
   AppUsageService(this._database);
 
@@ -132,6 +135,46 @@ class AppUsageService {
       debugPrint('앱 사용 통계 조회 중 오류 발생: $e');
       return null;
     }
+  }
+
+  static Future<Widget> getAppIcon(String packageName) async {
+    // 캐시 확인
+    if (_appIconCache.containsKey(packageName)) {
+      return _appIconCache[packageName]!;
+    }
+    
+    try {
+      if (!Platform.isAndroid) {
+        throw UnsupportedError("앱 아이콘 기능은 안드로이드에서만 지원됩니다");
+      }
+      
+      // installed_apps 패키지를 사용하여 앱 아이콘 가져오기
+      // BuiltWith.KOTLIN을 두 번째 매개변수로 전달
+      AppInfo? appInfo = await InstalledApps.getAppInfo(
+        packageName,
+        BuiltWith.flutter, // 두 번째 매개변수 추가
+      );
+      
+      if (appInfo != null && appInfo.icon != null) {
+        final iconWidget = Image.memory(
+          appInfo.icon!,
+          width: 40,
+          height: 40,
+          fit: BoxFit.cover,
+        );
+        
+        // 캐시에 저장
+        _appIconCache[packageName] = iconWidget;
+        return iconWidget;
+      }
+    } catch (e) {
+      debugPrint('앱 아이콘 가져오기 중 오류: $e');
+    }
+    
+    // 기본 아이콘
+    final defaultIcon = const Icon(Icons.apps);
+    _appIconCache[packageName] = defaultIcon;
+    return defaultIcon;
   }
 
   /// 특정 날짜의 앱 사용 요약 정보 조회

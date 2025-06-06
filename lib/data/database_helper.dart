@@ -665,6 +665,11 @@ class DatabaseHelper implements AbstractDatabase {
       whereArgs: [userId],
     );
 
+    debugPrint('데이터베이스에서 로드된 일정: ${result.length}개');
+    for (var row in result) {
+      debugPrint('일정 데이터: $row');
+    }
+
     return result.map((json) => ScheduleItemX.fromMap(json)).toList();
   }
 

@@ -223,7 +223,7 @@ class _AppUsageState extends State<AppUsage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.devices, size: 48, color: Colors.grey),
+            Icon(Icons.devices, size: 48),
             SizedBox(height: 16),
             Text(
               '앱 사용 통계는 안드로이드에서만 지원됩니다.',
@@ -451,9 +451,24 @@ class _AppUsageState extends State<AppUsage> {
             horizontal: 16,
             vertical: 8,
           ),
-          leading: CircleAvatar(
-            backgroundColor: color.withOpacity(0.2),
-            child: Icon(Icons.apps, color: color),
+          leading: FutureBuilder<Widget>(
+            future: AppUsageService.getAppIcon(app.packageName),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+                return SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: snapshot.data!,
+                );
+              } else {
+                // 로딩 중이거나 실패 시 기본 아이콘 표시
+                return SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Icon(Icons.apps, color: color),
+                );
+              }
+            },
           ),
           title: Text(
             app.appName,
