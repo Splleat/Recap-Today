@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import '../../provider/login_provider.dart';
 import '../../service/ai_feedback_service.dart';
+import '../../provider/ai_feedback_provider.dart';
 
 class AiFeedback extends StatelessWidget {
   final String? feedbackText;
@@ -135,6 +136,15 @@ class _AiFeedbackWidgetState extends State<AiFeedbackWidget> {
         authToken: authToken,
       );
       if (!mounted) return;
+      // DB 저장 로직 추가
+      final aiFeedbackProvider = Provider.of<AiFeedbackProvider>(
+        context,
+        listen: false,
+      );
+      final today = DateTime.now();
+      final dateString =
+          "${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+      await aiFeedbackProvider.addFeedback(dateString, text ?? '');
       setState(() {
         feedbackText = text;
         isLoading = false;
