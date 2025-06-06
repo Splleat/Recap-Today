@@ -58,6 +58,8 @@ class StepProvider with ChangeNotifier {
     
     // 데이터베이스에서 오늘 걸음 데이터 로드
     final storedSteps = await _dbHelper.getStepsByDate(todayFormatted, userId);
+    debugPrint('📥 걸음 모델 userId: ${storedSteps?.userId}');
+
     if (storedSteps != null) {
       todayStep = storedSteps;
     } else {
@@ -152,7 +154,6 @@ class StepProvider with ChangeNotifier {
     debugPrint('📱 현재 메모리의 todayStep: ${todayStep.stepCount}');
     
     final result = await _dbHelper.getStepsByDate(dateFormatted, userId);
-    
     if (result != null) {
       debugPrint('📊 데이터베이스에서 로드된 걸음 수: ${result.date} ${result.stepCount}');
     } else {

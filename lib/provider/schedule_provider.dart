@@ -13,7 +13,10 @@ class ScheduleProvider extends ChangeNotifier {
 
   ScheduleProvider({required LoginProvider loginProvider}) 
       : _loginProvider = loginProvider {
-    _loadItems();
+      _loginProvider.addListener(() {
+        // 로그인 상태가 변경될 때마다 아이템을 새로 로드
+        _loadItems();
+      });
   }
   
   // userId getter를 LoginProvider에서 가져오도록 수정

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:recap_today/data/database_helper.dart';
+import 'dart:async';
 
 import 'package:recap_today/repository/auth_repository.dart';
 import 'package:recap_today/model/user_model.dart';
@@ -20,8 +21,11 @@ class LoginProvider with ChangeNotifier {
   User? get currentUser => _currentUser;
   String get activeUserId => _currentUser?.id ?? DatabaseHelper.LOCAL_USER_ID;
 
-
   final AuthRepository _authRepository;
+  final Completer<void> _initCompleter = Completer<void>();
+
+  /// Future that completes when initial login status check finishes
+  Future<void> get initialization => _initCompleter.future;
 
   LoginProvider(this._authRepository) {
     _checkLoginStatus();
@@ -31,7 +35,7 @@ class LoginProvider with ChangeNotifier {
     debugPrint('로그인 상태 확인 시작');
     final token = _authRepository.getToken();
     debugPrint('저장된 토큰: ${token != null ? '있음' : '없음'}');
-    
+
     if (token != null) {
       try {
         _currentUser = await _authRepository.getCurrentUser();
@@ -49,9 +53,13 @@ class LoginProvider with ChangeNotifier {
     } else {
       _isLoggedIn = false;
     }
-    
+
     debugPrint('로그인 상태 확인 완료: $_isLoggedIn');
     notifyListeners();
+    // Signal that initialization is done
+    if (!_initCompleter.isCompleted) {
+      _initCompleter.complete();
+    }
   }
 
   void setUserId(String id) {

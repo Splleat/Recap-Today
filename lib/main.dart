@@ -86,14 +86,38 @@ void main() async {
         ),
         // LocationService Provider 추가
         Provider<LocationService>(create: (_) => locationService),
-        ChangeNotifierProvider(create: (context) => StepProvider(loginProvider: context.read<LoginProvider>())..initialize()),
+        ChangeNotifierProvider(
+          create:
+              (context) =>
+                  StepProvider(loginProvider: context.read<LoginProvider>())
+                    ..initialize(),
+        ),
         ChangeNotifierProvider(
           create: (context) => WeatherProvider(WeatherService()),
         ),
-        ChangeNotifierProvider(create: (context) => ChecklistProvider(loginProvider: context.read<LoginProvider>())),
-        ChangeNotifierProvider(create: (context) => DiaryProvider(loginProvider: context.read<LoginProvider>())),
-        ChangeNotifierProvider(create: (context) => ScheduleProvider(loginProvider: context.read<LoginProvider>())),
-        ChangeNotifierProvider(create: (context) => AiFeedbackProvider(loginProvider: context.read<LoginProvider>())),
+        ChangeNotifierProvider(
+          create:
+              (context) => ChecklistProvider(
+                loginProvider: context.read<LoginProvider>(),
+              ),
+        ),
+        ChangeNotifierProvider(
+          create:
+              (context) =>
+                  DiaryProvider(loginProvider: context.read<LoginProvider>()),
+        ),
+        ChangeNotifierProvider(
+          create:
+              (context) => ScheduleProvider(
+                loginProvider: context.read<LoginProvider>(),
+              ),
+        ),
+        ChangeNotifierProvider(
+          create:
+              (context) => AiFeedbackProvider(
+                loginProvider: context.read<LoginProvider>(),
+              ),
+        ),
 
         ChangeNotifierProvider(
           // Add SignupProvider
@@ -101,7 +125,11 @@ void main() async {
         ),
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProxyProvider<LoginProvider, UserProfileProvider>(
-          create: (context) => UserProfileProvider(authRepository, context.read<LoginProvider>()),
+          create:
+              (context) => UserProfileProvider(
+                authRepository,
+                context.read<LoginProvider>(),
+              ),
           update:
               (context, loginProvider, previous) =>
                   UserProfileProvider(authRepository, loginProvider),
@@ -115,36 +143,9 @@ void main() async {
               ),
         ),
       ],
-      child: const RecapToday(),
+      child: const LaunchApp(), // wrap RecapToday
     ),
   );
-
-  // 앱 시작 후 위치 추적 자동 시작
-  Future.microtask(() async {
-    try {
-      // LoginProvider 인스턴스 가져오기
-      final loginProvider = Provider.of<LoginProvider>(
-        WidgetsBinding.instance.rootElement!,
-        listen: false,
-      );
-      
-      // 현재 로그인된 사용자 ID 또는 로컬 사용자 ID 사용
-      final userId = loginProvider.isLoggedIn 
-          ? loginProvider.activeUserId 
-          : 'local_user';
-          
-      debugPrint('위치 추적 시작: 사용자 ID = $userId');
-      await LocationTrackingService.instance.startTracking(userId);
-    } catch (e) {
-      debugPrint('위치 추적 자동 시작 중 오류 발생: $e');
-      // 오류 발생 시 기본값으로 fallback
-      try {
-        await LocationTrackingService.instance.startTracking('local_user');
-      } catch (e2) {
-        debugPrint('fallback 위치 추적 시작 실패: $e2');
-      }
-    }
-  });
 }
 
 // [추가] 앱 라이프사이클 감지용 Observer
@@ -180,5 +181,37 @@ class RecapToday extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
     );
+  }
+}
+
+/// Wrapper to start location tracking after the first frame using valid BuildContext
+class LaunchApp extends StatefulWidget {
+  const LaunchApp({super.key});
+
+  @override
+  State<LaunchApp> createState() => _LaunchAppState();
+}
+
+class _LaunchAppState extends State<LaunchApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final loginProvider = context.read<LoginProvider>();
+      await loginProvider.initialization;
+      final userId =
+          loginProvider.isLoggedIn ? loginProvider.activeUserId : 'local_user';
+      print('위치 추적 시작: 사용자 ID = $userId');
+      try {
+        await LocationTrackingService.instance.startTracking(userId);
+      } catch (e) {
+        debugPrint('위치 추적 시작 중 오류: $e');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const RecapToday();
   }
 }
