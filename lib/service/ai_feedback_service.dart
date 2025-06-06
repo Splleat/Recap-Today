@@ -1,4 +1,3 @@
-// AI 피드백 관련 서버 API 연동 및 모델 정의
 // 실제 네트워크 호출 및 데이터 파싱 구현
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -19,17 +18,21 @@ class AiFeedbackService {
         },
         body: jsonEncode({'prompt': prompt}),
       );
-      print('AI Feedback response: ${response.body}'); // 응답 로그 추가
-      if (response.statusCode == 200) {
+      print('AI Feedback status code: ${response.statusCode}');
+      print('AI Feedback response: ${response.body}');
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final decoded = jsonDecode(response.body);
         print('파싱된 feedbackText: \'${decoded['feedbackText']}\'');
         return decoded['feedbackText'];
       } else if (response.statusCode == 429) {
         throw Exception('오늘은 이미 AI 피드백을 요청하셨습니다.');
       }
+      print(
+        'AI Feedback service returning null due to status code: ${response.statusCode}',
+      );
       return null;
     } catch (e) {
-      // TODO: 에러 로깅/처리
+      print('AI Feedback service caught error: $e');
       rethrow;
     }
   }
