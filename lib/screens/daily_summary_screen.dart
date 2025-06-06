@@ -6,6 +6,8 @@ import 'package:recap_today/widget/summary/emotion_summary_graph.dart';
 import 'package:recap_today/widget/summary/diary_widget.dart';
 import 'package:recap_today/widget/summary/location_info.dart';
 import 'package:recap_today/widget/summary/step_summary.dart';
+import 'package:recap_today/widget/summary/ai_feedback.dart';
+import 'package:recap_today/service/ai_feedback_service.dart';
 
 class DailySummaryScreen extends StatelessWidget {
   final DateTime selectedDate;
@@ -66,6 +68,17 @@ class DailySummaryScreen extends StatelessWidget {
                       vertical: 8.0,
                     ),
                     child: EmotionSummaryGraph(date: selectedDate),
+                  ),
+                  Card(
+                    // Add Card for AI feedback
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 8.0,
+                    ),
+                    child: AiFeedbackWidget(
+                      service: AiFeedbackService(),
+                      date: selectedDate,
+                    ),
                   ),
                   Card(
                     // Add this Card for DiaryWidget

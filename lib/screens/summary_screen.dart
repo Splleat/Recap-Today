@@ -111,7 +111,12 @@ class _SummaryScreenState extends State<SummaryScreen> {
                     Card(child: AppUsage()),
                     Card(child: ChecklistAchievement()),
                     Card(child: EmotionSummaryGraph(date: DateTime.now())),
-                    Card(child: AiFeedbackWidget(service: AiFeedbackService())),
+                    Card(
+                      child: AiFeedbackWidget(
+                        service: AiFeedbackService(),
+                        date: DateTime.now(),
+                      ),
+                    ),
                     Card(
                       child: SizedBox(
                         height: MediaQuery.of(context).size.height * 0.075,

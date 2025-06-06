@@ -47,35 +47,38 @@ class AiFeedback extends StatelessWidget {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
-                ElevatedButton.icon(
-                  onPressed: isButtonEnabled ? onRequestFeedback : null,
-                  icon: Icon(
-                    Icons.refresh,
-                    color: isButtonEnabled ? Colors.white : Colors.grey[400],
-                  ),
-                  label: Text(
-                    '피드백 생성',
-                    style: TextStyle(
+                // show button only when onRequestFeedback is provided
+                if (onRequestFeedback != null)
+                  ElevatedButton.icon(
+                    onPressed: isButtonEnabled ? onRequestFeedback : null,
+                    icon: Icon(
+                      Icons.refresh,
                       color: isButtonEnabled ? Colors.white : Colors.grey[400],
-                      fontWeight: FontWeight.bold,
+                    ),
+                    label: Text(
+                      '피드백 생성',
+                      style: TextStyle(
+                        color:
+                            isButtonEnabled ? Colors.white : Colors.grey[400],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          isButtonEnabled
+                              ? Theme.of(context).colorScheme.primary
+                              : Theme.of(context).disabledColor,
+                      disabledBackgroundColor: Theme.of(context).disabledColor,
+                      elevation: isButtonEnabled ? 2 : 0,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        isButtonEnabled
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).disabledColor,
-                    disabledBackgroundColor: Theme.of(context).disabledColor,
-                    elevation: isButtonEnabled ? 2 : 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                  ),
-                ),
               ],
             ),
             const Divider(height: 24),
@@ -99,7 +102,7 @@ class AiFeedback extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 24.0),
                 child: Center(
                   child: Text(
-                    '아직 피드백이 생성되지 않았습니다.',
+                    '이 날의 AI 피드백 기록이 없습니다.',
                     style: TextStyle(fontSize: 15, fontStyle: FontStyle.italic),
                   ),
                 ),
@@ -113,7 +116,12 @@ class AiFeedback extends StatelessWidget {
 
 class AiFeedbackWidget extends StatefulWidget {
   final AiFeedbackService service;
-  const AiFeedbackWidget({super.key, required this.service});
+  final DateTime date;
+  const AiFeedbackWidget({
+    super.key,
+    required this.service,
+    required this.date,
+  });
 
   @override
   State<AiFeedbackWidget> createState() => _AiFeedbackWidgetState();
@@ -122,6 +130,30 @@ class AiFeedbackWidget extends StatefulWidget {
 class _AiFeedbackWidgetState extends State<AiFeedbackWidget> {
   String? feedbackText;
   bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // defer loading existing feedback to after first frame to avoid notifyListeners during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadExistingFeedback();
+    });
+  }
+
+  Future<void> _loadExistingFeedback() async {
+    final dateString =
+        "${widget.date.year.toString().padLeft(4, '0')}-${widget.date.month.toString().padLeft(2, '0')}-${widget.date.day.toString().padLeft(2, '0')}";
+    final aiFeedbackProvider = Provider.of<AiFeedbackProvider>(
+      context,
+      listen: false,
+    );
+    final list = await aiFeedbackProvider.getFeedbacksByDate(dateString);
+    if (list.isNotEmpty) {
+      setState(() {
+        feedbackText = list.first.feedback_text;
+      });
+    }
+  }
 
   Future<void> _requestFeedback() async {
     setState(() {
@@ -141,9 +173,9 @@ class _AiFeedbackWidgetState extends State<AiFeedbackWidget> {
         context,
         listen: false,
       );
-      final today = DateTime.now();
+      final date = widget.date;
       final dateString =
-          "${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+          "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
       await aiFeedbackProvider.addFeedback(dateString, text ?? '');
       setState(() {
         feedbackText = text;
@@ -165,14 +197,22 @@ class _AiFeedbackWidgetState extends State<AiFeedbackWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // only allow feedback generation on the selected date that is today
+    final today = DateTime.now();
+    final isToday =
+        widget.date.year == today.year &&
+        widget.date.month == today.month &&
+        widget.date.day == today.day;
     final isLoggedIn = context.select<LoginProvider, bool>(
       (login) => login.authToken != null && login.authToken!.isNotEmpty,
     );
     return AiFeedback(
       feedbackText: feedbackText,
       isLoading: isLoading,
-      onRequestFeedback: _requestFeedback,
-      isButtonEnabled: isLoggedIn && !isLoading,
+      // provide request callback only if it's today and user is logged in
+      onRequestFeedback:
+          isToday && isLoggedIn && !isLoading ? _requestFeedback : null,
+      isButtonEnabled: isToday && isLoggedIn && !isLoading,
     );
   }
 }

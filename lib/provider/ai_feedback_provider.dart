@@ -6,6 +6,7 @@ import 'package:recap_today/data/database_helper.dart';
 import 'package:uuid/uuid.dart';
 import 'dart:collection';
 import 'package:recap_today/provider/login_provider.dart';
+import 'dart:async';
 
 /// AI 피드백 관련 상태 관리 및 데이터 접근을 위한 Provider 클래스
 class AiFeedbackProvider with ChangeNotifier {
@@ -16,20 +17,24 @@ class AiFeedbackProvider with ChangeNotifier {
 
   final LoginProvider _loginProvider;
 
-    // 생성자에서 LoginProvider 주입받기
-  AiFeedbackProvider({required LoginProvider loginProvider}) 
-      : _loginProvider = loginProvider {
-    _loadItems();
+  // 생성자에서 LoginProvider 주입받기
+  AiFeedbackProvider({required LoginProvider loginProvider})
+    : _loginProvider = loginProvider {
+    // defer initial load to next event loop to avoid calling notifyListeners during build
+    Future.delayed(Duration.zero, () {
+      _loadItems();
+    });
   }
-  
+
   // userId getter를 LoginProvider에서 가져오도록 수정
   String get userId => _loginProvider.activeUserId;
 
   // 게터
   bool get isLoading => _isLoading;
-  UnmodifiableListView<AiFeedbackModel> get feedbacks => UnmodifiableListView(_feedbacks);
+  UnmodifiableListView<AiFeedbackModel> get feedbacks =>
+      UnmodifiableListView(_feedbacks);
   AiFeedbackModel? get currentFeedback => _currentFeedback;
-  
+
   // 데이터베이스에서 항목 로드
   Future<void> _loadItems() async {
     try {
@@ -42,13 +47,13 @@ class AiFeedbackProvider with ChangeNotifier {
       _setLoading(false);
     }
   }
-  
+
   // 로딩 상태 설정
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
   }
-  
+
   // 현재 피드백 설정
   void setCurrentFeedback(AiFeedbackModel? feedback) {
     _currentFeedback = feedback;
@@ -103,7 +108,7 @@ class AiFeedbackProvider with ChangeNotifier {
         feedback_text: feedbackText,
         userId: userId,
       );
-      
+
       final id = await _database.insertAiFeedback(feedback);
       if (id > 0) {
         // 로컬 상태 업데이트 (ID 포함)
@@ -164,12 +169,12 @@ class AiFeedbackProvider with ChangeNotifier {
   Future<List<AiFeedbackModel>> getFeedbacksByDate(String date) async {
     // 먼저 메모리에서 해당 날짜의 피드백을 찾음
     final cachedFeedbacks = _feedbacks.where((f) => f.date == date).toList();
-    
+
     // 이미 메모리에 있으면 바로 반환
     if (cachedFeedbacks.isNotEmpty) {
       return cachedFeedbacks;
     }
-    
+
     // 없으면 DB에서 로드
     return await loadFeedbacksByDate(date);
   }
