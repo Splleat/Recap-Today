@@ -4,7 +4,6 @@ import 'package:recap_today/provider/login_provider.dart';
 import 'package:recap_today/router.dart';
 import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/widget/summary/location_info.dart';
-import 'package:recap_today/widget/summary/weather_summary.dart'; // 날씨 요약 위젯 추가
 import 'package:recap_today/widget/summary/app_usage.dart';
 import 'package:recap_today/widget/summary/checklist_achievement.dart';
 import 'package:recap_today/widget/summary/ai_feedback.dart';
