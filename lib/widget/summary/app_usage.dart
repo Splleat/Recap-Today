@@ -360,9 +360,7 @@ class _AppUsageState extends State<AppUsage> {
           _isDateToday
               ? '오늘의 앱 사용 시간'
               : '${DateFormat('M월 d일').format(_displayedDate)} 앱 사용 시간',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(color: Colors.black),
+          style: Theme.of(context).textTheme.titleLarge,
         ),
         IconButton(
           icon: const Icon(Icons.refresh, size: 20),
