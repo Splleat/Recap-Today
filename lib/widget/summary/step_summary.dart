@@ -35,29 +35,25 @@ class StepSummaryWidget extends StatelessWidget {
       builder: (context, snapshot) {
         // 로딩 중
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildDateHeader(context, dateFormatted, 
-            child: const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: CircularProgressIndicator(),
-              ),
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: CircularProgressIndicator(),
             ),
           );
         }
         
         // 에러 발생
         if (snapshot.hasError) {
-          return _buildDateHeader(context, dateFormatted,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Text(
-                  "데이터 로딩 중 오류가 발생했습니다.",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                "데이터 로딩 중 오류가 발생했습니다.",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).colorScheme.error,
                 ),
               ),
             ),
@@ -67,16 +63,14 @@ class StepSummaryWidget extends StatelessWidget {
         // 데이터가 없는 경우
         final stepData = snapshot.data;
         if (stepData == null) {
-          return _buildDateHeader(context, dateFormatted,
-            child: const Center(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Text(
-                  "기록된 걸음이 없습니다.",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                "기록된 걸음이 없습니다.",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -90,97 +84,69 @@ class StepSummaryWidget extends StatelessWidget {
         final formattedGoal = NumberFormat('#,###').format(dailyGoal);
         final formattedDistance = (step * 0.7 / 1000).toStringAsFixed(1);
         
-        return _buildDateHeader(
-          context, 
-          dateFormatted,
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // 걸음 수
-                Column(
-                  children: [
-                    Text(
-                      formattedSteps,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Row(
-                      children: [
-                        const Text('/'),
-                        Text(
-                          formattedGoal,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    )
-                  ],
-                ),
-                const Spacer(),
-            
-                // 이동 거리
-                Column(
-                  children: [
-                    const Text(
-                      '이동거리',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Text('$formattedDistance Km'),
-                  ],
-                ),
-                const Spacer(),
-            
-                // 원형 진행바
-                CircularPercentIndicator(
-                  radius: 40.0,
-                  lineWidth: 8.0,
-                  percent: percent.clamp(0.0, 1.0),
-                  animation: true,
-                  animationDuration: 500,
-                  circularStrokeCap: CircularStrokeCap.round,
-                  progressColor: _getProgressColor(percent),
-                  backgroundColor: Colors.grey.shade300,
-                  center: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // 걸음 수
+              Column(
+                children: [
+                  Text(
+                    formattedSteps,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Row(
                     children: [
-                      const Icon(Icons.directions_walk, size: 24),
+                      const Text('/'),
                       Text(
-                        '${(percent * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        formattedGoal,
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ],
+                  )
+                ],
+              ),
+              const Spacer(),
+          
+              // 이동 거리
+              Column(
+                children: [
+                  const Text(
+                    '이동거리',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
+                  Text('$formattedDistance Km'),
+                ],
+              ),
+              const Spacer(),
+          
+              // 원형 진행바
+              CircularPercentIndicator(
+                radius: 40.0,
+                lineWidth: 8.0,
+                percent: percent.clamp(0.0, 1.0),
+                animation: true,
+                animationDuration: 500,
+                circularStrokeCap: CircularStrokeCap.round,
+                progressColor: _getProgressColor(percent),
+                backgroundColor: Colors.grey.shade300,
+                center: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.directions_walk, size: 24),
+                    Text(
+                      '${(percent * 100).toStringAsFixed(0)}%',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       }
-    );
-  }
-  
-  // 날짜 헤더와 자식 위젯을 포함하는 공통 컨테이너
-  Widget _buildDateHeader(BuildContext context, String dateFormatted, {required Widget child}) {
-    return Container(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 날짜 표시
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              dateFormatted,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-          ),
-          child,
-        ],
-      ),
     );
   }
 

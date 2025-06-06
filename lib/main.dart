@@ -27,6 +27,7 @@ import 'package:recap_today/service/location_tracking_service.dart';
 import 'package:recap_today/provider/step_provider.dart';
 import 'package:recap_today/provider/theme_provider.dart';
 import 'package:recap_today/provider/location_provider.dart';
+import 'package:recap_today/provider/ai_feedback_provider.dart';
 
 import 'router.dart';
 
@@ -92,6 +93,8 @@ void main() async {
         ChangeNotifierProvider(create: (context) => ChecklistProvider(loginProvider: context.read<LoginProvider>())),
         ChangeNotifierProvider(create: (context) => DiaryProvider(loginProvider: context.read<LoginProvider>())),
         ChangeNotifierProvider(create: (context) => ScheduleProvider(loginProvider: context.read<LoginProvider>())),
+        ChangeNotifierProvider(create: (context) => AiFeedbackProvider(loginProvider: context.read<LoginProvider>())),
+
         ChangeNotifierProvider(
           // Add SignupProvider
           create: (context) => SignupProvider(authRepository),

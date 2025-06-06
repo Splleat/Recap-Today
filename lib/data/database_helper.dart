@@ -10,6 +10,8 @@ import 'package:recap_today/model/freezed/emotion_model.dart';
 import 'package:recap_today/model/freezed/location_model.dart';
 import 'package:recap_today/model/freezed/step_model.dart';
 import 'package:recap_today/data/abstract_database.dart';
+import 'dart:convert';
+import 'package:recap_today/model/freezed/ai_feedback_model.dart';
 
 /// SQLite 데이터베이스 관리를 위한 헬퍼 클래스
 /// 모델 데이터의 영구 저장소 역할
@@ -31,6 +33,7 @@ class DatabaseHelper implements AbstractDatabase {
   static const String tableLocationLogs = 'location_logs';
   static const String tableEmotionRecords = 'emotion_records';
   static const String tableSteps = 'steps';
+  static const String tableAiFeedback = 'ai_feedback'; // 새 테이블 추가
 
   // 프라이빗 생성자
   DatabaseHelper._init();
@@ -48,7 +51,7 @@ class DatabaseHelper implements AbstractDatabase {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 10, // Increment version for schema update
+      version: 12, // 버전을 11에서 12로 증가
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onConfigure: _configureDB,
@@ -69,6 +72,7 @@ class DatabaseHelper implements AbstractDatabase {
         date TEXT NOT NULL,
         title TEXT NOT NULL,
         content TEXT,
+        photo_paths TEXT,
         user_id TEXT NOT NULL,
         is_synced INTEGER NOT NULL DEFAULT 0,
         UNIQUE(date, user_id)
@@ -173,6 +177,17 @@ class DatabaseHelper implements AbstractDatabase {
         UNIQUE (date, user_id)
       )
     ''');
+
+    // AI 피드백 테이블 생성
+    await db.execute('''
+      CREATE TABLE $tableAiFeedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        feedback_text TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        is_synced INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
   }
 
   /// 데이터베이스 업그레이드 (스키마 마이그레이션)
@@ -275,6 +290,48 @@ class DatabaseHelper implements AbstractDatabase {
         )
       ''');
     }
+
+    if (oldVersion < 11) { // 버전 번호는 적절히 조정
+      // 기존 diaries 테이블에 photo_paths 컬럼 추가
+      try {
+        await db.execute('ALTER TABLE $tableDiaries ADD COLUMN photo_paths TEXT');
+        
+        // 기존 사진 데이터를 마이그레이션
+        final diaries = await db.query(tableDiaries);
+        for (final diary in diaries) {
+          final diaryId = diary['id'] as int;
+          final photos = await db.query(
+            tablePhotos, 
+            columns: ['path'],
+            where: 'diary_id = ?', 
+            whereArgs: [diaryId]
+          );
+          
+          final photoPaths = photos.map((p) => p['path'] as String).toList();
+          await db.update(
+            tableDiaries,
+            {'photo_paths': jsonEncode(photoPaths)},
+            where: 'id = ?',
+            whereArgs: [diaryId]
+          );
+        }
+      } catch (e) {
+        debugPrint('사진 경로 마이그레이션 오류: $e');
+      }
+    }
+
+    if (oldVersion < 12) {
+      // 버전 12로 업그레이드: AI 피드백 테이블 추가
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $tableAiFeedback (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          date TEXT NOT NULL,
+          feedback_text TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          is_synced INTEGER NOT NULL DEFAULT 0
+        )
+      ''');
+    }
   }
 
   /// 데이터베이스 종료
@@ -288,11 +345,22 @@ class DatabaseHelper implements AbstractDatabase {
   /// 새 일기 추가
   Future<int> insertDiary(DiaryModel diary) async {
     final db = await database;
-    return await db.insert(
+    
+    // 1. 일기 정보 저장
+    final diaryId = await db.insert(
       tableDiaries,
-      diary.toMap(),
+      {
+        'date': diary.date,
+        'title': diary.title,
+        'content': diary.content,
+        'user_id': diary.userId,
+        'is_synced': diary.isSynced ? 1 : 0,
+        'photo_paths': jsonEncode(diary.photoPaths),
+      },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+    
+    return diaryId;
   }
 
   /// 날짜별 일기 조회
@@ -951,5 +1019,79 @@ class DatabaseHelper implements AbstractDatabase {
       debugPrint('로컬 데이터 마이그레이션 중 오류 발생: $e');
       return false;
     }
+  }
+
+  // CRUD 메소드 - AI 피드백 (AiFeedback)
+
+  /// AI 피드백 추가
+  Future<int> insertAiFeedback(AiFeedbackModel feedback) async {
+    final db = await database;
+    return await db.insert(
+      tableAiFeedback,
+      feedback.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// 특정 날짜의 AI 피드백 조회
+  Future<List<AiFeedbackModel>> getAiFeedbackByDate(
+    String date,
+    String userId,
+  ) async {
+    final db = await database;
+    final result = await db.query(
+      tableAiFeedback,
+      where: 'date = ? AND user_id = ?',
+      whereArgs: [date, userId],
+    );
+
+    return result.map((json) => AiFeedbackModelX.fromMap(json)).toList();
+  }
+
+  /// 특정 ID의 AI 피드백 조회
+  Future<AiFeedbackModel?> getAiFeedbackById(int id, String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableAiFeedback,
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
+
+    if (result.isEmpty) return null;
+    return AiFeedbackModelX.fromMap(result.first);
+  }
+
+  /// 모든 AI 피드백 조회
+  Future<List<AiFeedbackModel>> getAllAiFeedback(String userId) async {
+    final db = await database;
+    final result = await db.query(
+      tableAiFeedback,
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'date DESC',
+    );
+
+    return result.map((json) => AiFeedbackModelX.fromMap(json)).toList();
+  }
+
+  /// AI 피드백 업데이트
+  Future<int> updateAiFeedback(AiFeedbackModel feedback) async {
+    final db = await database;
+    return await db.update(
+      tableAiFeedback,
+      feedback.toMap(),
+      where: 'id = ?',
+      whereArgs: [feedback.id],
+    );
+  }
+
+  /// AI 피드백 삭제
+  Future<int> deleteAiFeedback(int id, String userId) async {
+    final db = await database;
+    return await db.delete(
+      tableAiFeedback,
+      where: 'id = ? AND user_id = ?',
+      whereArgs: [id, userId],
+    );
   }
 }

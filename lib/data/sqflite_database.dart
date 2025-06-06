@@ -7,6 +7,7 @@ import 'package:recap_today/model/freezed/schedule_item.dart';
 import 'package:recap_today/model/freezed/emotion_model.dart';
 import 'package:recap_today/model/freezed/location_model.dart';
 import 'package:recap_today/model/freezed/step_model.dart';
+import 'package:recap_today/model/freezed/ai_feedback_model.dart';
 import 'package:recap_today/data/abstract_database.dart';
 import 'package:recap_today/data/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
@@ -470,6 +471,67 @@ class SqfliteDatabase implements AbstractDatabase {
     } catch (e) {
       debugPrint('미동기화 항목 조회 중 오류 발생: $e');
       return [];
+    }
+  }
+  
+  // AI 피드백 관련 메서드
+  @override
+  Future<int> insertAiFeedback(AiFeedbackModel feedback) async {
+    try {
+      return await _helper.insertAiFeedback(feedback);
+    } catch (e) {
+      debugPrint('AI 피드백 추가 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<AiFeedbackModel>> getAiFeedbackByDate(String date, String userId) async {
+    try {
+      return await _helper.getAiFeedbackByDate(date, userId);
+    } catch (e) {
+      debugPrint('일자별 AI 피드백 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<AiFeedbackModel?> getAiFeedbackById(int id, String userId) async {
+    try {
+      return await _helper.getAiFeedbackById(id, userId);
+    } catch (e) {
+      debugPrint('ID별 AI 피드백 조회 중 오류 발생: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<List<AiFeedbackModel>> getAllAiFeedback(String userId) async {
+    try {
+      return await _helper.getAllAiFeedback(userId);
+    } catch (e) {
+      debugPrint('모든 AI 피드백 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  @override
+  Future<int> updateAiFeedback(AiFeedbackModel feedback) async {
+    try {
+      return await _helper.updateAiFeedback(feedback);
+    } catch (e) {
+      debugPrint('AI 피드백 업데이트 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<int> deleteAiFeedback(int id, String userId) async {
+    try {
+      return await _helper.deleteAiFeedback(id, userId);
+    } catch (e) {
+      debugPrint('AI 피드백 삭제 중 오류 발생: $e');
+      rethrow;
     }
   }
 }

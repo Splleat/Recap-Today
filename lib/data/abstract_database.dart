@@ -1,4 +1,5 @@
 // abstract_database.dart
+import 'package:flutter/foundation.dart';
 import 'package:recap_today/model/freezed/diary_model.dart';
 import 'package:recap_today/model/freezed/checklist_item.dart';
 import 'package:recap_today/model/freezed/app_usage_model.dart';
@@ -6,6 +7,8 @@ import 'package:recap_today/model/freezed/emotion_model.dart';
 import 'package:recap_today/model/freezed/schedule_item.dart';
 import 'package:recap_today/model/freezed/location_model.dart';
 import 'package:recap_today/model/freezed/step_model.dart';
+import 'package:recap_today/model/freezed/ai_feedback_model.dart';
+import 'package:recap_today/data/abstract_database.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// 데이터베이스 접근을 위한 추상 인터페이스
@@ -80,4 +83,12 @@ abstract class AbstractDatabase {
   // 동기화 관련 메소드
   Future<int> updateSyncStatus(String table, dynamic id, bool isSynced);
   Future<List<Map<String, dynamic>>> getUnsyncedItems(String table);
+  
+  // AI 피드백 관련 메소드
+  Future<int> insertAiFeedback(AiFeedbackModel feedback);
+  Future<List<AiFeedbackModel>> getAiFeedbackByDate(String date, String userId);
+  Future<AiFeedbackModel?> getAiFeedbackById(int id, String userId);
+  Future<List<AiFeedbackModel>> getAllAiFeedback(String userId);
+  Future<int> updateAiFeedback(AiFeedbackModel feedback);
+  Future<int> deleteAiFeedback(int id, String userId);
 }

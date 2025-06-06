@@ -123,9 +123,9 @@ class StepProvider with ChangeNotifier {
     
     // 걸음 수 데이터 저장은 다음 경우에만 수행:
     // 1. 날짜가 변경된 경우 (위에서 처리)
-    // 2. 매 100번째 걸음마다
+    // 2. 매 33번째 걸음마다
     // 3. dispose() 메서드에서 앱 종료 시
-    if (steps % 100 == 0) {
+    if (steps % 33 == 0) {
       await _saveStepsToDatabase(todayStep);
     }
     

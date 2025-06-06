@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'diary_model.freezed.dart';
@@ -29,17 +30,29 @@ extension DiaryModelX on DiaryModel {
       'content': content,
       'user_id': userId,
       'is_synced': isSynced ? 1 : 0,
-      // Note: photoPaths would need to be stored separately
+      'photo_paths': jsonEncode(photoPaths), // JSON 문자열로 변환
     };
   }
 
-  static DiaryModel fromMap(Map<String, dynamic> map, [List<String> photoPaths = const []]) {
+  static DiaryModel fromMap(Map<String, dynamic> map) {
+    List<String> photos = [];
+    
+    // photo_paths 필드가 존재하고 null이 아니면 파싱
+    if (map['photo_paths'] != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(map['photo_paths']);
+        photos = decoded.map((e) => e.toString()).toList();
+      } catch (e) {
+        print('사진 경로 파싱 오류: $e');
+      }
+    }
+    
     return DiaryModel(
       id: map['id'] as int?,
       date: map['date'] as String,
       title: map['title'] as String,
       content: map['content'] as String? ?? '',
-      photoPaths: photoPaths,
+      photoPaths: photos,
       userId: map['user_id'] as String? ?? '',
       isSynced: (map['is_synced'] as int?) == 1,
     );
