@@ -7,6 +7,7 @@ import 'package:recap_today/widget/home/hourly_emotion_logger.dart';
 import 'package:recap_today/provider/weather_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:recap_today/widget/summary/step_counter.dart';
+import 'package:recap_today/settings/setting_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -57,33 +58,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 16),
                     StepWidget(),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const HomeChecklist(),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.all(16.0),
+                    SettingsCard(
+                      children: [
+                        ListTile(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const HomeChecklist(),
+                              ),
+                            );
+                          },
+                          title: const Text('할 일을 확인하세요'),
+                          trailing: const Icon(Icons.arrow_forward),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.0),
                           ),
-                          elevation: 0,
-                          shadowColor: Colors.transparent,
+                          tileColor: Theme.of(context).colorScheme.surface, // 기본 테마 색상 사용
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                         ),
-                        child: Row(
-                          children: [
-                            Text('할 일을 확인하세요'),
-                            Spacer(),
-                            Icon(Icons.arrow_forward),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     HourlyEmotionLogger(initialDate: DateTime.now()),

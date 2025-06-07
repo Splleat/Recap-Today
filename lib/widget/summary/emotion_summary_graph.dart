@@ -254,19 +254,19 @@ class _EmotionSummaryGraphState extends State<EmotionSummaryGraph> {
               child: LineChart(_buildChartData()),
             ),
           ),
-        const Divider(),
-        ExpansionTile(
-          title: Text(
-            '시간별 감정 기록 보기',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          children: <Widget>[
-            SizedBox(
-              height: 300,
-              child: HourlyEmotionTimelineDrawer(date: widget.date),
-            ),
-          ],
-        ),
+        // const Divider(),
+        // ExpansionTile(
+        //   title: Text(
+        //     '시간별 감정 기록 보기',
+        //     style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        //   ),
+        //   children: <Widget>[
+        //     SizedBox(
+        //       height: 300,
+        //       child: HourlyEmotionTimelineDrawer(date: widget.date),
+        //     ),
+        //   ],
+        // ),
       ],
     );
   }

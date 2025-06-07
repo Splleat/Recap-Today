@@ -28,6 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
+      extendBody: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         leading: IconButton(
@@ -45,6 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: Container(
         decoration: commonTabDecoration(context),
+        constraints: const BoxConstraints.expand(),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16.0),

@@ -6,7 +6,8 @@ import 'package:provider/provider.dart'; // 추가
 import 'package:intl/intl.dart';
 
 void showAddItemDialog(BuildContext context, ChecklistProvider checklistProvider) {
-  TextEditingController textController = TextEditingController();
+  TextEditingController titleController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
   DateTime? selectedDueDate;
 
   showDialog(
@@ -15,15 +16,20 @@ void showAddItemDialog(BuildContext context, ChecklistProvider checklistProvider
       // LoginProvider에서 사용자 ID 가져오기
       final loginProvider = Provider.of<LoginProvider>(context, listen: false);
       final userId = loginProvider.activeUserId;
-      
+
       return AlertDialog(
         title: const Text('할 일 추가'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: textController,
-              decoration: const InputDecoration(labelText: '내용'),
+              controller: titleController,
+              decoration: const InputDecoration(labelText: '제목'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: descriptionController,
+              decoration: const InputDecoration(labelText: '설명 (선택 사항)'),
             ),
             const SizedBox(height: 16),
             Row(
@@ -72,12 +78,15 @@ void showAddItemDialog(BuildContext context, ChecklistProvider checklistProvider
           ElevatedButton(
             child: const Text('추가'),
             onPressed: () {
-              if (textController.text.isNotEmpty) {
+              if (titleController.text.isNotEmpty) {
                 final newItem = ChecklistItem(
-                  id: UniqueKey().toString(), 
+                  id: UniqueKey().toString(),
                   userId: userId, // LoginProvider에서 가져온 ID 사용
-                  text: textController.text, 
-                  dueDate: selectedDueDate
+                  text: titleController.text, // 제목
+                  subtext: descriptionController.text.isNotEmpty
+                      ? descriptionController.text
+                      : null, // 설명
+                  dueDate: selectedDueDate,
                 );
                 checklistProvider.addItem(newItem);
                 Navigator.of(context).pop();

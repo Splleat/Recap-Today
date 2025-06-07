@@ -1,5 +1,6 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:flutter/foundation.dart';
 
 Future<Position> getCurrentLocation() async {
   bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -32,8 +33,17 @@ Future<Position> getCurrentLocation() async {
 Future<String> getCurrentAddress(double lat, double lon) async {
   List<Placemark> placemarks = await placemarkFromCoordinates(lat, lon);
   if (placemarks.isNotEmpty) {
+    for (var place in placemarks) {
+      debugPrint('Placemark: ${place.toString()}'); // 모든 속성을 출력
+      debugPrint('Name: ${place.name}');
+      debugPrint('Street: ${place.street}');
+      debugPrint('Locality: ${place.locality}');
+      debugPrint('Administrative Area: ${place.administrativeArea}');
+      debugPrint('Postal Code: ${place.postalCode}');
+      debugPrint('Country: ${place.country}');
+    }
     final place = placemarks.first;
-    return '${place.administrativeArea ?? ''} ${place.subLocality ?? ''} ${place.thoroughfare ?? ''}'.trim();
+    return place.toString();
   }
   return '주소를 찾을 수 없습니다';
 }

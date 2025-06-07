@@ -305,64 +305,64 @@ class _ScheduleAddFormState extends State<ScheduleAddForm> {
     );
   }
 
-  Widget _buildAlarmSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Text('알림 설정'),
-            Switch(
-              value: _hasAlarm,
-              onChanged: (value) {
-                setState(() {
-                  _hasAlarm = value;
-                });
-              },
-            ),
-          ],
-        ),
-        if (_hasAlarm)
-          DropdownButtonFormField<Duration>(
-            decoration: const InputDecoration(labelText: '알림 시간'),
-            value: _alarmOffset,
-            items: [
-              const DropdownMenuItem(
-                value: Duration(minutes: 5),
-                child: Text('5분 전'),
-              ),
-              const DropdownMenuItem(
-                value: Duration(minutes: 10),
-                child: Text('10분 전'),
-              ),
-              const DropdownMenuItem(
-                value: Duration(minutes: 15),
-                child: Text('15분 전'),
-              ),
-              const DropdownMenuItem(
-                value: Duration(minutes: 30),
-                child: Text('30분 전'),
-              ),
-              const DropdownMenuItem(
-                value: Duration(hours: 1),
-                child: Text('1시간 전'),
-              ),
-              const DropdownMenuItem(
-                value: Duration(hours: 2),
-                child: Text('2시간 전'),
-              ),
-            ],
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _alarmOffset = value;
-                });
-              }
-            },
-          ),
-      ],
-    );
-  }
+  // Widget _buildAlarmSelector() {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Row(
+  //         children: [
+  //           const Text('알림 설정'),
+  //           Switch(
+  //             value: _hasAlarm,
+  //             onChanged: (value) {
+  //               setState(() {
+  //                 _hasAlarm = value;
+  //               });
+  //             },
+  //           ),
+  //         ],
+  //       ),
+  //       if (_hasAlarm)
+  //         DropdownButtonFormField<Duration>(
+  //           decoration: const InputDecoration(labelText: '알림 시간'),
+  //           value: _alarmOffset,
+  //           items: [
+  //             const DropdownMenuItem(
+  //               value: Duration(minutes: 5),
+  //               child: Text('5분 전'),
+  //             ),
+  //             const DropdownMenuItem(
+  //               value: Duration(minutes: 10),
+  //               child: Text('10분 전'),
+  //             ),
+  //             const DropdownMenuItem(
+  //               value: Duration(minutes: 15),
+  //               child: Text('15분 전'),
+  //             ),
+  //             const DropdownMenuItem(
+  //               value: Duration(minutes: 30),
+  //               child: Text('30분 전'),
+  //             ),
+  //             const DropdownMenuItem(
+  //               value: Duration(hours: 1),
+  //               child: Text('1시간 전'),
+  //             ),
+  //             const DropdownMenuItem(
+  //               value: Duration(hours: 2),
+  //               child: Text('2시간 전'),
+  //             ),
+  //           ],
+  //           onChanged: (value) {
+  //             if (value != null) {
+  //               setState(() {
+  //                 _alarmOffset = value;
+  //               });
+  //             }
+  //           },
+  //         ),
+  //     ],
+  //   );
+  // }
 
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -433,8 +433,8 @@ class _ScheduleAddFormState extends State<ScheduleAddForm> {
               ],
               const SizedBox(height: 16),
               _buildColorPicker(), // Add color picker
-              const SizedBox(height: 16),
-              _buildAlarmSelector(), // Add alarm selector
+              // const SizedBox(height: 16),
+              // _buildAlarmSelector(), // Add alarm selector
               const SizedBox(height: 24),
 
               ElevatedButton(

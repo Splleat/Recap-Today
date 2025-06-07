@@ -25,4 +25,10 @@ final ThemeData darkTheme = ThemeData(
       fontWeight: FontWeight.w300,
     ),
   ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.blueGrey, // 버튼 배경색
+      foregroundColor: Colors.white, // 버튼 텍스트 색상
+    ),
+  ),
 );
