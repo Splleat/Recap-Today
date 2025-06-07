@@ -3,53 +3,56 @@ import 'package:provider/provider.dart';
 import '../provider/weather_provider.dart';
 import '../provider/login_provider.dart';
 import '../data/sqflite_database.dart';
+import 'app_usage_service.dart';
 
 class PromptService {
   Future<String> generateFeedbackPrompt(
     BuildContext context,
     DateTime date,
   ) async {
-    // Format the date to a string if needed for your providers
     final dateString =
         "${date.year.toString().padLeft(4, '0')}-"
         "${date.month.toString().padLeft(2, '0')}-"
         "${date.day.toString().padLeft(2, '0')}";
 
-    // --- 1. Fetch Data from various providers ---
-    // You'll need to replace these with actual calls to your providers
-    // Make sure to handle cases where data might be null or empty.
-
-    // 하루 동선 (Location History)
-    // final locationHistoryProvider = Provider.of<LocationHistoryProvider>(context, listen: false);
-    // final pathData = await locationHistoryProvider.getPathForDate(dateString);
-    String dailyPathSummary = "오늘의 주요 동선 기록이 없습니다.";
-    // if (pathData != null && pathData.isNotEmpty) {
-    //   dailyPathSummary = "오늘의 주요 동선:\n${pathData.map((p) => "${p.time}: ${p.locationName} (머문 시간: ${p.durationMinutes}분)").join("\n")}";
-    // }
-
-    // 걸음 수 및 이동 거리 (Health Metrics)
-    // final healthMetricsProvider = Provider.of<HealthMetricsProvider>(context, listen: false);
-    // final steps = await healthMetricsProvider.getStepsForDate(dateString);
-    // final distance = await healthMetricsProvider.getDistanceForDate(dateString);
-    String healthMetricsSummary = "오늘의 걸음 수 및 이동 거리 기록이 없습니다.";
-    // String stepsStr = steps != null ? "${steps}보" : "걸음 수 정보 없음";
-    // String distanceStr = distance != null ? "${(distance / 1000).toStringAsFixed(2)}km" : "이동 거리 정보 없음";
-    // if (steps != null || distance != null) {
-    //   healthMetricsSummary = "활동량: ${stepsStr} / ${distanceStr}";
-    // }
-
-    // 앱 사용시간 (App Usage)
-    // final appUsageProvider = Provider.of<AppUsageProvider>(context, listen: false);
-    // final appUsageStats = await appUsageProvider.getAppUsageForDate(dateString);
-    String appUsageSummary = "오늘 앱 사용 기록이 없습니다.";
-    // if (appUsageStats.isNotEmpty) {
-    //   appUsageSummary = "오늘의 주요 앱 사용:\n${appUsageStats.map((usage) => "${usage.appName}: ${usage.durationInMinutes}분").join("\n")}";
-    // }
-
-    // 체크리스트 (Checklist)
+    // 사용자 및 DB 인스턴스 초기화
     final userId =
         Provider.of<LoginProvider>(context, listen: false).activeUserId;
     final db = Provider.of<SqfliteDatabase>(context, listen: false);
+
+    // 걸음 수 및 이동 거리 (Health Metrics)
+    final stepModel = await db.getStepsByDate(dateString, userId);
+    String? healthMetricsSummary;
+    if (stepModel != null) {
+      healthMetricsSummary = "걸음 수: ${stepModel.stepCount}보";
+    }
+
+    // 앱 사용시간 (App Usage)
+    final appUsageService = AppUsageService(db);
+    final appUsageSummaryData = await appUsageService.getAppUsageSummaryForDate(
+      dateString,
+      userId,
+    );
+    // 앱 사용 기록 요약 문자열 생성
+    String? appUsageSummary;
+    if (appUsageSummaryData != null) {
+      final sb = StringBuffer();
+      final totalStr = AppUsageService.formatUsageTime(
+        appUsageSummaryData.totalUsageTimeInMillis,
+      );
+      sb.writeln('총 사용 시간: $totalStr');
+      if (appUsageSummaryData.topApps.isNotEmpty) {
+        sb.writeln('상위 앱 사용:');
+        for (var app in appUsageSummaryData.topApps) {
+          sb.writeln(
+            '- ${app.appName}: ${AppUsageService.formatUsageTime(app.usageTimeInMillis)}',
+          );
+        }
+      }
+      appUsageSummary = sb.toString().trim();
+    }
+
+    // 체크리스트 (Checklist)
     final completedItems = await db.getChecklistItemsByCompletedDate(
       dateString,
       userId,
@@ -98,8 +101,7 @@ class PromptService {
           "내일의 시간별 날씨:\n${weatherData.map((w) => "${w.time}: ${w.temperature}°, ${w.sky} (강수확률: ${w.precipitationProbability})").join("\n")}";
     }
 
-    // --- 2. Construct the Prompt ---
-    // This is a basic template. You should refine it based on how you want the AI to respond.
+    // 프롬프트 생성
     StringBuffer promptBuffer = StringBuffer();
     promptBuffer.writeln(
       "다음은 사용자의 ${date.month}월 ${date.day}일 하루 활동 및 기록 요약입니다.",
@@ -108,14 +110,19 @@ class PromptService {
       "이 정보를 바탕으로 사용자가 하루를 의미있게 돌아보고, 내일을 더 잘 계획할 수 있도록 건설적이고 통찰력 있는 피드백을 제공해주세요.",
     );
     promptBuffer.writeln(
-      "피드백은 친근하고 격려하는 어투로 작성해주세요. 각 항목에 대해 개별적으로 언급하기보다는 전체적인 내용을 종합하여 조언해주세요.",
+      "피드백은 친근하고 격려하는 어투로 작성해주세요. 아래 각 정보 항목에 대해 개별적으로 구체적인 조언이나 생각을 전달해주세요.",
     );
-    promptBuffer.writeln("### 하루 동선");
-    promptBuffer.writeln(dailyPathSummary);
-    promptBuffer.writeln("### 걸음 수 및 이동 거리");
-    promptBuffer.writeln(healthMetricsSummary);
-    promptBuffer.writeln("### 앱 사용 시간");
-    promptBuffer.writeln(appUsageSummary);
+    promptBuffer.writeln(
+      "예를 들어, '내일 날씨 예보' 항목이 있다면 내일의 옷차림이나 우산 필요 여부에 대해 언급하고, '앱 사용 시간'이 많았다면 사용 시간 조절에 대한 팁을 주는 것처럼요.",
+    );
+    if (healthMetricsSummary != null) {
+      promptBuffer.writeln("### 걸음 수 및 이동 거리");
+      promptBuffer.writeln(healthMetricsSummary);
+    }
+    if (appUsageSummary != null) {
+      promptBuffer.writeln("### 앱 사용 시간");
+      promptBuffer.writeln(appUsageSummary);
+    }
     if (checklistSummary != null) {
       promptBuffer.writeln("### 체크리스트 현황");
       promptBuffer.writeln(checklistSummary);
@@ -133,7 +140,7 @@ class PromptService {
       promptBuffer.writeln(weatherSummary);
     }
     promptBuffer.writeln(
-      "위 정보를 종합적으로 분석하여 사용자에게 가장 도움이 될 만한 조언, 격려, 또는 자기 성찰 질문을 2-3문장으로 요약하여 전달해주세요.",
+      "모든 항목에 대한 개별적인 피드백을 제공한 후, 전체 내용을 바탕으로 오늘 하루를 위한 짧은 일기를 쓰는 데 도움이 될만한 질문들들을 추가해주세요.",
     );
     promptBuffer.writeln(
       "만약 특정 데이터가 부족하거나 없다면, 해당 부분은 언급하지 않거나 기록을 독려하는 방식으로 부드럽게 넘어갈 수 있습니다.",
