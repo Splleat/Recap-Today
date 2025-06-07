@@ -3,14 +3,6 @@ import 'package:provider/provider.dart';
 import '../provider/weather_provider.dart';
 import '../provider/login_provider.dart';
 import '../data/sqflite_database.dart';
-// Import other necessary providers for data fetching
-// e.g., import '../provider/diary_provider.dart';
-// e.g., import '../provider/schedule_provider.dart';
-// e.g., import '../provider/checklist_provider.dart';
-// e.g., import '../provider/photo_summary_provider.dart';
-// e.g., import '../provider/app_usage_provider.dart';
-// e.g., import '../provider/location_history_provider.dart'; // 하루 동선
-// e.g., import '../provider/health_metrics_provider.dart'; // 걸음 수, 이동 거리
 
 class PromptService {
   Future<String> generateFeedbackPrompt(
@@ -55,37 +47,39 @@ class PromptService {
     // }
 
     // 체크리스트 (Checklist)
-    // final checklistProvider = Provider.of<ChecklistProvider>(context, listen: false);
-    // final checklists = await checklistProvider.getChecklistsByDate(dateString);
-    String checklistSummary = "오늘의 체크리스트 항목이 없습니다.";
-    // if (checklists.isNotEmpty) {
-    //   final completedItems = checklists.where((item) => item.isCompleted).toList();
-    //   final pendingItems = checklists.where((item) => !item.isCompleted).toList();
-    //   checklistSummary = "";
-    //   if (completedItems.isNotEmpty) {
-    //     checklistSummary += "완료한 항목: ${completedItems.map((item) => item.task).join(', ')}\n";
-    //   } else {
-    //     checklistSummary += "완료한 항목이 없습니다.\n";
-    //   }
-    //   if (pendingItems.isNotEmpty) {
-    //     checklistSummary += "남은 항목: ${pendingItems.map((item) => item.task).join(', ')}";
-    //   } else {
-    //     checklistSummary += "남은 항목이 없습니다.";
-    //   }
-    // }
-
-    // 스케줄 (Schedule)
-    // final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
-    // final schedules = await scheduleProvider.getSchedulesByDate(dateString);
-    String scheduleSummary = "오늘 등록된 일정이 없습니다.";
-    // if (schedules.isNotEmpty) {
-    //   scheduleSummary = "오늘의 일정:\n${schedules.map((s) => "${s.time}: ${s.title}").join("\n")}";
-    // }
-
-    // 감정 변화 그래프 (Mood) using database
     final userId =
         Provider.of<LoginProvider>(context, listen: false).activeUserId;
     final db = Provider.of<SqfliteDatabase>(context, listen: false);
+    final completedItems = await db.getChecklistItemsByCompletedDate(
+      dateString,
+      userId,
+    );
+    final pendingItems = await db.getIncompleteChecklistItems(userId);
+    String? checklistSummary;
+    if (completedItems.isNotEmpty || pendingItems.isNotEmpty) {
+      final sb = StringBuffer();
+      if (completedItems.isNotEmpty) {
+        sb.writeln(
+          "완료한 항목: ${completedItems.map((item) => item.text).join(', ')}",
+        );
+      }
+      if (pendingItems.isNotEmpty) {
+        sb.writeln(
+          "남은 항목: ${pendingItems.map((item) => item.text).join(', ')}",
+        );
+      }
+      checklistSummary = sb.toString().trim();
+    }
+
+    // 스케줄 (Schedule)
+    String? scheduleSummary;
+    final schedules = await db.getScheduleItemsByDate(dateString, userId);
+    if (schedules.isNotEmpty) {
+      scheduleSummary =
+          "오늘의 일정:\n${schedules.map((s) => "${s.startTime.format(context)} - ${s.text}${s.subText != null ? ' (${s.subText})' : ''}").join("\n")}";
+    }
+
+    // 감정 변화 그래프 (Mood) using database
     final moodChanges = await db.getEmotionsByDate(dateString, userId);
     String? moodChartSummary;
     if (moodChanges.isNotEmpty) {
@@ -116,31 +110,27 @@ class PromptService {
     promptBuffer.writeln(
       "피드백은 친근하고 격려하는 어투로 작성해주세요. 각 항목에 대해 개별적으로 언급하기보다는 전체적인 내용을 종합하여 조언해주세요.",
     );
-    promptBuffer.writeln("--------------------");
     promptBuffer.writeln("### 하루 동선");
     promptBuffer.writeln(dailyPathSummary);
-    promptBuffer.writeln("--------------------");
     promptBuffer.writeln("### 걸음 수 및 이동 거리");
     promptBuffer.writeln(healthMetricsSummary);
-    promptBuffer.writeln("--------------------");
     promptBuffer.writeln("### 앱 사용 시간");
     promptBuffer.writeln(appUsageSummary);
-    promptBuffer.writeln("--------------------");
-    promptBuffer.writeln("### 체크리스트 현황");
-    promptBuffer.writeln(checklistSummary);
-    promptBuffer.writeln("--------------------");
-    promptBuffer.writeln("### 주요 일정");
-    promptBuffer.writeln(scheduleSummary);
-    promptBuffer.writeln("--------------------");
+    if (checklistSummary != null) {
+      promptBuffer.writeln("### 체크리스트 현황");
+      promptBuffer.writeln(checklistSummary);
+    }
+    if (scheduleSummary != null) {
+      promptBuffer.writeln("### 주요 일정");
+      promptBuffer.writeln(scheduleSummary);
+    }
     if (moodChartSummary != null) {
-      promptBuffer.writeln("--------------------");
       promptBuffer.writeln("### 감정 변화 기록");
       promptBuffer.writeln(moodChartSummary);
     }
     if (weatherSummary != null) {
       promptBuffer.writeln("### 내일 날씨 예보");
       promptBuffer.writeln(weatherSummary);
-      promptBuffer.writeln("--------------------");
     }
     promptBuffer.writeln(
       "위 정보를 종합적으로 분석하여 사용자에게 가장 도움이 될 만한 조언, 격려, 또는 자기 성찰 질문을 2-3문장으로 요약하여 전달해주세요.",
