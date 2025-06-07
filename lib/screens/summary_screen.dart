@@ -67,7 +67,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: _initiateShareProcess, 
+            onPressed: _initiateShareProcess,
           ),
           IconButton(
             icon: const Icon(Icons.settings),
@@ -134,15 +134,18 @@ class _SummaryScreenState extends State<SummaryScreen> {
     final Uint8List? fullImageBytes = await ShareUtil.capture(_captureKey);
 
     if (fullImageBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('캡처에 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('캡처에 실패했습니다.')));
       return;
     }
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => CropAndShareDialog(originalImageBytes: fullImageBytes), // Now uses the imported widget
+        builder:
+            (context) => CropAndShareDialog(
+              originalImageBytes: fullImageBytes,
+            ), // Now uses the imported widget
         fullscreenDialog: true,
       ),
     );
