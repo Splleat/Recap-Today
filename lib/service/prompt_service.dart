@@ -145,6 +145,9 @@ class PromptService {
     promptBuffer.writeln(
       "만약 특정 데이터가 부족하거나 없다면, 해당 부분은 언급하지 않거나 기록을 독려하는 방식으로 부드럽게 넘어갈 수 있습니다.",
     );
+    promptBuffer.writeln(
+      "피드백은 플레인 텍스트와 아이콘을 활용해 휴대폰에서 보기 좋게 가독성을 생각한 적절한 줄바꿈과 공백을 사용해주세요.",
+    );
 
     return promptBuffer.toString();
   }
