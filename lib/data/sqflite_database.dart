@@ -11,6 +11,7 @@ import 'package:recap_today/model/freezed/ai_feedback_model.dart';
 import 'package:recap_today/data/abstract_database.dart';
 import 'package:recap_today/data/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
+import 'dart:developer' as developer;
 
 // SQLite 데이터베이스 접근을 위한 구현 클래스
 // AbstractDatabase 인터페이스를 구현하여 애플리케이션과 데이터베이스 사이의 중간 계층 역할
@@ -20,7 +21,7 @@ class SqfliteDatabase implements AbstractDatabase {
   // 데이터베이스 기본 메서드
   @override
   Future<Database> get database => _helper.database;
-  
+
   @override
   Future close() async {
     await _helper.close();
@@ -85,7 +86,12 @@ class SqfliteDatabase implements AbstractDatabase {
     int? offset,
   }) async {
     try {
-      return await _helper.searchDiaries(query, userId, limit: limit, offset: offset);
+      return await _helper.searchDiaries(
+        query,
+        userId,
+        limit: limit,
+        offset: offset,
+      );
     } catch (e) {
       debugPrint('일기 검색 중 오류 발생: $e');
       return {'diaries': [], 'totalCount': 0};
@@ -132,9 +138,12 @@ class SqfliteDatabase implements AbstractDatabase {
       rethrow;
     }
   }
-  
+
   @override
-  Future<List<ChecklistItem>> getChecklistItemsByCompletedDate(String date, String userId) async {
+  Future<List<ChecklistItem>> getChecklistItemsByCompletedDate(
+    String date,
+    String userId,
+  ) async {
     try {
       return await _helper.getChecklistItemsByCompletedDate(date, userId);
     } catch (e) {
@@ -162,7 +171,7 @@ class SqfliteDatabase implements AbstractDatabase {
       return [];
     }
   }
-  
+
   @override
   Future<void> saveChecklistItems(List<ChecklistItem> items) async {
     try {
@@ -185,7 +194,10 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   @override
-  Future<List<AppUsageModel>> getAppUsageByDate(String date, String userId) async {
+  Future<List<AppUsageModel>> getAppUsageByDate(
+    String date,
+    String userId,
+  ) async {
     try {
       return await _helper.getAppUsageByDate(date, userId);
     } catch (e) {
@@ -205,7 +217,10 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   @override
-  Future<int> insertAppUsageBatch(List<AppUsageModel> appUsages, String userId) async {
+  Future<int> insertAppUsageBatch(
+    List<AppUsageModel> appUsages,
+    String userId,
+  ) async {
     try {
       return await _helper.insertAppUsageBatch(appUsages, userId);
     } catch (e) {
@@ -226,7 +241,10 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   @override
-  Future<List<ScheduleItem>> getScheduleItemsByDate(String date, String userId) async {
+  Future<List<ScheduleItem>> getScheduleItemsByDate(
+    String date,
+    String userId,
+  ) async {
     try {
       return await _helper.getScheduleItemsByDate(date, userId);
     } catch (e) {
@@ -256,7 +274,7 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   @override
-  Future<int> deleteScheduleItem(String id, String userId) async {  
+  Future<int> deleteScheduleItem(String id, String userId) async {
     try {
       return await _helper.deleteScheduleItem(id, userId);
     } catch (e) {
@@ -277,7 +295,10 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   @override
-  Future<List<EmotionRecord>> getEmotionsByDate(String date, String userId) async {
+  Future<List<EmotionRecord>> getEmotionsByDate(
+    String date,
+    String userId,
+  ) async {
     try {
       return await _helper.getEmotionsByDate(date, userId);
     } catch (e) {
@@ -287,7 +308,11 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   @override
-  Future<EmotionRecord?> getEmotionByDateAndHour(String date, int hour, String userId) async {
+  Future<EmotionRecord?> getEmotionByDateAndHour(
+    String date,
+    int hour,
+    String userId,
+  ) async {
     try {
       return await _helper.getEmotionByDateAndHour(date, hour, userId);
     } catch (e) {
@@ -328,7 +353,10 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   @override
-  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(String userId, String date) async {
+  Future<List<Map<String, dynamic>>> getLocationLogsForUserAndDate(
+    String userId,
+    String date,
+  ) async {
     try {
       return await _helper.getLocationLogsForUserAndDate(userId, date);
     } catch (e) {
@@ -336,9 +364,11 @@ class SqfliteDatabase implements AbstractDatabase {
       return [];
     }
   }
-  
+
   @override
-  Future<List<Map<String, dynamic>>> getLocationLogsForUser(String userId) async {
+  Future<List<Map<String, dynamic>>> getLocationLogsForUser(
+    String userId,
+  ) async {
     try {
       return await _helper.getLocationLogsForUser(userId);
     } catch (e) {
@@ -346,9 +376,11 @@ class SqfliteDatabase implements AbstractDatabase {
       return [];
     }
   }
-  
+
   @override
-  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(String userId) async {
+  Future<List<Map<String, dynamic>>> getAllLocationLogsForUser(
+    String userId,
+  ) async {
     try {
       return await _helper.getAllLocationLogsForUser(userId);
     } catch (e) {
@@ -356,7 +388,7 @@ class SqfliteDatabase implements AbstractDatabase {
       return [];
     }
   }
-  
+
   @override
   Future<int> deleteAllLocationLogsForUser(String userId) async {
     try {
@@ -366,12 +398,12 @@ class SqfliteDatabase implements AbstractDatabase {
       return 0;
     }
   }
-  
+
   @override
   Future<List<Map<String, dynamic>>> getLocationLogsForUserInRange(
-    String userId, 
-    DateTime start, 
-    DateTime end
+    String userId,
+    DateTime start,
+    DateTime end,
   ) async {
     try {
       return await _helper.getLocationLogsForUserInRange(userId, start, end);
@@ -380,9 +412,13 @@ class SqfliteDatabase implements AbstractDatabase {
       return [];
     }
   }
-  
+
   @override
-  Future<int> deleteLocationLogsInRange(String userId, DateTime start, DateTime end) async {
+  Future<int> deleteLocationLogsInRange(
+    String userId,
+    DateTime start,
+    DateTime end,
+  ) async {
     try {
       return await _helper.deleteLocationLogsInRange(userId, start, end);
     } catch (e) {
@@ -473,7 +509,7 @@ class SqfliteDatabase implements AbstractDatabase {
       return [];
     }
   }
-  
+
   // AI 피드백 관련 메서드
   @override
   Future<int> insertAiFeedback(AiFeedbackModel feedback) async {
@@ -486,7 +522,10 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   @override
-  Future<List<AiFeedbackModel>> getAiFeedbackByDate(String date, String userId) async {
+  Future<List<AiFeedbackModel>> getAiFeedbackByDate(
+    String date,
+    String userId,
+  ) async {
     try {
       return await _helper.getAiFeedbackByDate(date, userId);
     } catch (e) {
@@ -531,6 +570,196 @@ class SqfliteDatabase implements AbstractDatabase {
       return await _helper.deleteAiFeedback(id, userId);
     } catch (e) {
       debugPrint('AI 피드백 삭제 중 오류 발생: $e');
+      rethrow;
+    }
+  }
+
+  // 백업을 위한 전체 데이터 조회 메서드들
+  Future<List<Map<String, dynamic>>> getAllDiariesForBackup() async {
+    developer.log('모든 일기 백업 데이터 조회 시작', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final result = await db.query('diaries');
+      developer.log(
+        '일기 백업 데이터 조회 완료: ${result.length}개',
+        name: 'SqfliteDatabase',
+      );
+      return result;
+    } catch (e) {
+      developer.log('모든 일기 조회 중 오류 발생: $e', name: 'SqfliteDatabase');
+      debugPrint('모든 일기 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllChecklistItemsForBackup() async {
+    developer.log('모든 체크리스트 백업 데이터 조회 시작', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final result = await db.query('checklist_items');
+      developer.log(
+        '체크리스트 백업 데이터 조회 완료: ${result.length}개',
+        name: 'SqfliteDatabase',
+      );
+      return result;
+    } catch (e) {
+      developer.log('모든 체크리스트 조회 중 오류 발생: $e', name: 'SqfliteDatabase');
+      debugPrint('모든 체크리스트 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllScheduleItemsForBackup() async {
+    developer.log('모든 일정 백업 데이터 조회 시작', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final result = await db.query('schedule_items');
+      developer.log(
+        '일정 백업 데이터 조회 완료: ${result.length}개',
+        name: 'SqfliteDatabase',
+      );
+      return result;
+    } catch (e) {
+      developer.log('모든 일정 조회 중 오류 발생: $e', name: 'SqfliteDatabase');
+      debugPrint('모든 일정 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllAppUsageRecords() async {
+    developer.log('모든 앱 사용량 백업 데이터 조회 시작', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final result = await db.query('app_usage');
+      developer.log(
+        '앱 사용량 백업 데이터 조회 완료: ${result.length}개',
+        name: 'SqfliteDatabase',
+      );
+      return result;
+    } catch (e) {
+      developer.log('모든 앱 사용량 조회 중 오류 발생: $e', name: 'SqfliteDatabase');
+      debugPrint('모든 앱 사용량 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllEmotionRecords() async {
+    developer.log('모든 감정 기록 백업 데이터 조회 시작', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final result = await db.query(
+        'emotion_records',
+      ); // 수정: emotions -> emotion_records
+      developer.log(
+        '감정 기록 백업 데이터 조회 완료: ${result.length}개',
+        name: 'SqfliteDatabase',
+      );
+      return result;
+    } catch (e) {
+      developer.log('모든 감정 기록 조회 중 오류 발생: $e', name: 'SqfliteDatabase');
+      debugPrint('모든 감정 기록 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllLocationRecords() async {
+    developer.log('모든 위치 기록 백업 데이터 조회 시작', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final result = await db.query(
+        'location_logs',
+      ); // 수정: locations -> location_logs
+      developer.log(
+        '위치 기록 백업 데이터 조회 완료: ${result.length}개',
+        name: 'SqfliteDatabase',
+      );
+      return result;
+    } catch (e) {
+      developer.log('모든 위치 기록 조회 중 오류 발생: $e', name: 'SqfliteDatabase');
+      debugPrint('모든 위치 기록 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllStepRecords() async {
+    developer.log('모든 걸음 수 백업 데이터 조회 시작', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final result = await db.query('steps');
+      developer.log(
+        '걸음 수 백업 데이터 조회 완료: ${result.length}개',
+        name: 'SqfliteDatabase',
+      );
+      return result;
+    } catch (e) {
+      developer.log('모든 걸음 수 기록 조회 중 오류 발생: $e', name: 'SqfliteDatabase');
+      debugPrint('모든 걸음 수 기록 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllAiFeedbackRecords() async {
+    developer.log('모든 AI 피드백 백업 데이터 조회 시작', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final result = await db.query('ai_feedback');
+      developer.log(
+        'AI 피드백 백업 데이터 조회 완료: ${result.length}개',
+        name: 'SqfliteDatabase',
+      );
+      return result;
+    } catch (e) {
+      developer.log('모든 AI 피드백 조회 중 오류 발생: $e', name: 'SqfliteDatabase');
+      debugPrint('모든 AI 피드백 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
+  // 모든 데이터 삭제 메서드
+  Future<void> clearAllData() async {
+    developer.log('모든 데이터 삭제 시작', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final batch = db.batch();
+
+      developer.log('데이터 삭제 배치 작업 준비 중', name: 'SqfliteDatabase');
+
+      // 모든 테이블의 데이터 삭제 (실제 테이블 이름 사용)
+      batch.delete('diaries');
+      developer.log('일기 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
+
+      batch.delete('checklist_items');
+      developer.log('체크리스트 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
+
+      batch.delete('schedule_items');
+      developer.log('일정 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
+
+      batch.delete('app_usage');
+      developer.log('앱 사용량 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
+
+      batch.delete('emotion_records'); // 수정: emotions -> emotion_records
+      developer.log('감정 기록 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
+
+      batch.delete('location_logs'); // 수정: locations -> location_logs
+      developer.log('위치 기록 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
+
+      batch.delete('steps');
+      developer.log('걸음 수 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
+
+      batch.delete('ai_feedback');
+      developer.log('AI 피드백 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
+
+      batch.delete('photos'); // 추가: 사진 테이블도 삭제
+      developer.log('사진 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
+
+      developer.log('배치 작업 실행 중', name: 'SqfliteDatabase');
+      await batch.commit();
+
+      developer.log('모든 데이터가 성공적으로 삭제되었습니다.', name: 'SqfliteDatabase');
+      debugPrint('모든 데이터가 성공적으로 삭제되었습니다.');
+    } catch (e) {
+      developer.log('데이터 삭제 중 오류 발생: $e', name: 'SqfliteDatabase');
+      debugPrint('데이터 삭제 중 오류 발생: $e');
       rethrow;
     }
   }

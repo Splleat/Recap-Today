@@ -9,6 +9,7 @@ import 'package:recap_today/provider/theme_provider.dart';
 import 'package:recap_today/settings/setting_card.dart';
 import 'package:recap_today/service/location_tracking_service.dart';
 import 'package:recap_today/provider/weather_provider.dart';
+import 'package:recap_today/services/backup_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,6 +19,174 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  // 데이터 백업 메서드
+  Future<void> _backupData() async {
+    // 확인 다이얼로그 표시
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('데이터 백업'),
+            content: const Text(
+              '현재 로컬 데이터를 서버에 백업하시겠습니까?\n기존 서버 데이터는 덮어쓰기됩니다.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.blue),
+                child: const Text('백업'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      final userId = loginProvider.activeUserId;
+
+      // 로딩 다이얼로그 표시
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text('데이터를 백업하는 중...'),
+                ],
+              ),
+            ),
+      );
+
+      try {
+        final result = await BackupService.backupAllData(userId);
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+
+        // 결과 다이얼로그 표시
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: Text(result['success'] ? '백업 완료' : '백업 실패'),
+                content: Text(result['message']),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+        );
+      } catch (e) {
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('오류'),
+                content: Text('백업 중 오류가 발생했습니다.\n$e'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+        );
+      }
+    }
+  }
+
+  // 데이터 삭제 메서드
+  Future<void> _deleteAllData() async {
+    // 확인 다이얼로그 표시
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('데이터 삭제'),
+            content: const Text(
+              '모든 데이터가 삭제됩니다. 이 작업은 되돌릴 수 없습니다.\n정말로 삭제하시겠습니까?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('삭제'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      final userId = loginProvider.activeUserId;
+
+      // 로딩 다이얼로그 표시
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text('데이터를 삭제하는 중...'),
+                ],
+              ),
+            ),
+      );
+
+      try {
+        final result = await BackupService.deleteAllData(userId);
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+
+        // 결과 다이얼로그 표시
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: Text(result['success'] ? '삭제 완료' : '삭제 실패'),
+                content: Text(result['message']),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+        );
+      } catch (e) {
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('오류'),
+                content: Text('삭제 중 오류가 발생했습니다.\n$e'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Access LoginProvider
@@ -338,7 +507,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         title: const Text('데이터 백업'),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () {},
+                        onTap: _backupData,
                       ),
                       ListTile(
                         leading: const Icon(
@@ -347,7 +516,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         title: const Text('데이터 삭제'),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () {},
+                        onTap: _deleteAllData,
                       ),
                     ],
                   ),
