@@ -51,7 +51,7 @@ class DatabaseHelper implements AbstractDatabase {
     final path = join(dbPath, filePath);
     return await openDatabase(
       path,
-      version: 12, // 버전을 11에서 12로 증가
+      version: 14, // 버전을 13에서 14로 증가
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
       onConfigure: _configureDB,
@@ -161,6 +161,8 @@ class DatabaseHelper implements AbstractDatabase {
         user_id TEXT NOT NULL,
         latitude REAL NOT NULL,
         longitude REAL NOT NULL,
+        accuracy REAL,
+        address TEXT,
         timestamp TEXT NOT NULL,
         is_synced INTEGER NOT NULL DEFAULT 0
       )
@@ -172,6 +174,8 @@ class DatabaseHelper implements AbstractDatabase {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT NOT NULL,
         step_count INTEGER NOT NULL,
+        distance REAL,
+        calories REAL,
         user_id TEXT NOT NULL,
         is_synced INTEGER NOT NULL DEFAULT 0,
         UNIQUE (date, user_id)
@@ -291,28 +295,31 @@ class DatabaseHelper implements AbstractDatabase {
       ''');
     }
 
-    if (oldVersion < 11) { // 버전 번호는 적절히 조정
+    if (oldVersion < 11) {
+      // 버전 번호는 적절히 조정
       // 기존 diaries 테이블에 photo_paths 컬럼 추가
       try {
-        await db.execute('ALTER TABLE $tableDiaries ADD COLUMN photo_paths TEXT');
-        
+        await db.execute(
+          'ALTER TABLE $tableDiaries ADD COLUMN photo_paths TEXT',
+        );
+
         // 기존 사진 데이터를 마이그레이션
         final diaries = await db.query(tableDiaries);
         for (final diary in diaries) {
           final diaryId = diary['id'] as int;
           final photos = await db.query(
-            tablePhotos, 
+            tablePhotos,
             columns: ['path'],
-            where: 'diary_id = ?', 
-            whereArgs: [diaryId]
+            where: 'diary_id = ?',
+            whereArgs: [diaryId],
           );
-          
+
           final photoPaths = photos.map((p) => p['path'] as String).toList();
           await db.update(
             tableDiaries,
             {'photo_paths': jsonEncode(photoPaths)},
             where: 'id = ?',
-            whereArgs: [diaryId]
+            whereArgs: [diaryId],
           );
         }
       } catch (e) {
@@ -332,6 +339,26 @@ class DatabaseHelper implements AbstractDatabase {
         )
       ''');
     }
+
+    if (oldVersion < 13) {
+      // 버전 13으로 업그레이드: location_logs 테이블에 accuracy, address 컬럼 추가
+      await db.execute('''
+        ALTER TABLE $tableLocationLogs ADD COLUMN accuracy REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE $tableLocationLogs ADD COLUMN address TEXT
+      ''');
+    }
+
+    if (oldVersion < 14) {
+      // 버전 14로 업그레이드: steps 테이블에 distance, calories 컬럼 추가
+      await db.execute('''
+        ALTER TABLE $tableSteps ADD COLUMN distance REAL
+      ''');
+      await db.execute('''
+        ALTER TABLE $tableSteps ADD COLUMN calories REAL
+      ''');
+    }
   }
 
   /// 데이터베이스 종료
@@ -345,21 +372,17 @@ class DatabaseHelper implements AbstractDatabase {
   /// 새 일기 추가
   Future<int> insertDiary(DiaryModel diary) async {
     final db = await database;
-    
+
     // 1. 일기 정보 저장
-    final diaryId = await db.insert(
-      tableDiaries,
-      {
-        'date': diary.date,
-        'title': diary.title,
-        'content': diary.content,
-        'user_id': diary.userId,
-        'is_synced': diary.isSynced ? 1 : 0,
-        'photo_paths': jsonEncode(diary.photoPaths),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-    
+    final diaryId = await db.insert(tableDiaries, {
+      'date': diary.date,
+      'title': diary.title,
+      'content': diary.content,
+      'user_id': diary.userId,
+      'is_synced': diary.isSynced ? 1 : 0,
+      'photo_paths': jsonEncode(diary.photoPaths),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+
     return diaryId;
   }
 

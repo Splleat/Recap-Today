@@ -763,4 +763,236 @@ class SqfliteDatabase implements AbstractDatabase {
       rethrow;
     }
   }
+
+  // 데이터 복원을 위한 일괄 삽입 메서드들
+  Future<void> restoreDiaries(List<dynamic> diaries) async {
+    developer.log('일기 데이터 복원 시작: ${diaries.length}개', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final batch = db.batch();
+
+      for (var diary in diaries) {
+        batch.insert('diaries', {
+          'date': diary['date'],
+          'title': diary['title'] ?? '',
+          'content': diary['content'] ?? '',
+          'photo_paths': diary['photoPaths'] ?? '',
+          'user_id': diary['userId'],
+          'is_synced': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit();
+      developer.log('일기 데이터 복원 완료', name: 'SqfliteDatabase');
+    } catch (e) {
+      developer.log('일기 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
+      rethrow;
+    }
+  }
+
+  Future<void> restoreChecklists(List<dynamic> checklists) async {
+    developer.log(
+      '체크리스트 데이터 복원 시작: ${checklists.length}개',
+      name: 'SqfliteDatabase',
+    );
+    try {
+      final db = await database;
+      final batch = db.batch();
+
+      for (var checklist in checklists) {
+        batch.insert('checklist_items', {
+          'id': checklist['id'],
+          'text': checklist['text'],
+          'subtext': checklist['subtext'] ?? '',
+          'is_checked': checklist['isChecked'] ? 1 : 0,
+          'due_date': checklist['dueDate'],
+          'completed_date': checklist['completedDate'],
+          'user_id': checklist['userId'],
+          'is_synced': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit();
+      developer.log('체크리스트 데이터 복원 완료', name: 'SqfliteDatabase');
+    } catch (e) {
+      developer.log('체크리스트 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
+      rethrow;
+    }
+  }
+
+  Future<void> restoreSchedules(List<dynamic> schedules) async {
+    developer.log(
+      '일정 데이터 복원 시작: ${schedules.length}개',
+      name: 'SqfliteDatabase',
+    );
+    try {
+      final db = await database;
+      final batch = db.batch();
+
+      for (var schedule in schedules) {
+        batch.insert('schedule_items', {
+          'id': schedule['id'],
+          'text': schedule['text'],
+          'sub_text': schedule['subText'] ?? '',
+          'selected_date': schedule['selectedDate'],
+          'start_time_hour': schedule['startTimeHour'],
+          'start_time_minute': schedule['startTimeMinute'],
+          'end_time_hour': schedule['endTimeHour'],
+          'end_time_minute': schedule['endTimeMinute'],
+          'is_routine': schedule['isRoutine'] ? 1 : 0,
+          'day_of_week': schedule['dayOfWeek'],
+          'color_value': schedule['colorValue'],
+          'has_alarm': schedule['hasAlarm'] ? 1 : 0,
+          'alarm_offset_in_minutes': schedule['alarmOffset'],
+          'user_id': schedule['userId'],
+          'is_synced': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit();
+      developer.log('일정 데이터 복원 완료', name: 'SqfliteDatabase');
+    } catch (e) {
+      developer.log('일정 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
+      rethrow;
+    }
+  }
+
+  Future<void> restoreAppUsages(List<dynamic> appUsages) async {
+    developer.log(
+      '앱 사용량 데이터 복원 시작: ${appUsages.length}개',
+      name: 'SqfliteDatabase',
+    );
+    try {
+      final db = await database;
+      final batch = db.batch();
+
+      for (var appUsage in appUsages) {
+        batch.insert('app_usage', {
+          'date': appUsage['date'],
+          'package_name': appUsage['packageName'],
+          'app_name': appUsage['appName'],
+          'usage_time': int.parse(appUsage['usageTimeInMillis'].toString()),
+          'app_icon_path': null,
+          'user_id': appUsage['userId'],
+          'is_synced': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit();
+      developer.log('앱 사용량 데이터 복원 완료', name: 'SqfliteDatabase');
+    } catch (e) {
+      developer.log('앱 사용량 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
+      rethrow;
+    }
+  }
+
+  Future<void> restoreEmotions(List<dynamic> emotions) async {
+    developer.log(
+      '감정 기록 데이터 복원 시작: ${emotions.length}개',
+      name: 'SqfliteDatabase',
+    );
+    try {
+      final db = await database;
+      final batch = db.batch();
+
+      for (var emotion in emotions) {
+        batch.insert('emotion_records', {
+          'id': emotion['id'],
+          'date': emotion['date'],
+          'hour': emotion['hour'],
+          'emotion_type': emotion['emotionType'],
+          'notes': emotion['notes'] ?? '',
+          'user_id': emotion['userId'],
+          'is_synced': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit();
+      developer.log('감정 기록 데이터 복원 완료', name: 'SqfliteDatabase');
+    } catch (e) {
+      developer.log('감정 기록 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
+      rethrow;
+    }
+  }
+
+  Future<void> restoreLocations(List<dynamic> locations) async {
+    developer.log(
+      '위치 기록 데이터 복원 시작: ${locations.length}개',
+      name: 'SqfliteDatabase',
+    );
+    try {
+      final db = await database;
+      final batch = db.batch();
+
+      for (var location in locations) {
+        batch.insert('location_logs', {
+          'id': location['id'],
+          'user_id': location['userId'],
+          'latitude': location['latitude'],
+          'longitude': location['longitude'],
+          'accuracy': location['accuracy'],
+          'address': location['address'],
+          'timestamp': location['timestamp'],
+          'is_synced': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit();
+      developer.log('위치 기록 데이터 복원 완료', name: 'SqfliteDatabase');
+    } catch (e) {
+      developer.log('위치 기록 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
+      rethrow;
+    }
+  }
+
+  Future<void> restoreSteps(List<dynamic> steps) async {
+    developer.log('걸음 수 데이터 복원 시작: ${steps.length}개', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final batch = db.batch();
+
+      for (var step in steps) {
+        batch.insert('steps', {
+          'date': step['date'],
+          'step_count': step['stepCount'],
+          'distance': step['distance'],
+          'calories': step['calories'],
+          'user_id': step['userId'],
+          'is_synced': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit();
+      developer.log('걸음 수 데이터 복원 완료', name: 'SqfliteDatabase');
+    } catch (e) {
+      developer.log('걸음 수 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
+      rethrow;
+    }
+  }
+
+  Future<void> restoreAiFeedbacks(List<dynamic> aiFeedbacks) async {
+    developer.log(
+      'AI 피드백 데이터 복원 시작: ${aiFeedbacks.length}개',
+      name: 'SqfliteDatabase',
+    );
+    try {
+      final db = await database;
+      final batch = db.batch();
+
+      for (var aiFeedback in aiFeedbacks) {
+        batch.insert('ai_feedback', {
+          'date': aiFeedback['date'],
+          'feedback_text': aiFeedback['feedbackText'],
+          'user_id': aiFeedback['userId'],
+          'is_synced': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit();
+      developer.log('AI 피드백 데이터 복원 완료', name: 'SqfliteDatabase');
+    } catch (e) {
+      developer.log('AI 피드백 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
+      rethrow;
+    }
+  }
 }

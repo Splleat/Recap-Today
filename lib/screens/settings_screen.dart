@@ -103,6 +103,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // 데이터 불러오기 메서드
+  Future<void> _restoreData() async {
+    // 확인 다이얼로그 표시
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('데이터 불러오기'),
+            content: const Text(
+              '서버의 백업 데이터를 가져와서 현재 로컬 데이터를 덮어쓰시겠습니까?\n현재 로컬 데이터는 모두 삭제됩니다.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(foregroundColor: Colors.orange),
+                child: const Text('불러오기'),
+              ),
+            ],
+          ),
+    );
+
+    if (confirmed == true) {
+      final loginProvider = Provider.of<LoginProvider>(context, listen: false);
+      final userId = loginProvider.activeUserId;
+
+      // 로딩 다이얼로그 표시
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text('데이터를 불러오는 중...'),
+                ],
+              ),
+            ),
+      );
+
+      try {
+        final result = await BackupService.restoreAllData(userId);
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+
+        // 결과 다이얼로그 표시
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: Text(result['success'] ? '불러오기 완료' : '불러오기 실패'),
+                content: Text(result['message']),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+        );
+      } catch (e) {
+        Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text('오류'),
+                content: Text('데이터 불러오기 중 오류가 발생했습니다.\n$e'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+        );
+      }
+    }
+  }
+
   // 데이터 삭제 메서드
   Future<void> _deleteAllData() async {
     // 확인 다이얼로그 표시
@@ -505,16 +589,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Icons.cloud_upload,
                           color: Colors.blueAccent,
                         ),
-                        title: const Text('데이터 백업'),
+                        title: const Text('서버에 데이터 백업'),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: _backupData,
+                      ),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.cloud_download,
+                          color: Colors.greenAccent,
+                        ),
+                        title: const Text('서버에서 데이터 불러오기'),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: _restoreData,
                       ),
                       ListTile(
                         leading: const Icon(
                           Icons.delete,
                           color: Colors.redAccent,
                         ),
-                        title: const Text('데이터 삭제'),
+                        title: const Text('서버의 데이터 삭제'),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: _deleteAllData,
                       ),
