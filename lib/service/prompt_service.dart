@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../provider/weather_provider.dart';
+import '../provider/login_provider.dart';
+import '../data/sqflite_database.dart';
 // Import other necessary providers for data fetching
 // e.g., import '../provider/diary_provider.dart';
 // e.g., import '../provider/schedule_provider.dart';
@@ -8,7 +11,6 @@ import 'package:provider/provider.dart';
 // e.g., import '../provider/app_usage_provider.dart';
 // e.g., import '../provider/location_history_provider.dart'; // 하루 동선
 // e.g., import '../provider/health_metrics_provider.dart'; // 걸음 수, 이동 거리
-// e.g., import '../provider/mood_provider.dart'; // 감정 변화
 
 class PromptService {
   Future<String> generateFeedbackPrompt(
@@ -17,7 +19,9 @@ class PromptService {
   ) async {
     // Format the date to a string if needed for your providers
     final dateString =
-        "${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+        "${date.year.toString().padLeft(4, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.day.toString().padLeft(2, '0')}";
 
     // --- 1. Fetch Data from various providers ---
     // You'll need to replace these with actual calls to your providers
@@ -28,7 +32,7 @@ class PromptService {
     // final pathData = await locationHistoryProvider.getPathForDate(dateString);
     String dailyPathSummary = "오늘의 주요 동선 기록이 없습니다.";
     // if (pathData != null && pathData.isNotEmpty) {
-    //   dailyPathSummary = "오늘의 주요 동선: \\n" + pathData.map((p) => "${p.time}: ${p.locationName} (머문 시간: ${p.durationMinutes}분)").join("\\n");
+    //   dailyPathSummary = "오늘의 주요 동선:\n${pathData.map((p) => "${p.time}: ${p.locationName} (머문 시간: ${p.durationMinutes}분)").join("\n")}";
     // }
 
     // 걸음 수 및 이동 거리 (Health Metrics)
@@ -47,7 +51,7 @@ class PromptService {
     // final appUsageStats = await appUsageProvider.getAppUsageForDate(dateString);
     String appUsageSummary = "오늘 앱 사용 기록이 없습니다.";
     // if (appUsageStats.isNotEmpty) {
-    //   appUsageSummary = "오늘의 주요 앱 사용: \\n" + appUsageStats.map((usage) => "${usage.appName}: ${usage.durationInMinutes}분").join("\\n");
+    //   appUsageSummary = "오늘의 주요 앱 사용:\n${appUsageStats.map((usage) => "${usage.appName}: ${usage.durationInMinutes}분").join("\n")}";
     // }
 
     // 체크리스트 (Checklist)
@@ -59,12 +63,12 @@ class PromptService {
     //   final pendingItems = checklists.where((item) => !item.isCompleted).toList();
     //   checklistSummary = "";
     //   if (completedItems.isNotEmpty) {
-    //     checklistSummary += "완료한 항목: " + completedItems.map((item) => item.task).join(", ") + "\\n";
+    //     checklistSummary += "완료한 항목: ${completedItems.map((item) => item.task).join(', ')}\n";
     //   } else {
-    //     checklistSummary += "완료한 항목이 없습니다.\\n";
+    //     checklistSummary += "완료한 항목이 없습니다.\n";
     //   }
     //   if (pendingItems.isNotEmpty) {
-    //     checklistSummary += "남은 항목: " + pendingItems.map((item) => item.task).join(", ");
+    //     checklistSummary += "남은 항목: ${pendingItems.map((item) => item.task).join(', ')}";
     //   } else {
     //     checklistSummary += "남은 항목이 없습니다.";
     //   }
@@ -75,17 +79,30 @@ class PromptService {
     // final schedules = await scheduleProvider.getSchedulesByDate(dateString);
     String scheduleSummary = "오늘 등록된 일정이 없습니다.";
     // if (schedules.isNotEmpty) {
-    //   scheduleSummary = "오늘의 일정: \\n" + schedules.map((s) => "${s.time}: ${s.title}").join("\\n");
+    //   scheduleSummary = "오늘의 일정:\n${schedules.map((s) => "${s.time}: ${s.title}").join("\n")}";
     // }
 
-    // 감정 변화 그래프 (Mood)
-    // final moodProvider = Provider.of<MoodProvider>(context, listen: false);
-    // final moodChanges = await moodProvider.getMoodChangesForDate(dateString);
-    String moodChartSummary = "오늘의 감정 변화 기록이 없습니다.";
-    // if (moodChanges.isNotEmpty) {
-    //   moodChartSummary = "오늘의 감정 변화: \\n" + moodChanges.map((m) => "${m.time}: ${m.mood} (이유: ${m.reason ?? '기록 없음'})").join("\\n");
-    //   // 실제로는 그래프를 직접 전달하기 어려우므로, 텍스트로 요약하거나 주요 변화 포인트를 전달합니다.
-    // }
+    // 감정 변화 그래프 (Mood) using database
+    final userId =
+        Provider.of<LoginProvider>(context, listen: false).activeUserId;
+    final db = Provider.of<SqfliteDatabase>(context, listen: false);
+    final moodChanges = await db.getEmotionsByDate(dateString, userId);
+    String? moodChartSummary;
+    if (moodChanges.isNotEmpty) {
+      moodChartSummary =
+          "오늘의 감정 변화:\n${moodChanges.map((m) => "${m.hour.toString().padLeft(2, '0')}:00 - ${m.emotionType}" + (m.notes != null && m.notes!.isNotEmpty ? " (메모: ${m.notes})" : "")).join("\n")}";
+    }
+
+    // 내일의 날씨 예보 (Weather)
+    final weatherProv = Provider.of<WeatherProvider>(context, listen: false);
+    final tomorrow = date.add(Duration(days: 1));
+    await weatherProv.fetchWeather(tomorrow);
+    final weatherData = weatherProv.getWeather(tomorrow);
+    String? weatherSummary;
+    if (weatherData != null && weatherData.isNotEmpty) {
+      weatherSummary =
+          "내일의 시간별 날씨:\n${weatherData.map((w) => "${w.time}: ${w.temperature}°, ${w.sky} (강수확률: ${w.precipitationProbability})").join("\n")}";
+    }
 
     // --- 2. Construct the Prompt ---
     // This is a basic template. You should refine it based on how you want the AI to respond.
@@ -115,9 +132,16 @@ class PromptService {
     promptBuffer.writeln("### 주요 일정");
     promptBuffer.writeln(scheduleSummary);
     promptBuffer.writeln("--------------------");
-    promptBuffer.writeln("### 감정 변화 기록");
-    promptBuffer.writeln(moodChartSummary);
-    promptBuffer.writeln("--------------------");
+    if (moodChartSummary != null) {
+      promptBuffer.writeln("--------------------");
+      promptBuffer.writeln("### 감정 변화 기록");
+      promptBuffer.writeln(moodChartSummary);
+    }
+    if (weatherSummary != null) {
+      promptBuffer.writeln("### 내일 날씨 예보");
+      promptBuffer.writeln(weatherSummary);
+      promptBuffer.writeln("--------------------");
+    }
     promptBuffer.writeln(
       "위 정보를 종합적으로 분석하여 사용자에게 가장 도움이 될 만한 조언, 격려, 또는 자기 성찰 질문을 2-3문장으로 요약하여 전달해주세요.",
     );
