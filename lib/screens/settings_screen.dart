@@ -584,33 +584,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text('데이터 설정'),
                   SettingsCard(
                     children: [
-                      ListTile(
-                        leading: const Icon(
-                          Icons.cloud_upload,
-                          color: Colors.blueAccent,
+                      if (loginProvider.isLoggedIn) ...[
+                        ListTile(
+                          leading: const Icon(
+                            Icons.cloud_upload,
+                            color: Colors.blueAccent,
+                          ),
+                          title: const Text('서버에 데이터 백업'),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                          ),
+                          onTap: _backupData,
                         ),
-                        title: const Text('서버에 데이터 백업'),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: _backupData,
-                      ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.cloud_download,
-                          color: Colors.greenAccent,
+                        ListTile(
+                          leading: const Icon(
+                            Icons.cloud_download,
+                            color: Colors.greenAccent,
+                          ),
+                          title: const Text('서버에서 데이터 불러오기'),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                          ),
+                          onTap: _restoreData,
                         ),
-                        title: const Text('서버에서 데이터 불러오기'),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: _restoreData,
-                      ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.delete,
-                          color: Colors.redAccent,
+                        ListTile(
+                          leading: const Icon(
+                            Icons.delete,
+                            color: Colors.redAccent,
+                          ),
+                          title: const Text('서버의 데이터 삭제'),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                          ),
+                          onTap: _deleteAllData,
                         ),
-                        title: const Text('서버의 데이터 삭제'),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: _deleteAllData,
-                      ),
+                      ] else ...[
+                        ListTile(
+                          leading: const Icon(
+                            Icons.info_outline,
+                            color: Colors.grey,
+                          ),
+                          title: const Text(
+                            '데이터 백업/복원을 위해 로그인이 필요합니다',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          onTap: null,
+                        ),
+                      ],
                     ],
                   ),
                 ],
