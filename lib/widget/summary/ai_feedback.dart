@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../provider/login_provider.dart';
 import '../../service/ai_feedback_service.dart';
 import '../../provider/ai_feedback_provider.dart';
+import '../../service/prompt_service.dart'; // PromptService import 추가
 
 class AiFeedback extends StatelessWidget {
   final String? feedbackText;
@@ -130,6 +131,7 @@ class AiFeedbackWidget extends StatefulWidget {
 class _AiFeedbackWidgetState extends State<AiFeedbackWidget> {
   String? feedbackText;
   bool isLoading = false;
+  final PromptService _promptService = PromptService(); // PromptService 인스턴스 생성
 
   @override
   void initState() {
@@ -159,8 +161,14 @@ class _AiFeedbackWidgetState extends State<AiFeedbackWidget> {
     setState(() {
       isLoading = true;
     });
-    final prompt = 'api 호출이 잘 되는지 테스트하기 위한 프롬프트야. 가장 짧은 유머를 하나 해줘';
+    // final prompt = 'api 호출이 잘 되는지 테스트하기 위한 프롬프트야. 가장 짧은 유머를 하나 해줘'; // 기존 프롬프트 삭제
     try {
+      // PromptService를 사용하여 프롬프트 생성
+      final prompt = await _promptService.generateFeedbackPrompt(
+        context,
+        widget.date,
+      );
+
       final loginProvider = Provider.of<LoginProvider>(context, listen: false);
       final authToken = loginProvider.authToken;
       final text = await widget.service.requestAIFeedback(
@@ -188,7 +196,9 @@ class _AiFeedbackWidgetState extends State<AiFeedbackWidget> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('AI 피드백 요청 중 오류가 발생했습니다.'),
+          content: Text(
+            'AI 피드백 요청 중 오류가 발생했습니다: ${e.toString()}',
+          ), // 오류 메시지에 상세 내용 추가
           backgroundColor: Colors.red,
         ),
       );
