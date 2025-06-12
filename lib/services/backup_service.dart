@@ -53,15 +53,96 @@ class BackupService {
         name: 'BackupService',
       );
 
+      // Transform data keys to match API expectations
+      final mappedDiaries = diaries.map((d) => {
+        'date': d['date'],
+        'title': d['title'] ?? '',
+        'content': d['content'] ?? '',
+        'photoPaths': d['photo_paths'] ?? '',
+        'userId': d['user_id'],
+      }).toList();
+
+      final mappedChecklists = checklists.map((c) => {
+        'id': c['id'],
+        'text': c['text'],
+        'subtext': c['subtext'] ?? '',
+        'isChecked': c['is_checked'] == 1,
+        'dueDate': c['due_date'] ?? '',
+        'completedDate': c['completed_date'] ?? '',
+        'userId': c['user_id'],
+      }).toList();
+
+      final mappedSchedules = schedules.map((s) => {
+        'id': s['id'],
+        'text': s['text'],
+        'subText': s['sub_text'] ?? '',
+        'dayOfWeek': s['day_of_week'] ?? 0,
+        'selectedDate': s['selected_date'] ?? '',
+        'isRoutine': s['is_routine'] == 1,
+        'startTimeHour': s['start_time_hour'] ?? 0,
+        'startTimeMinute': s['start_time_minute'] ?? 0,
+        'endTimeHour': s['end_time_hour'] ?? 0,
+        'endTimeMinute': s['end_time_minute'] ?? 0,
+        'colorValue': s['color_value'] ?? 0,
+        'hasAlarm': s['has_alarm'] == 1,
+        'alarmOffset': s['alarm_offset_in_minutes'] ?? 0,
+        'userId': s['user_id'],
+      }).toList();
+
+      final mappedAppUsages = appUsages.map((u) => {
+        'id': u['id'].toString(),
+        'date': u['date'],
+        'packageName': u['package_name'],
+        'appName': u['app_name'],
+        'usageTimeInMillis': u['usage_time'],
+        'appIconPath': u['app_icon_path'] ?? '',
+        'userId': u['user_id'],
+      }).toList();
+
+      final mappedEmotions = emotions.map((e) => {
+        'id': e['id'],
+        'date': e['date'],
+        'hour': e['hour'],
+        'emotionType': e['emotion_type'],
+        'notes': e['notes'] ?? '',
+        'userId': e['user_id'],
+      }).toList();
+
+      final mappedLocations = locations.map((l) => {
+        'id': l['id'],
+        'userId': l['user_id'],
+        'latitude': l['latitude'],
+        'longitude': l['longitude'],
+        'accuracy': l['accuracy'],
+        'address': l['address'] ?? '',
+        'timestamp': l['timestamp'],
+      }).toList();
+
+      final mappedSteps = steps.map((s) => {
+        'id': s['id'],
+        'date': s['date'],
+        'stepCount': s['step_count'],
+        'distance': s['distance'] ?? 0,
+        'calories': s['calories'] ?? 0,
+        'userId': s['user_id'],
+      }).toList();
+
+      final mappedAiFeedbacks = aiFeedbacks.map((f) => {
+        'id': f['id'],
+        'date': f['date'],
+        'feedbackText': f['feedback_text'],
+        'userId': f['user_id'],
+      }).toList();
+
       final backupData = {
-        'diaries': diaries,
-        'checklists': checklists,
-        'schedules': schedules,
-        'appUsages': appUsages,
-        'emotions': emotions,
-        'locations': locations,
-        'steps': steps,
-        'aiFeedbacks': aiFeedbacks,
+        'diaries': mappedDiaries,
+        'checklists': mappedChecklists,
+        'schedules': mappedSchedules,
+        'appUsages': mappedAppUsages,
+        'emotions': mappedEmotions,
+        'locations': mappedLocations,
+        'steps': mappedSteps,
+        'aiFeedbacks': mappedAiFeedbacks,
       };
 
       developer.log('로컬 데이터 수집 완료, 서버로 전송 시작', name: 'BackupService');
