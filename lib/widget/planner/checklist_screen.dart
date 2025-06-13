@@ -18,40 +18,48 @@ class ChecklistScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
       ),
       child: Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('TODO', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-            FloatingActionButton(
-              mini: true,
-              elevation: 0,
-              onPressed: () {
-                showAddItemDialog(context, checklistProvider);
-              },
-              child: const Icon(Icons.add),
-            ),
-          ],
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: checklistProvider.items.length,
-            itemBuilder: (context, index) {
-              final item = checklistProvider.items[index];
-              return ChecklistItemWidget(
-                item: item,
-                onCheckboxChanged: (itemId, newValue) {
-                  checklistProvider.toggleItem(itemId, newValue);
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'TODO',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+              FloatingActionButton(
+                mini: true,
+                elevation: 0,
+                onPressed: () {
+                  showAddItemDialog(context, checklistProvider);
                 },
-                onDelete: (itemId) {
-                  checklistProvider.removeItem(itemId);
-                },
-              );
-            },
+                child: const Icon(Icons.add),
+              ),
+            ],
           ),
-        ),
-      ],
-    ),
-  );
-}
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: checklistProvider.items.length,
+              itemBuilder: (context, index) {
+                final item = checklistProvider.items[index];
+                return ChecklistItemWidget(
+                  item: item,
+                  onCheckboxChanged: (itemId, newValue) {
+                    checklistProvider.toggleItem(itemId, newValue);
+                  },
+                  onDelete: (itemId) {
+                    checklistProvider.removeItem(itemId);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -46,22 +46,20 @@ class BackupService {
 
       final steps = await database.getAllStepRecords();
       developer.log('걸음 수 데이터 수집 완료: ${steps.length}개', name: 'BackupService');
-
       final aiFeedbacks = await database.getAllAiFeedbackRecords();
       developer.log(
         'AI 피드백 데이터 수집 완료: ${aiFeedbacks.length}개',
         name: 'BackupService',
       );
 
-      final photos = await database.getAllPhotosForBackup();
-      developer.log('사진 데이터 수집 완료: ${photos.length}개', name: 'BackupService');
+      // 사진 데이터는 일기 테이블의 photo_paths 필드로 관리되므로 별도 백업 불필요
+      developer.log('사진 데이터는 일기의 photo_paths 필드로 백업됨', name: 'BackupService');
 
       // Transform data keys to match API expectations
       final mappedDiaries =
           diaries
               .map(
                 (d) => {
-                  'id': d['id'],
                   'date': d['date'],
                   'title': d['title'] ?? '',
                   'content': d['content'] ?? '',
@@ -112,7 +110,6 @@ class BackupService {
           appUsages
               .map(
                 (u) => {
-                  'id': u['id'].toString(),
                   'date': u['date'],
                   'packageName': u['package_name'],
                   'appName': u['app_name'],
@@ -154,7 +151,6 @@ class BackupService {
           steps
               .map(
                 (s) => {
-                  'id': s['id'],
                   'date': s['date'],
                   'stepCount': s['step_count'],
                   'userId': s['user_id'],
@@ -166,26 +162,12 @@ class BackupService {
           aiFeedbacks
               .map(
                 (f) => {
-                  'id': f['id'],
                   'date': f['date'],
                   'feedbackText': f['feedback_text'],
                   'userId': f['user_id'],
                 },
               )
               .toList();
-
-      final mappedPhotos =
-          photos
-              .map(
-                (p) => {
-                  'id': p['id'],
-                  'diaryId': p['diary_id'],
-                  'path': p['path'],
-                  'userId': p['user_id'],
-                },
-              )
-              .toList();
-
       final backupData = {
         'diaries': mappedDiaries,
         'checklists': mappedChecklists,
@@ -195,7 +177,7 @@ class BackupService {
         'locations': mappedLocations,
         'steps': mappedSteps,
         'aiFeedbacks': mappedAiFeedbacks,
-        'photos': mappedPhotos,
+        // 'photos': photos 제거 - 일기의 photo_paths 필드로 관리됨
       };
 
       developer.log('로컬 데이터 수집 완료, 서버로 전송 시작', name: 'BackupService');
@@ -345,17 +327,14 @@ class BackupService {
             'AI 피드백 데이터 복원 완료: ${aiFeedbacks.length}개',
             name: 'BackupService',
           );
-        }
-
-        // 사진 데이터 복원
+        } // 사진 데이터 복원 - 일기의 photo_paths 필드로 이미 복원되므로 별도 처리 불필요
         if (restoredData['photos'] != null) {
           final photos = restoredData['photos'] as List;
-          await database.restorePhotos(photos);
-          totalRestored += photos.length;
           developer.log(
-            '사진 데이터 복원 완료: ${photos.length}개',
+            '사진 데이터는 일기의 photo_paths 필드로 이미 복원됨: ${photos.length}개 스킵',
             name: 'BackupService',
           );
+          // await database.restorePhotos(photos); // 비활성화됨
         }
 
         developer.log(

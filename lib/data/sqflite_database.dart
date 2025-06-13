@@ -715,20 +715,11 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   Future<List<Map<String, dynamic>>> getAllPhotosForBackup() async {
-    developer.log('모든 사진 백업 데이터 조회 시작', name: 'SqfliteDatabase');
-    try {
-      final db = await database;
-      final result = await db.query('photos');
-      developer.log(
-        '사진 백업 데이터 조회 완료: ${result.length}개',
-        name: 'SqfliteDatabase',
-      );
-      return result;
-    } catch (e) {
-      developer.log('모든 사진 조회 중 오류 발생: $e', name: 'SqfliteDatabase');
-      debugPrint('모든 사진 조회 중 오류 발생: $e');
-      return [];
-    }
+    developer.log('사진 백업 데이터 조회 요청 (스킵됨)', name: 'SqfliteDatabase');
+
+    // 사진 데이터는 일기 테이블의 photo_paths 필드로 관리되므로 별도 백업 불필요
+    developer.log('사진 데이터는 일기의 photo_paths 필드로 관리됨', name: 'SqfliteDatabase');
+    return []; // 빈 리스트 반환
   }
 
   // 모든 데이터 삭제 메서드
@@ -765,8 +756,11 @@ class SqfliteDatabase implements AbstractDatabase {
       batch.delete('ai_feedback');
       developer.log('AI 피드백 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
 
-      batch.delete('photos');
-      developer.log('사진 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
+      batch.delete('photos'); // 사진 테이블은 여전히 존재하므로 삭제 (일기의 photo_paths와 별개)
+      developer.log(
+        '사진 테이블 삭제 배치 추가 (별도 테이블이지만 일기 photo_paths와 중복 관리)',
+        name: 'SqfliteDatabase',
+      );
 
       developer.log('배치 작업 실행 중', name: 'SqfliteDatabase');
       await batch.commit();
@@ -788,8 +782,9 @@ class SqfliteDatabase implements AbstractDatabase {
       final batch = db.batch();
 
       for (var diary in diaries) {
+        // 서버의 문자열 ID는 제외하고, 로컬 데이터베이스의 자동 증가 ID 사용
         batch.insert('diaries', {
-          'id': diary['id'],
+          // 'id': diary['id'], // 서버의 문자열 ID 제외
           'date': diary['date'],
           'title': diary['title'] ?? '',
           'content': diary['content'] ?? '',
@@ -885,7 +880,7 @@ class SqfliteDatabase implements AbstractDatabase {
 
       for (var appUsage in appUsages) {
         batch.insert('app_usage', {
-          'id': appUsage['id'],
+          // 'id': appUsage['id'], // 서버의 문자열 ID 제외
           'date': appUsage['date'],
           'package_name': appUsage['packageName'],
           'app_name': appUsage['appName'],
@@ -969,7 +964,7 @@ class SqfliteDatabase implements AbstractDatabase {
 
       for (var step in steps) {
         batch.insert('steps', {
-          'id': step['id'],
+          // 'id': step['id'], // 서버의 문자열 ID 제외 - INTEGER PRIMARY KEY AUTOINCREMENT 사용
           'date': step['date'],
           'step_count': step['stepCount'],
           'user_id': step['userId'],
@@ -996,7 +991,7 @@ class SqfliteDatabase implements AbstractDatabase {
 
       for (var aiFeedback in aiFeedbacks) {
         batch.insert('ai_feedback', {
-          'id': aiFeedback['id'],
+          // 'id': aiFeedback['id'], // 서버의 문자열 ID 제외 - INTEGER PRIMARY KEY AUTOINCREMENT 사용
           'date': aiFeedback['date'],
           'feedback_text': aiFeedback['feedbackText'],
           'user_id': aiFeedback['userId'],
@@ -1013,15 +1008,33 @@ class SqfliteDatabase implements AbstractDatabase {
   }
 
   Future<void> restorePhotos(List<dynamic> photos) async {
-    developer.log('사진 데이터 복원 시작: ${photos.length}개', name: 'SqfliteDatabase');
+    developer.log(
+      '사진 데이터 복원 시작: ${photos.length}개 (현재 스킵)',
+      name: 'SqfliteDatabase',
+    );
+
+    // 현재 일기 테이블의 photo_paths 필드를 사용하므로 별도 사진 테이블 복원은 스킵
+    // 서버의 문자열 ID와 로컬의 정수 ID 매핑 문제로 인해 임시로 비활성화
+    developer.log(
+      '사진 데이터는 일기 데이터의 photo_paths 필드로 복원됨',
+      name: 'SqfliteDatabase',
+    );
+
+    return;
+
+    /* 
+    // 사진 테이블 복원이 필요한 경우 아래 코드 활성화
     try {
       final db = await database;
       final batch = db.batch();
 
       for (var photo in photos) {
+        // 서버의 문자열 ID들은 제외하고, 로컬 데이터베이스의 자동 증가 ID 사용
+        // 또한 일기 ID도 서버의 문자열 ID가 아닌 로컬의 정수 ID여야 함
+        // 현재는 일기 테이블의 photo_paths 필드를 사용하므로 사진 테이블 복원은 선택적
         batch.insert('photos', {
-          'id': photo['id'],
-          'diary_id': photo['diaryId'],
+          // 'id': photo['id'], // 서버의 문자열 ID 제외
+          // 'diary_id': photo['diaryId'], // 서버의 일기 문자열 ID 제외 - 나중에 매핑 필요
           'path': photo['path'],
           'user_id': photo['userId'],
           'is_synced': 1,
@@ -1034,5 +1047,6 @@ class SqfliteDatabase implements AbstractDatabase {
       developer.log('사진 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
       rethrow;
     }
+    */
   }
 }
