@@ -53,11 +53,15 @@ class BackupService {
         name: 'BackupService',
       );
 
+      final photos = await database.getAllPhotosForBackup();
+      developer.log('사진 데이터 수집 완료: ${photos.length}개', name: 'BackupService');
+
       // Transform data keys to match API expectations
       final mappedDiaries =
           diaries
               .map(
                 (d) => {
+                  'id': d['id'],
                   'date': d['date'],
                   'title': d['title'] ?? '',
                   'content': d['content'] ?? '',
@@ -112,7 +116,7 @@ class BackupService {
                   'date': u['date'],
                   'packageName': u['package_name'],
                   'appName': u['app_name'],
-                  'usageTimeInMillis': u['usage_time'],
+                  'usageTime': u['usage_time'],
                   'appIconPath': u['app_icon_path'] ?? '',
                   'userId': u['user_id'],
                 },
@@ -170,6 +174,18 @@ class BackupService {
               )
               .toList();
 
+      final mappedPhotos =
+          photos
+              .map(
+                (p) => {
+                  'id': p['id'],
+                  'diaryId': p['diary_id'],
+                  'path': p['path'],
+                  'userId': p['user_id'],
+                },
+              )
+              .toList();
+
       final backupData = {
         'diaries': mappedDiaries,
         'checklists': mappedChecklists,
@@ -179,6 +195,7 @@ class BackupService {
         'locations': mappedLocations,
         'steps': mappedSteps,
         'aiFeedbacks': mappedAiFeedbacks,
+        'photos': mappedPhotos,
       };
 
       developer.log('로컬 데이터 수집 완료, 서버로 전송 시작', name: 'BackupService');
@@ -326,6 +343,17 @@ class BackupService {
           totalRestored += aiFeedbacks.length;
           developer.log(
             'AI 피드백 데이터 복원 완료: ${aiFeedbacks.length}개',
+            name: 'BackupService',
+          );
+        }
+
+        // 사진 데이터 복원
+        if (restoredData['photos'] != null) {
+          final photos = restoredData['photos'] as List;
+          await database.restorePhotos(photos);
+          totalRestored += photos.length;
+          developer.log(
+            '사진 데이터 복원 완료: ${photos.length}개',
             name: 'BackupService',
           );
         }

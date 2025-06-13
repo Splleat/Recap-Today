@@ -5,7 +5,6 @@ import 'package:recap_today/model/freezed/checklist_item.dart';
 import 'package:recap_today/model/freezed/app_usage_model.dart';
 import 'package:recap_today/model/freezed/schedule_item.dart';
 import 'package:recap_today/model/freezed/emotion_model.dart';
-import 'package:recap_today/model/freezed/location_model.dart';
 import 'package:recap_today/model/freezed/step_model.dart';
 import 'package:recap_today/model/freezed/ai_feedback_model.dart';
 import 'package:recap_today/data/abstract_database.dart';
@@ -715,6 +714,23 @@ class SqfliteDatabase implements AbstractDatabase {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getAllPhotosForBackup() async {
+    developer.log('모든 사진 백업 데이터 조회 시작', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final result = await db.query('photos');
+      developer.log(
+        '사진 백업 데이터 조회 완료: ${result.length}개',
+        name: 'SqfliteDatabase',
+      );
+      return result;
+    } catch (e) {
+      developer.log('모든 사진 조회 중 오류 발생: $e', name: 'SqfliteDatabase');
+      debugPrint('모든 사진 조회 중 오류 발생: $e');
+      return [];
+    }
+  }
+
   // 모든 데이터 삭제 메서드
   Future<void> clearAllData() async {
     developer.log('모든 데이터 삭제 시작', name: 'SqfliteDatabase');
@@ -749,7 +765,7 @@ class SqfliteDatabase implements AbstractDatabase {
       batch.delete('ai_feedback');
       developer.log('AI 피드백 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
 
-      batch.delete('photos'); // 추가: 사진 테이블도 삭제
+      batch.delete('photos');
       developer.log('사진 테이블 삭제 배치 추가', name: 'SqfliteDatabase');
 
       developer.log('배치 작업 실행 중', name: 'SqfliteDatabase');
@@ -992,6 +1008,30 @@ class SqfliteDatabase implements AbstractDatabase {
       developer.log('AI 피드백 데이터 복원 완료', name: 'SqfliteDatabase');
     } catch (e) {
       developer.log('AI 피드백 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
+      rethrow;
+    }
+  }
+
+  Future<void> restorePhotos(List<dynamic> photos) async {
+    developer.log('사진 데이터 복원 시작: ${photos.length}개', name: 'SqfliteDatabase');
+    try {
+      final db = await database;
+      final batch = db.batch();
+
+      for (var photo in photos) {
+        batch.insert('photos', {
+          'id': photo['id'],
+          'diary_id': photo['diaryId'],
+          'path': photo['path'],
+          'user_id': photo['userId'],
+          'is_synced': 1,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+
+      await batch.commit();
+      developer.log('사진 데이터 복원 완료', name: 'SqfliteDatabase');
+    } catch (e) {
+      developer.log('사진 데이터 복원 중 오류 발생: $e', name: 'SqfliteDatabase');
       rethrow;
     }
   }
