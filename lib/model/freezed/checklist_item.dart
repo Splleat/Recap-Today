@@ -18,7 +18,7 @@ abstract class ChecklistItem with _$ChecklistItem {
     @Default(false) bool isSynced,
   }) = _ChecklistItem;
 
-  factory ChecklistItem.fromJson(Map<String, dynamic> json) => 
+  factory ChecklistItem.fromJson(Map<String, dynamic> json) =>
       _$ChecklistItemFromJson(json);
 }
 
@@ -29,9 +29,11 @@ extension ChecklistItemX on ChecklistItem {
       'id': id,
       'text': text.trim(), // 공백 제거
       'subtext': subtext?.trim(), // 공백 제거
-      'is_checked': isChecked ? 1 : 0, // SQLite에서는 boolean 대신 정수 사용 (0=false, 1=true)
+      'is_checked':
+          isChecked ? 1 : 0, // SQLite에서는 boolean 대신 정수 사용 (0=false, 1=true)
       'due_date': dueDate?.toIso8601String(), // 날짜를 ISO 8601 형식 문자열로 저장
-      'completed_date': completedDate?.toIso8601String(), // 완료 날짜도 ISO 8601 형식으로 저장
+      'completed_date':
+          completedDate?.toIso8601String(), // 완료 날짜도 ISO 8601 형식으로 저장
       'user_id': userId,
       'is_synced': isSynced ? 1 : 0,
     };
@@ -78,9 +80,9 @@ extension ChecklistItemX on ChecklistItem {
       completedDate!.day,
     );
 
-    return completed.isAfter(start) && completed.isBefore(end) || 
-      completed.isAtSameMomentAs(start) || 
-      completed.isAtSameMomentAs(DateTime(end.year, end.month, end.day));
+    return completed.isAfter(start) && completed.isBefore(end) ||
+        completed.isAtSameMomentAs(start) ||
+        completed.isAtSameMomentAs(DateTime(end.year, end.month, end.day));
   }
 
   /// 지정된 일 수 이내에 완료 여부 확인
@@ -96,7 +98,8 @@ extension ChecklistItemX on ChecklistItem {
       completedDate!.day,
     );
 
-    return completedDay.isAfter(cutoffDate) || completedDay.isAtSameMomentAs(cutoffDate);
+    return completedDay.isAfter(cutoffDate) ||
+        completedDay.isAtSameMomentAs(cutoffDate);
   }
 
   static ChecklistItem fromMap(Map<String, dynamic> map) {
@@ -106,14 +109,8 @@ extension ChecklistItemX on ChecklistItem {
         text: (map['text'] as String?) ?? '', // null 안전성 추가
         subtext: map['subtext'] as String?,
         isChecked: (map['is_checked'] as int?) == 1, // null 안전성 추가
-        dueDate:
-            map['due_date'] != null
-                ? DateTime.parse(map['due_date'] as String)
-                : null,
-        completedDate:
-            map['completed_date'] != null
-                ? DateTime.parse(map['completed_date'] as String)
-                : null,
+        dueDate: _parseNullableDateTime(map['due_date']),
+        completedDate: _parseNullableDateTime(map['completed_date']),
         userId: map['user_id'] as String? ?? '',
         isSynced: (map['is_synced'] as int?) == 1,
       );
@@ -125,6 +122,21 @@ extension ChecklistItemX on ChecklistItem {
         text: (map['text'] as String?) ?? '항목',
         userId: map['user_id'] as String? ?? '',
       );
+    }
+  }
+
+  /// 날짜 파싱을 위한 도우미 메서드
+  static DateTime? _parseNullableDateTime(dynamic value) {
+    if (value == null) return null;
+
+    final stringValue = value.toString().trim();
+    if (stringValue.isEmpty) return null;
+
+    try {
+      return DateTime.parse(stringValue);
+    } catch (e) {
+      debugPrint('날짜 파싱 실패: "$stringValue" - $e');
+      return null;
     }
   }
 }
