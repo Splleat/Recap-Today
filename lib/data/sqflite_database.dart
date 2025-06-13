@@ -773,6 +773,7 @@ class SqfliteDatabase implements AbstractDatabase {
 
       for (var diary in diaries) {
         batch.insert('diaries', {
+          'id': diary['id'],
           'date': diary['date'],
           'title': diary['title'] ?? '',
           'content': diary['content'] ?? '',
@@ -834,13 +835,13 @@ class SqfliteDatabase implements AbstractDatabase {
           'id': schedule['id'],
           'text': schedule['text'],
           'sub_text': schedule['subText'] ?? '',
+          'day_of_week': schedule['dayOfWeek'],
           'selected_date': schedule['selectedDate'],
+          'is_routine': schedule['isRoutine'] ? 1 : 0,
           'start_time_hour': schedule['startTimeHour'],
           'start_time_minute': schedule['startTimeMinute'],
           'end_time_hour': schedule['endTimeHour'],
           'end_time_minute': schedule['endTimeMinute'],
-          'is_routine': schedule['isRoutine'] ? 1 : 0,
-          'day_of_week': schedule['dayOfWeek'],
           'color_value': schedule['colorValue'],
           'has_alarm': schedule['hasAlarm'] ? 1 : 0,
           'alarm_offset_in_minutes': schedule['alarmOffset'],
@@ -868,11 +869,12 @@ class SqfliteDatabase implements AbstractDatabase {
 
       for (var appUsage in appUsages) {
         batch.insert('app_usage', {
+          'id': appUsage['id'],
           'date': appUsage['date'],
           'package_name': appUsage['packageName'],
           'app_name': appUsage['appName'],
           'usage_time': int.parse(appUsage['usageTimeInMillis'].toString()),
-          'app_icon_path': null,
+          'app_icon_path': appUsage['appIconPath'] ?? '',
           'user_id': appUsage['userId'],
           'is_synced': 1,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -930,8 +932,6 @@ class SqfliteDatabase implements AbstractDatabase {
           'user_id': location['userId'],
           'latitude': location['latitude'],
           'longitude': location['longitude'],
-          'accuracy': location['accuracy'],
-          'address': location['address'],
           'timestamp': location['timestamp'],
           'is_synced': 1,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -953,10 +953,9 @@ class SqfliteDatabase implements AbstractDatabase {
 
       for (var step in steps) {
         batch.insert('steps', {
+          'id': step['id'],
           'date': step['date'],
           'step_count': step['stepCount'],
-          'distance': step['distance'],
-          'calories': step['calories'],
           'user_id': step['userId'],
           'is_synced': 1,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -981,6 +980,7 @@ class SqfliteDatabase implements AbstractDatabase {
 
       for (var aiFeedback in aiFeedbacks) {
         batch.insert('ai_feedback', {
+          'id': aiFeedback['id'],
           'date': aiFeedback['date'],
           'feedback_text': aiFeedback['feedbackText'],
           'user_id': aiFeedback['userId'],

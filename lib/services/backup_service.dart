@@ -141,8 +141,6 @@ class BackupService {
                   'userId': l['user_id'],
                   'latitude': l['latitude'],
                   'longitude': l['longitude'],
-                  'accuracy': l['accuracy'],
-                  'address': l['address'] ?? '',
                   'timestamp': l['timestamp'],
                 },
               )
@@ -155,8 +153,6 @@ class BackupService {
                   'id': s['id'],
                   'date': s['date'],
                   'stepCount': s['step_count'],
-                  'distance': s['distance'] ?? 0,
-                  'calories': s['calories'] ?? 0,
                   'userId': s['user_id'],
                 },
               )
