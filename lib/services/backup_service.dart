@@ -239,11 +239,12 @@ class BackupService {
             'message': '복원할 데이터가 없습니다.',
           };
         }
-
         developer.log(
           '서버 응답 데이터 구조: ${response.data.keys}',
           name: 'BackupService',
         );
+
+        developer.log('서버 응답 전체 데이터: ${response.data}', name: 'BackupService');
 
         // 'data' 필드가 있는지 확인, 없으면 response.data 자체를 사용
         final restoredData = response.data['data'] ?? response.data;
