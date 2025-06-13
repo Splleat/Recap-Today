@@ -388,9 +388,7 @@ class BackupService {
           '로컬 데이터베이스 초기화 완료',
           name: 'BackupService',
         ); // 각 데이터 타입별로 복원
-        int totalRestored = 0;
-
-        // 일기 데이터 복원
+        int totalRestored = 0; // 일기 데이터 복원
         if (restoredData is Map && restoredData['diaries'] != null) {
           final diaries = restoredData['diaries'] as List;
           await database.restoreDiaries(diaries);
@@ -398,7 +396,79 @@ class BackupService {
           developer.log(
             '일기 데이터 복원 완료: ${diaries.length}개',
             name: 'BackupService',
-          );
+          ); // 일기에 포함된 사진 파일들을 서버에서 다운로드
+          try {
+            final List<String> allPhotoFileNames = [];
+            for (var diary in diaries) {
+              final photoPaths = diary['photoPaths'];
+              developer.log(
+                '일기 사진 경로 디버깅: $photoPaths (타입: ${photoPaths.runtimeType})',
+                name: 'BackupService',
+              );
+
+              if (photoPaths != null) {
+                List<dynamic> photoPathsList = [];
+
+                // photoPaths가 문자열인 경우 JSON 파싱 시도
+                if (photoPaths is String) {
+                  try {
+                    photoPathsList = jsonDecode(photoPaths);
+                    developer.log(
+                      'JSON 파싱 성공: $photoPathsList',
+                      name: 'BackupService',
+                    );
+                  } catch (e) {
+                    developer.log('JSON 파싱 실패: $e', name: 'BackupService');
+                    continue;
+                  }
+                } else if (photoPaths is List) {
+                  photoPathsList = photoPaths;
+                  developer.log(
+                    '이미 배열 형태: $photoPathsList',
+                    name: 'BackupService',
+                  );
+                }
+
+                for (var photoPath in photoPathsList) {
+                  if (photoPath is String && photoPath.isNotEmpty) {
+                    allPhotoFileNames.add(photoPath);
+                    developer.log(
+                      '사진 파일명 추가: $photoPath',
+                      name: 'BackupService',
+                    );
+                  }
+                }
+              }
+            }
+
+            developer.log(
+              '수집된 전체 사진 파일명: $allPhotoFileNames',
+              name: 'BackupService',
+            );
+
+            if (allPhotoFileNames.isNotEmpty) {
+              developer.log(
+                '서버에서 사진 파일 다운로드 시작: ${allPhotoFileNames.length}개',
+                name: 'BackupService',
+              );
+
+              final downloadedPaths =
+                  await PhotoBackupUtil.downloadPhotosFromServer(
+                    allPhotoFileNames,
+                    userId,
+                  );
+
+              developer.log(
+                '서버에서 사진 파일 다운로드 완료: ${downloadedPaths.length}개',
+                name: 'BackupService',
+              );
+            } else {
+              developer.log('다운로드할 사진 파일이 없습니다', name: 'BackupService');
+            }
+          } catch (e) {
+            developer.log('사진 파일 다운로드 중 오류: $e', name: 'BackupService');
+            // 사진 다운로드 실패는 치명적이지 않으므로 계속 진행
+          }
         }
 
         // 체크리스트 데이터 복원
