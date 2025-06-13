@@ -62,6 +62,22 @@ class _DiaryWidgetState extends State<DiaryWidget> {
         _titleController.text = diary.title;
         _contentController.text = diary.content;
         _photoPaths = List<String>.from(diary.photoPaths);
+
+        // 디버깅: 복원된 사진 경로 정보 출력
+        debugPrint('📸 로딩된 일기의 사진 경로 개수: ${diary.photoPaths.length}');
+        for (int i = 0; i < diary.photoPaths.length; i++) {
+          debugPrint('📸 사진 경로 $i: ${diary.photoPaths[i]}');
+          // 실제 파일 존재 여부 확인
+          FileManager.getAbsolutePath(diary.photoPaths[i])
+              .then((absPath) {
+                final file = File(absPath);
+                final exists = file.existsSync();
+                debugPrint('📸 파일 존재 여부 $i: $absPath -> $exists');
+              })
+              .catchError((e) {
+                debugPrint('📸 파일 경로 확인 오류 $i: $e');
+              });
+        }
       } else {
         // 해당 날짜에 일기가 없으면 컨트롤러 초기화
         _titleController.clear();

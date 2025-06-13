@@ -11,6 +11,7 @@ import 'package:recap_today/data/abstract_database.dart';
 import 'package:recap_today/data/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:developer' as developer;
+import 'dart:convert'; // jsonEncode 사용을 위한 import
 
 // SQLite 데이터베이스 접근을 위한 구현 클래스
 // AbstractDatabase 인터페이스를 구현하여 애플리케이션과 데이터베이스 사이의 중간 계층 역할
@@ -783,12 +784,32 @@ class SqfliteDatabase implements AbstractDatabase {
 
       for (var diary in diaries) {
         // 서버의 문자열 ID는 제외하고, 로컬 데이터베이스의 자동 증가 ID 사용
+        String photoPaths = diary['photoPaths'] ?? '[]';
+        // photoPaths가 빈 문자열이거나 null인 경우 빈 JSON 배열로 설정
+        if (photoPaths.isEmpty || photoPaths.trim().isEmpty) {
+          photoPaths = '[]';
+        }
+
+        // 디버깅: 복원되는 일기의 사진 경로 정보 출력
+        developer.log(
+          '📸 복원 중인 일기: ${diary['title'] ?? '제목 없음'}',
+          name: 'SqfliteDatabase',
+        );
+        developer.log(
+          '📸 원본 photoPaths: ${diary['photoPaths']}',
+          name: 'SqfliteDatabase',
+        );
+        developer.log(
+          '📸 처리된 photoPaths: $photoPaths',
+          name: 'SqfliteDatabase',
+        );
+
         batch.insert('diaries', {
           // 'id': diary['id'], // 서버의 문자열 ID 제외
           'date': diary['date'],
           'title': diary['title'] ?? '',
           'content': diary['content'] ?? '',
-          'photo_paths': diary['photoPaths'] ?? '',
+          'photo_paths': photoPaths,
           'user_id': diary['userId'],
           'is_synced': 1,
         }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -1048,5 +1069,31 @@ class SqfliteDatabase implements AbstractDatabase {
       rethrow;
     }
     */
+  }
+
+  /// 특정 날짜 일기의 사진 경로 업데이트 (복원용)
+  Future<void> updateDiaryPhotoPaths(
+    String date,
+    String userId,
+    List<String> photoPaths,
+  ) async {
+    try {
+      final db = await database;
+      final photoPathsJson = jsonEncode(photoPaths);
+
+      final result = await db.update(
+        'diaries',
+        {'photo_paths': photoPathsJson},
+        where: 'date = ? AND user_id = ?',
+        whereArgs: [date, userId],
+      );
+
+      debugPrint(
+        '일기 사진 경로 업데이트: $date, 경로 수: ${photoPaths.length}, 업데이트된 행: $result',
+      );
+    } catch (e) {
+      debugPrint('일기 사진 경로 업데이트 중 오류: $e');
+      rethrow;
+    }
   }
 }

@@ -36,8 +36,11 @@ class FileManager {
 
   /// 상대 경로에서 절대 경로 얻기
   static Future<String> getAbsolutePath(String relativePath) async {
+    debugPrint('🔍 FileManager.getAbsolutePath 호출됨: $relativePath');
+
     if (relativePath.startsWith('/')) {
       // 이미 절대 경로인 경우
+      debugPrint('🔍 절대 경로로 인식됨: $relativePath');
       return relativePath;
     }
 
@@ -50,7 +53,12 @@ class FileManager {
     }
 
     final directory = await getApplicationDocumentsDirectory();
-    return path.join(directory.path, 'diary_photos', fileName);
+    final absolutePath = path.join(directory.path, 'diary_photos', fileName);
+
+    debugPrint('🔍 계산된 절대 경로: $absolutePath');
+    debugPrint('🔍 파일 존재 여부: ${File(absolutePath).existsSync()}');
+
+    return absolutePath;
   }
 
   /// 고유한 파일명 생성
