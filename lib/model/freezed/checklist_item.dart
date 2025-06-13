@@ -104,23 +104,38 @@ extension ChecklistItemX on ChecklistItem {
 
   static ChecklistItem fromMap(Map<String, dynamic> map) {
     try {
+      debugPrint('ChecklistItem fromMap 파싱 중: $map');
+
+      // 서버 데이터와 로컬 데이터베이스 필드명 차이 처리
+      final bool isChecked =
+          map['isChecked'] is bool
+              ? map['isChecked'] as bool
+              : (map['is_checked'] as int?) == 1;
+
+      final bool isSynced =
+          map['isSynced'] is bool
+              ? map['isSynced'] as bool
+              : (map['is_synced'] as int?) == 1;
+
       return ChecklistItem(
         id: map['id'] as String,
         text: (map['text'] as String?) ?? '', // null 안전성 추가
         subtext: map['subtext'] as String?,
-        isChecked: (map['is_checked'] as int?) == 1, // null 안전성 추가
-        dueDate: _parseNullableDateTime(map['due_date']),
-        completedDate: _parseNullableDateTime(map['completed_date']),
-        userId: map['user_id'] as String? ?? '',
-        isSynced: (map['is_synced'] as int?) == 1,
+        isChecked: isChecked,
+        dueDate: _parseNullableDateTime(map['dueDate'] ?? map['due_date']),
+        completedDate: _parseNullableDateTime(
+          map['completedDate'] ?? map['completed_date'],
+        ),
+        userId: map['userId'] as String? ?? map['user_id'] as String? ?? '',
+        isSynced: isSynced,
       );
     } catch (e) {
       // 데이터 파싱 오류 시 기본값을 사용한 항목 반환
-      debugPrint('ChecklistItem 파싱 중 오류 발생: $e');
+      debugPrint('ChecklistItem 파싱 중 오류 발생: $e, 맵 데이터: $map');
       return ChecklistItem(
         id: map['id'] as String? ?? UniqueKey().toString(),
         text: (map['text'] as String?) ?? '항목',
-        userId: map['user_id'] as String? ?? '',
+        userId: map['userId'] as String? ?? map['user_id'] as String? ?? '',
       );
     }
   }

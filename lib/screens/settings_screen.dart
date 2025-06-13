@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Import Provider
 import 'package:recap_today/provider/login_provider.dart'; // Import LoginProvider
+import 'package:recap_today/provider/checklist_provider.dart';
+import 'package:recap_today/provider/schedule_provider.dart';
+import 'package:recap_today/provider/diary_provider.dart';
 import 'package:recap_today/widget/background.dart';
 import 'package:recap_today/screens/login_screen.dart';
 import 'package:recap_today/screens/signup_screen.dart';
@@ -151,6 +154,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
       try {
         final result = await BackupService.restoreAllData(userId);
         Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+
+        // 복원이 성공했다면 모든 Provider를 새로고침
+        if (result['success'] == true) {
+          // ChecklistProvider 새로고침
+          final checklistProvider = Provider.of<ChecklistProvider>(
+            context,
+            listen: false,
+          );
+          await checklistProvider.refreshItems();
+
+          // ScheduleProvider 새로고침
+          final scheduleProvider = Provider.of<ScheduleProvider>(
+            context,
+            listen: false,
+          );
+          await scheduleProvider.refreshItems();
+
+          // DiaryProvider 새로고침
+          final diaryProvider = Provider.of<DiaryProvider>(
+            context,
+            listen: false,
+          );
+          await diaryProvider.loadDiaries();
+        }
 
         // 결과 다이얼로그 표시
         showDialog(

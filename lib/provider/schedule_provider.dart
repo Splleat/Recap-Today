@@ -11,14 +11,14 @@ class ScheduleProvider extends ChangeNotifier {
 
   List<ScheduleItem> get items => _items;
 
-  ScheduleProvider({required LoginProvider loginProvider}) 
-      : _loginProvider = loginProvider {
-      _loginProvider.addListener(() {
-        // 로그인 상태가 변경될 때마다 아이템을 새로 로드
-        _loadItems();
-      });
+  ScheduleProvider({required LoginProvider loginProvider})
+    : _loginProvider = loginProvider {
+    _loginProvider.addListener(() {
+      // 로그인 상태가 변경될 때마다 아이템을 새로 로드
+      _loadItems();
+    });
   }
-  
+
   // userId getter를 LoginProvider에서 가져오도록 수정
   String get userId => _loginProvider.activeUserId;
 
@@ -37,6 +37,11 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
+  /// 외부에서 호출할 수 있는 새로고침 메서드
+  Future<void> refreshItems() async {
+    await _loadItems();
+  }
+
   ScheduleItem? getItemById(String id) {
     return _items.firstWhereOrNull((item) => item.id == id);
   }
@@ -50,7 +55,7 @@ class ScheduleProvider extends ChangeNotifier {
       debugPrint('날짜: ${item.selectedDate}');
       debugPrint('요일: ${item.dayOfWeek}');
       debugPrint('루틴여부: ${item.isRoutine}');
-      debugPrint('사용자 ID: ${item.userId ?? "로컬 사용자"}');
+      debugPrint('사용자 ID: ${item.userId}');
       debugPrint('==== 일정 추가 정보 끝 ====');
 
       await _dbHelper.insertScheduleItem(item);
@@ -121,14 +126,20 @@ class ScheduleProvider extends ChangeNotifier {
   }
 
   // Get both routine items for dayOfWeek and specific date items
-  Future<List<ScheduleItem>> getDailySchedule(int dayOfWeek, String date, String userId) async {
+  Future<List<ScheduleItem>> getDailySchedule(
+    int dayOfWeek,
+    String date,
+    String userId,
+  ) async {
     try {
       // Get all items
       await _loadItems();
 
       // Filter routine items by day of week
-      final routineItems = _items.where((item) =>
-          item.isRoutine && item.dayOfWeek == dayOfWeek).toList();
+      final routineItems =
+          _items
+              .where((item) => item.isRoutine && item.dayOfWeek == dayOfWeek)
+              .toList();
 
       // Get specific date items
       final dateItems = await getItemsByDate(date, userId);

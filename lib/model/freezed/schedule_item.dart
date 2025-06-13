@@ -7,7 +7,8 @@ part 'schedule_item.freezed.dart';
 part 'schedule_item.g.dart';
 
 // Custom JSON converters for TimeOfDay and Color
-class TimeOfDayConverter implements JsonConverter<TimeOfDay, Map<String, dynamic>> {
+class TimeOfDayConverter
+    implements JsonConverter<TimeOfDay, Map<String, dynamic>> {
   const TimeOfDayConverter();
 
   @override
@@ -49,9 +50,9 @@ abstract class ScheduleItem with _$ScheduleItem {
     @Default(false) bool isSynced,
   }) = _ScheduleItem;
 
-  factory ScheduleItem.fromJson(Map<String, dynamic> json) => 
+  factory ScheduleItem.fromJson(Map<String, dynamic> json) =>
       _$ScheduleItemFromJson(json);
-      
+
   /// 신규 일정 생성을 위한 팩토리 생성자
   factory ScheduleItem.create({
     required String text,
@@ -106,38 +107,90 @@ extension ScheduleItemX on ScheduleItem {
   }
 
   static ScheduleItem fromMap(Map<String, dynamic> map) {
-    DateTime? date;
-    if (map['selected_date'] != null) {
-      try {
-        date = DateTime.parse(map['selected_date']);
-      } catch (e) {
-        debugPrint('날짜 파싱 오류: $e');
-      }
-    }
+    try {
+      debugPrint('ScheduleItem fromMap 파싱 중: $map');
 
-    return ScheduleItem(
-      id: map['id'] as String,
-      text: map['text'] as String,
-      subText: map['sub_text'] as String?,
-      dayOfWeek: map['day_of_week'] as int?,
-      selectedDate: date,
-      isRoutine: (map['is_routine'] as int?) == 1,
-      startTime: TimeOfDay(
-        hour: (map['start_time_hour'] as int?) ?? 0,
-        minute: (map['start_time_minute'] as int?) ?? 0,
-      ),
-      endTime: TimeOfDay(
-        hour: (map['end_time_hour'] as int?) ?? 0,
-        minute: (map['end_time_minute'] as int?) ?? 0,
-      ),
-      color: map['color_value'] != null ? Color(map['color_value'] as int) : Colors.lightBlueAccent,
-      hasAlarm: (map['has_alarm'] as int?) == 1,
-      alarmOffset: map['alarm_offset_in_minutes'] != null 
-          ? Duration(minutes: map['alarm_offset_in_minutes'] as int) 
-          : const Duration(hours: 1),
-      userId: map['user_id'] as String? ?? '',
-      isSynced: (map['is_synced'] as int?) == 1,
-    );
+      DateTime? date;
+      final selectedDateValue = map['selectedDate'] ?? map['selected_date'];
+      if (selectedDateValue != null) {
+        try {
+          date = DateTime.parse(selectedDateValue.toString());
+        } catch (e) {
+          debugPrint('날짜 파싱 오류: $e');
+        }
+      }
+
+      // 서버 데이터와 로컬 데이터베이스 필드명 차이 처리
+      final bool isRoutine =
+          map['isRoutine'] is bool
+              ? map['isRoutine'] as bool
+              : (map['is_routine'] as int?) == 1;
+
+      final bool hasAlarm =
+          map['hasAlarm'] is bool
+              ? map['hasAlarm'] as bool
+              : (map['has_alarm'] as int?) == 1;
+
+      final bool isSynced =
+          map['isSynced'] is bool
+              ? map['isSynced'] as bool
+              : (map['is_synced'] as int?) == 1;
+
+      return ScheduleItem(
+        id: map['id'] as String,
+        text: map['text'] as String,
+        subText: map['subText'] as String? ?? map['sub_text'] as String?,
+        dayOfWeek: map['dayOfWeek'] as int? ?? map['day_of_week'] as int?,
+        selectedDate: date,
+        isRoutine: isRoutine,
+        startTime: TimeOfDay(
+          hour:
+              (map['startTimeHour'] as int?) ??
+              (map['start_time_hour'] as int?) ??
+              0,
+          minute:
+              (map['startTimeMinute'] as int?) ??
+              (map['start_time_minute'] as int?) ??
+              0,
+        ),
+        endTime: TimeOfDay(
+          hour:
+              (map['endTimeHour'] as int?) ??
+              (map['end_time_hour'] as int?) ??
+              0,
+          minute:
+              (map['endTimeMinute'] as int?) ??
+              (map['end_time_minute'] as int?) ??
+              0,
+        ),
+        color:
+            (map['colorValue'] as int?) != null
+                ? Color(map['colorValue'] as int)
+                : (map['color_value'] as int?) != null
+                ? Color(map['color_value'] as int)
+                : Colors.lightBlueAccent,
+        hasAlarm: hasAlarm,
+        alarmOffset:
+            (map['alarmOffset'] as int?) != null
+                ? Duration(minutes: map['alarmOffset'] as int)
+                : (map['alarm_offset_in_minutes'] as int?) != null
+                ? Duration(minutes: map['alarm_offset_in_minutes'] as int)
+                : const Duration(hours: 1),
+        userId: map['userId'] as String? ?? map['user_id'] as String? ?? '',
+        isSynced: isSynced,
+      );
+    } catch (e) {
+      debugPrint('ScheduleItem 파싱 중 오류 발생: $e, 맵 데이터: $map');
+      // 기본값으로 항목 생성
+      return ScheduleItem(
+        id: map['id'] as String? ?? const Uuid().v4(),
+        text: (map['text'] as String?) ?? '일정',
+        isRoutine: false,
+        startTime: const TimeOfDay(hour: 9, minute: 0),
+        endTime: const TimeOfDay(hour: 10, minute: 0),
+        userId: map['userId'] as String? ?? map['user_id'] as String? ?? '',
+      );
+    }
   }
 
   /// 시작 시간을 24시간 형식의 double 값으로 변환 (정렬용)

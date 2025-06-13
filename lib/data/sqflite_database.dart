@@ -863,6 +863,20 @@ class SqfliteDatabase implements AbstractDatabase {
       final batch = db.batch();
 
       for (var schedule in schedules) {
+        // 디버깅 로그 추가
+        developer.log(
+          '복원 중인 일정: ${schedule['text']} - 루틴: ${schedule['isRoutine']}',
+          name: 'SqfliteDatabase',
+        );
+
+        // 알람 오프셋 분 단위 변환 처리
+        int? alarmOffsetMinutes;
+        if (schedule['alarmOffset'] != null) {
+          alarmOffsetMinutes = schedule['alarmOffset'] as int;
+        } else if (schedule['alarm_offset_in_minutes'] != null) {
+          alarmOffsetMinutes = schedule['alarm_offset_in_minutes'] as int;
+        }
+
         batch.insert('schedule_items', {
           'id': schedule['id'],
           'text': schedule['text'],
@@ -870,13 +884,13 @@ class SqfliteDatabase implements AbstractDatabase {
           'day_of_week': schedule['dayOfWeek'],
           'selected_date': schedule['selectedDate'],
           'is_routine': schedule['isRoutine'] == true ? 1 : 0,
-          'start_time_hour': schedule['startTimeHour'],
-          'start_time_minute': schedule['startTimeMinute'],
-          'end_time_hour': schedule['endTimeHour'],
-          'end_time_minute': schedule['endTimeMinute'],
-          'color_value': schedule['colorValue'],
+          'start_time_hour': schedule['startTimeHour'] ?? 0,
+          'start_time_minute': schedule['startTimeMinute'] ?? 0,
+          'end_time_hour': schedule['endTimeHour'] ?? 0,
+          'end_time_minute': schedule['endTimeMinute'] ?? 0,
+          'color_value': schedule['colorValue'] ?? 0,
           'has_alarm': schedule['hasAlarm'] == true ? 1 : 0,
-          'alarm_offset_in_minutes': schedule['alarmOffset'],
+          'alarm_offset_in_minutes': alarmOffsetMinutes ?? 0,
           'user_id': schedule['userId'],
           'is_synced': 1,
         }, conflictAlgorithm: ConflictAlgorithm.replace);

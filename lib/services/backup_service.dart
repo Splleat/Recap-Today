@@ -480,17 +480,18 @@ class BackupService {
             '체크리스트 데이터 복원 완료: ${checklists.length}개',
             name: 'BackupService',
           );
-        }
-
-        // 일정 데이터 복원
+        } // 일정 데이터 복원
         if (restoredData is Map && restoredData['schedules'] != null) {
           final schedules = restoredData['schedules'] as List;
+          developer.log('서버에서 받은 일정 데이터: $schedules', name: 'BackupService');
           await database.restoreSchedules(schedules);
           totalRestored += schedules.length;
           developer.log(
             '일정 데이터 복원 완료: ${schedules.length}개',
             name: 'BackupService',
           );
+        } else {
+          developer.log('서버 응답에 일정 데이터가 없습니다', name: 'BackupService');
         }
 
         // 앱 사용량 데이터 복원
