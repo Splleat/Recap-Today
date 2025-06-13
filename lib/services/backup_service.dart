@@ -83,7 +83,6 @@ class BackupService {
                 },
               )
               .toList();
-
       final mappedSchedules =
           schedules
               .map(
@@ -91,8 +90,11 @@ class BackupService {
                   'id': s['id'],
                   'text': s['text'],
                   'subText': s['sub_text'] ?? '',
-                  'dayOfWeek': s['day_of_week'] ?? 0,
-                  'selectedDate': s['selected_date'] ?? '',
+                  'dayOfWeek': s['day_of_week'],
+                  'selectedDate':
+                      s['selected_date'] != null && s['selected_date'] != ''
+                          ? s['selected_date']
+                          : null,
                   'isRoutine': s['is_routine'] == 1,
                   'startTimeHour': s['start_time_hour'] ?? 0,
                   'startTimeMinute': s['start_time_minute'] ?? 0,
@@ -227,22 +229,48 @@ class BackupService {
       final response = await DioClient.dio.post('/backup/restore/$userId');
 
       developer.log('서버 응답 수신: ${response.statusCode}', name: 'BackupService');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final restoredData = response.data['data'];
+        // 서버 응답 데이터 구조 검증
+        if (response.data == null) {
+          developer.log('서버 응답 데이터가 null입니다', name: 'BackupService');
+          return {
+            'success': false,
+            'error': '서버 응답 데이터가 없습니다',
+            'message': '복원할 데이터가 없습니다.',
+          };
+        }
+
+        developer.log(
+          '서버 응답 데이터 구조: ${response.data.keys}',
+          name: 'BackupService',
+        );
+
+        // 'data' 필드가 있는지 확인, 없으면 response.data 자체를 사용
+        final restoredData = response.data['data'] ?? response.data;
+
+        if (restoredData == null) {
+          developer.log('복원할 데이터가 없습니다', name: 'BackupService');
+          return {
+            'success': false,
+            'error': '복원할 데이터가 없습니다',
+            'message': '서버에 백업된 데이터가 없습니다.',
+          };
+        }
+
         developer.log('서버에서 데이터 수신 완료', name: 'BackupService');
 
         // 로컬 데이터베이스 초기화 및 복원된 데이터 저장
         developer.log('로컬 데이터베이스 초기화 시작', name: 'BackupService');
         final database = SqfliteDatabase();
         await database.clearAllData();
-        developer.log('로컬 데이터베이스 초기화 완료', name: 'BackupService');
-
-        // 각 데이터 타입별로 복원
+        developer.log(
+          '로컬 데이터베이스 초기화 완료',
+          name: 'BackupService',
+        ); // 각 데이터 타입별로 복원
         int totalRestored = 0;
 
         // 일기 데이터 복원
-        if (restoredData['diaries'] != null) {
+        if (restoredData is Map && restoredData['diaries'] != null) {
           final diaries = restoredData['diaries'] as List;
           await database.restoreDiaries(diaries);
           totalRestored += diaries.length;
@@ -253,7 +281,7 @@ class BackupService {
         }
 
         // 체크리스트 데이터 복원
-        if (restoredData['checklists'] != null) {
+        if (restoredData is Map && restoredData['checklists'] != null) {
           final checklists = restoredData['checklists'] as List;
           await database.restoreChecklists(checklists);
           totalRestored += checklists.length;
@@ -264,7 +292,7 @@ class BackupService {
         }
 
         // 일정 데이터 복원
-        if (restoredData['schedules'] != null) {
+        if (restoredData is Map && restoredData['schedules'] != null) {
           final schedules = restoredData['schedules'] as List;
           await database.restoreSchedules(schedules);
           totalRestored += schedules.length;
@@ -275,7 +303,7 @@ class BackupService {
         }
 
         // 앱 사용량 데이터 복원
-        if (restoredData['appUsages'] != null) {
+        if (restoredData is Map && restoredData['appUsages'] != null) {
           final appUsages = restoredData['appUsages'] as List;
           await database.restoreAppUsages(appUsages);
           totalRestored += appUsages.length;
@@ -283,10 +311,8 @@ class BackupService {
             '앱 사용량 데이터 복원 완료: ${appUsages.length}개',
             name: 'BackupService',
           );
-        }
-
-        // 감정 기록 데이터 복원
-        if (restoredData['emotions'] != null) {
+        } // 감정 기록 데이터 복원
+        if (restoredData is Map && restoredData['emotions'] != null) {
           final emotions = restoredData['emotions'] as List;
           await database.restoreEmotions(emotions);
           totalRestored += emotions.length;
@@ -297,7 +323,7 @@ class BackupService {
         }
 
         // 위치 기록 데이터 복원
-        if (restoredData['locations'] != null) {
+        if (restoredData is Map && restoredData['locations'] != null) {
           final locations = restoredData['locations'] as List;
           await database.restoreLocations(locations);
           totalRestored += locations.length;
@@ -308,7 +334,7 @@ class BackupService {
         }
 
         // 걸음 수 데이터 복원
-        if (restoredData['steps'] != null) {
+        if (restoredData is Map && restoredData['steps'] != null) {
           final steps = restoredData['steps'] as List;
           await database.restoreSteps(steps);
           totalRestored += steps.length;
@@ -319,7 +345,7 @@ class BackupService {
         }
 
         // AI 피드백 데이터 복원
-        if (restoredData['aiFeedbacks'] != null) {
+        if (restoredData is Map && restoredData['aiFeedbacks'] != null) {
           final aiFeedbacks = restoredData['aiFeedbacks'] as List;
           await database.restoreAiFeedbacks(aiFeedbacks);
           totalRestored += aiFeedbacks.length;
@@ -327,8 +353,10 @@ class BackupService {
             'AI 피드백 데이터 복원 완료: ${aiFeedbacks.length}개',
             name: 'BackupService',
           );
-        } // 사진 데이터 복원 - 일기의 photo_paths 필드로 이미 복원되므로 별도 처리 불필요
-        if (restoredData['photos'] != null) {
+        }
+
+        // 사진 데이터 복원 - 일기의 photo_paths 필드로 이미 복원되므로 별도 처리 불필요
+        if (restoredData is Map && restoredData['photos'] != null) {
           final photos = restoredData['photos'] as List;
           developer.log(
             '사진 데이터는 일기의 photo_paths 필드로 이미 복원됨: ${photos.length}개 스킵',
